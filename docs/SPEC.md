@@ -21,6 +21,9 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 | Offers visibility [P2] | Chosen **per listing by the owner**: `public` / `amounts_only` / `private`. Bidders may also choose to appear as "مجهول". |
 | Location privacy | Chosen **per listing by the owner**: `exact` pin or `approximate` (~300 m) |
 | Dev environment | VS Code + Claude Code, PostgreSQL/PostGIS via Docker, `.env` for secrets |
+| Hosting | App server on **GoDaddy Node.js Hosting (Node 22)**. Port read from `process.env.PORT`. `engines.node` is `>=22.12 <23` (22.12 is the minimum Vite/Vitest support). |
+| Production database | **Managed PostgreSQL + PostGIS (Supabase or Neon)**, connected via `DATABASE_URL`. The database is **not** hosted at GoDaddy; Docker PostGIS is for local development only. |
+| Image storage | Always behind the storage interface. Local disk (`LocalDiskStorage`, served at `/uploads`) in development only; **production uses object storage (Cloudinary or Cloudflare R2)**. |
 
 ---
 
@@ -30,7 +33,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 - **Routing/SSR:** React Router v7 framework mode. Public pages (map, listing detail, SEO pages) are server-rendered. Use loaders/actions for page data; the same service layer also backs `/api/v1`.
 - **Server:** Express app using `@react-router/express`. Mounts:
   - `/api/v1/*` → REST API (JSON, used by client-side map interactions and future mobile apps)
-  - `/uploads/*` → static images (dev storage)
+  - `/uploads/*` → static images (development only, `LocalDiskStorage`; production serves images from object storage)
   - `*` → React Router handler
   - socket.io on the same HTTP server **[P2]**
 - **DB access:** Knex (migrations + query builder). PostGIS operations via parameterized `knex.raw` with `?` bindings. **Never** string-concatenate SQL.
@@ -38,7 +41,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 - **Styling:** Tailwind CSS using logical utilities (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`) plus `rtl:`/`ltr:` variants. No left/right utilities for layout.
 - **State:** Zustand for client-only state (map view, filters, compare tray [P2]). URL search params are the source of truth for map position and filters.
 - **i18n:** URL-prefixed locales `/ar/...` (default) and `/en/...`. Translation files `app/i18n/ar.json`, `app/i18n/en.json`. `<html lang dir>` set server-side from the locale.
-- **Images:** `sharp` on upload → WebP, max 2000 px long edge + 400 px thumbnail. Storage behind an interface (`LocalDiskStorage` now; S3/Cloudinary later).
+- **Images:** `sharp` on upload → WebP, max 2000 px long edge + 400 px thumbnail. Storage behind an interface: `LocalDiskStorage` in development; object storage (Cloudinary or Cloudflare R2) in production. Code outside the storage service must not assume files live on local disk.
 - **Map:** `maplibre-gl`, MapLibre RTL text plugin (for Arabic labels), built-in GeoJSON clustering, `terra-draw` (MapLibre adapter) for draw-to-search.
 - **Tiles:** style URL from `MAP_STYLE_URL` env (e.g. OpenFreeMap, or MapTiler free tier). Do **not** use `tile.openstreetmap.org` in production (usage policy).
 - **Testing:** Vitest (unit/service), Playwright (a few critical flows) — added from milestone 2 on.
