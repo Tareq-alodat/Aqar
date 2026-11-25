@@ -1,4 +1,6 @@
+import css from "@eslint/css";
 import { RuleTester } from "eslint";
+import { tailwind4 } from "tailwind-csstree";
 import { describe, expect, it } from "vitest";
 import rule, { checkToken } from "./no-physical-direction";
 
@@ -54,6 +56,13 @@ describe("checkToken: mirrored ltr/rtl pairs", () => {
     ["bg-gradient-to-r", "ltr:bg-gradient-to-r", "rtl:bg-gradient-to-l"],
     ["bg-linear-to-tr", "ltr:bg-linear-to-tr", "rtl:bg-linear-to-tl"],
     ["bg-gradient-to-bl", "ltr:bg-gradient-to-bl", "rtl:bg-gradient-to-br"],
+    ["bg-linear-to-r/oklch", "ltr:bg-linear-to-r/oklch", "rtl:bg-linear-to-l/oklch"],
+    ["bg-linear-45", "ltr:bg-linear-45", "rtl:-bg-linear-45"],
+    ["-bg-linear-120", "ltr:-bg-linear-120", "rtl:bg-linear-120"],
+    ["md:bg-linear-90/srgb", "md:ltr:bg-linear-90/srgb", "md:rtl:-bg-linear-90/srgb"],
+    ["bg-linear-[25deg,red_5%,blue]", "ltr:bg-linear-[25deg,red_5%,blue]", "rtl:bg-linear-[-25deg,red_5%,blue]"],
+    ["bg-linear-[-0.25turn,red,blue]", "ltr:bg-linear-[-0.25turn,red,blue]", "rtl:bg-linear-[0.25turn,red,blue]"],
+    ["bg-linear-[to_right,red,blue]", "ltr:bg-linear-[to_right,red,blue]", "rtl:bg-linear-[to_left,red,blue]"],
     ["origin-left", "ltr:origin-left", "rtl:origin-right"],
     ["origin-top-right", "ltr:origin-top-right", "rtl:origin-top-left"],
     ["origin-bottom-left", "ltr:origin-bottom-left", "rtl:origin-bottom-right"],
@@ -72,6 +81,8 @@ describe("checkToken: allowed", () => {
     "translate-x-0", "translate-y-4", "-translate-y-1/2", "ltr:translate-x-4", "rtl:-translate-x-4",
     "bg-linear-to-t", "bg-linear-to-b", "bg-gradient-to-b", "origin-center", "origin-top", "origin-bottom",
     "ltr:origin-top-left", "rtl:bg-linear-to-l",
+    "bg-linear-0", "bg-linear-180", "-bg-linear-180", "bg-linear-to-b/oklch", "bg-linear-[180deg,red,blue]",
+    "bg-linear-[0.5turn,red]", "bg-linear-[red,blue]", "bg-linear-(--my-gradient)", "ltr:bg-linear-45",
     "[margin-inline-start:3px]", "[--left-offset:4px]", "[text-align:center]", "[mask-type:luminance]",
   ])("%s is allowed", (token) => {
     expect(checkToken(token)).toBeNull();
@@ -116,6 +127,41 @@ ruleTester.run("no-physical-direction", rule, {
     {
       code: `<div className="bg-linear-to-r from-primary origin-top-left [margin-left:2px]" />`,
       errors: [{ messageId: "mirror" }, { messageId: "mirror" }, { messageId: "physical" }],
+    },
+  ],
+});
+
+const cssRuleTester = new RuleTester({
+  plugins: { css },
+  language: "css/css",
+  languageOptions: { customSyntax: tailwind4, tolerant: true },
+});
+
+cssRuleTester.run("no-physical-direction (CSS @apply)", rule, {
+  valid: [
+    `.a { @apply ps-4 pe-2 text-start ltr:translate-x-4 rtl:-translate-x-4; }`,
+    `.a { margin-left: 4px; }`, // plain properties are css/prefer-logical-properties' job
+    `@theme { --color-primary: #d4a843; }`,
+    `@custom-variant dark (&:where(.dark, .dark *));`,
+  ],
+  invalid: [
+    {
+      code: `.a { @apply flex md:pl-4 text-right; }`,
+      errors: [
+        { messageId: "physical", data: { token: "md:pl-4", replacement: "md:ps-4" } },
+        { messageId: "physical", data: { token: "text-right", replacement: "text-end" } },
+      ],
+    },
+    {
+      code: `.a { @apply !mr-2 [margin-left:3px]; }`,
+      errors: [{ messageId: "physical" }, { messageId: "physical" }],
+    },
+    {
+      code: `.a:hover { @apply -translate-x-1/2 bg-linear-45; }`,
+      errors: [
+        { messageId: "mirror", data: { token: "-translate-x-1/2", ltr: "ltr:-translate-x-1/2", rtl: "rtl:translate-x-1/2" } },
+        { messageId: "mirror", data: { token: "bg-linear-45", ltr: "ltr:bg-linear-45", rtl: "rtl:-bg-linear-45" } },
+      ],
     },
   ],
 });

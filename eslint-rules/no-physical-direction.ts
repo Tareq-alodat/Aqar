@@ -8,14 +8,16 @@ import type * as ESTree from "estree";
  *
  * Checked: string literals and template-literal text inside `className` /
  * `class` JSX attributes, and inside calls to class helpers (cn, clsx, cva,
- * twMerge, classNames). Utilities under an `rtl:` or `ltr:` variant are allowed,
- * because they are explicitly direction-aware.
+ * twMerge, classNames); in CSS files, the class list of `@apply`. Utilities
+ * under an `rtl:` or `ltr:` variant are allowed, because they are explicitly
+ * direction-aware.
  *
  * Two kinds of finding:
  * - logical: a start/end equivalent exists (`pl-4` → `ps-4`,
  *   `[margin-left:3px]` → `[margin-inline-start:3px]`).
  * - mirror: Tailwind has no logical form (`translate-x-*`, `bg-linear-to-r`,
- *   `origin-top-left`, arbitrary values such as `[background-position:left]`),
+ *   `bg-linear-45`, `origin-top-left`, arbitrary values such as
+ *   `[background-position:left]`),
  *   so the fix is an explicit pair: `ltr:translate-x-4 rtl:-translate-x-4`.
  */
 
@@ -157,6 +159,47 @@ function checkArbitraryProperty(p: ParsedToken, prop: string, value: string): Fi
   return mirror(p, swapLR(p.base));
 }
 
+/** Angle units whose half-turn is vertical (direction-neutral). */
+const HALF_TURN: Readonly<Record<string, number>> = { deg: 180, grad: 200, turn: 0.5 };
+
+/** True if a horizontal flip leaves this angle unchanged (0 or 180°, i.e. purely vertical). */
+function isVerticalAngle(value: number, unit: string): boolean {
+  if (value === 0) return true;
+  const half = HALF_TURN[unit];
+  return half !== undefined && value % half === 0;
+}
+
+/**
+ * Linear gradients point along a physical direction:
+ * - `bg-linear-to-r`, `bg-gradient-to-tl` (optionally `/oklch`) → swap l/r
+ * - `bg-linear-45`, `-bg-linear-45` → flip the sign (θ mirrors to −θ)
+ * - `bg-linear-[25deg,…]` → negate the leading angle; `bg-linear-[to_right,…]` → swap left/right
+ */
+function checkGradient(p: ParsedToken): Finding | null {
+  const { base, negative } = p;
+
+  const side = /^bg-(linear|gradient)-to-(t|b)?(l|r)(\/[\w-]+)?$/.exec(base);
+  if (side) {
+    const [, kind, vertical = "", lr, modifier = ""] = side;
+    return mirror(p, `bg-${kind}-to-${vertical}${lr === "l" ? "r" : "l"}${modifier}`);
+  }
+
+  const angle = /^bg-linear-(\d+)(\/[\w-]+)?$/.exec(base);
+  if (angle) return isVerticalAngle(Number(angle[1]), "deg") ? null : mirror(p, base, !negative);
+
+  const arbitrary = /^bg-linear-\[(.+)\](\/[\w-]+)?$/.exec(base);
+  if (arbitrary) {
+    const [, inner = "", modifier = ""] = arbitrary;
+    if (hasLR(inner)) return mirror(p, swapLR(base));
+    const lead = /^(-?)(\d*\.?\d+)(deg|rad|grad|turn)(?=,|$)/.exec(inner);
+    if (!lead || isVerticalAngle(Number(lead[2]), lead[3]!)) return null;
+    const flipped = (lead[1] ? "" : "-") + inner.slice(lead[1]!.length);
+    return mirror(p, `bg-linear-[${flipped}]${modifier}`);
+  }
+
+  return null;
+}
+
 /** Returns a finding if `token` is a physical (left/right) utility, else null. */
 export function checkToken(token: string): Finding | null {
   const p = parseToken(token);
@@ -174,11 +217,8 @@ export function checkToken(token: string): Finding | null {
   // translate-x moves along the physical x-axis; 0 is direction-neutral.
   if (base.startsWith("translate-x-") && base !== "translate-x-0") return mirror(p, base, !negative);
 
-  const gradient = /^bg-(linear|gradient)-to-(t|b)?(l|r)$/.exec(base);
-  if (gradient) {
-    const [, kind, vertical = "", side] = gradient;
-    return mirror(p, `bg-${kind}-to-${vertical}${side === "l" ? "r" : "l"}`);
-  }
+  const gradient = checkGradient(p);
+  if (gradient) return gradient;
 
   if (base.startsWith("origin-") && hasLR(base)) return mirror(p, swapLR(base));
 
@@ -250,6 +290,13 @@ const rule: Rule.RuleModule = {
         if (isClassHelperCall(node)) {
           for (const arg of node.arguments) checkStrings(arg);
         }
+      },
+      // CSS files (language "css/css" from @eslint/css): `@apply pl-4 …;`
+      "Atrule[name=apply]"(node: unknown) {
+        const atrule = node as { prelude?: unknown };
+        if (!atrule.prelude) return;
+        const text = context.sourceCode.getText(atrule.prelude as ESTree.Node);
+        checkText(node as ESTree.Node, text);
       },
     };
   },
