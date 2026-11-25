@@ -11,11 +11,19 @@ Map-based real estate website for Jordan and the Gulf (phase 1: Jordan only). Ar
 - No paid external APIs.
 
 ## Commands
-(Fill in after milestone 1 scaffolding.)
-- `docker compose up -d` — start PostGIS
-- `npm run dev` — dev server
-- `npm run db:migrate` / `npm run db:seed`
-- `npm run typecheck` / `npm test`
+Node 22 (`>=22.12 <23`, see `.nvmrc`). Copy `.env.example` to `.env` first.
+- `docker compose up -d` — start local PostGIS (dev only; production DB is managed Supabase/Neon)
+- `npm run dev` — Express + Vite dev server with SSR on `PORT` (default 3000); `/` → `/ar/jo/map`
+- `npm run build` / `npm start` — production build (`build/`) and server (`NODE_ENV=production`)
+- `npm run db:migrate` / `npm run db:rollback` / `npm run db:seed` — Knex via `tsx` (`knexfile.ts`)
+- `npm run typecheck` — `react-router typegen` + `tsc --noEmit`
+- `npm test` — Vitest (`*.test.ts` next to the code)
+
+## Layout notes
+- `server/index.ts` — Express entry: `/api/v1` (`server/api`), `/uploads` (dev only), then React Router (`server/app.ts`).
+- `app/routes.ts` — route config: `/:lang` (layout, validates locale) → `:country/map` (validates against `ACTIVE_COUNTRIES` in `app/shared/countries.ts`).
+- i18n: `getT(locale)` / `useT()` in `app/i18n`; plurals are nested objects keyed by `Intl.PluralRules` category (`zero/one/two/few/many/other`), `other` required.
+- Theme: cookie `theme` (`dark` default) read in the root loader; toggled via POST `/theme`.
 
 ## How to work
 - **Review existing code and docs before writing new code.** Before changing a feature, read the files involved and summarize what exists.
