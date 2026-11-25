@@ -12,8 +12,11 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - Layout shell: header with logo, country badge, language switcher and theme toggle (dark default; cookie-backed so SSR renders without a flash). Theme tokens from SPEC §14 (light palette is provisional). Self-hosted Cairo / DM Sans fonts.
 - API: `/api/v1` router; `GET /api/v1/health` returns `{status}` only in production and adds env/node/uptime/DB status in development.
 - Database: Knex (`knexfile.ts`, `db:migrate`/`db:rollback`/`db:seed`), first migration enables PostGIS, `docker-compose.yml` for `postgis/postgis:16-3.4`, published on host port `DB_PORT` (default 5433, so it does not clash with a local PostgreSQL on 5432). Verified: container healthy and the PostGIS migration applies.
-- Vitest: 33 tests covering Arabic/English plurals, ar/en key parity, route-param validation and the health endpoint.
+- ESLint 10 flat config (`eslint.config.ts`): `@eslint/js` + `typescript-eslint` recommended, `react-hooks`, and a local rule `aqar/no-physical-direction` that rejects left/right Tailwind utilities (`pl-`, `mr-`, `left-`, `text-right`, `border-l`, `rounded-tl`, …) in `className`/`class` and `cn`/`clsx`/`cva`/`twMerge` calls, suggesting the logical equivalent; `rtl:`/`ltr:` variants are allowed.
+- Vitest: 73 tests covering Arabic/English plurals, ar/en key parity, route-param validation, the health endpoint and the RTL lint rule.
 - Repo hygiene: `.gitattributes` (LF), extended `.gitignore` (`.env`, `node_modules`, build output, `uploads/`), `.env.example`, `.nvmrc`.
 
 ### Known gaps
+- The RTL lint rule checks class strings in TS/TSX only; `@apply` in CSS is not checked.
+- `react-router typegen`/`build` print a deprecation warning (`envFile` → `envDir: false`) from React Router's own Vite config, not from this repo.
 - Node 22 not verified locally (dev machine runs Node 24); all dependencies declare Node 22.12+ support.
