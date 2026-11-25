@@ -284,7 +284,7 @@ docker-compose.yml        # postgis/postgis
 
 `.env.example`:
 ```
-DATABASE_URL=postgres://aqar:aqar@localhost:5432/aqar
+DATABASE_URL=postgres://aqar:aqar@localhost:5433/aqar
 JWT_SECRET=
 REFRESH_TOKEN_SECRET=
 ENCRYPTION_KEY=          # 32 bytes, base64

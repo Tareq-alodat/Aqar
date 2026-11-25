@@ -11,10 +11,9 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - i18n: `app/i18n/{ar,en}.json` with `t()` supporting interpolation (Western digits) and plurals via `Intl.PluralRules`, including all six Arabic forms.
 - Layout shell: header with logo, country badge, language switcher and theme toggle (dark default; cookie-backed so SSR renders without a flash). Theme tokens from SPEC §14 (light palette is provisional). Self-hosted Cairo / DM Sans fonts.
 - API: `/api/v1` router; `GET /api/v1/health` returns `{status}` only in production and adds env/node/uptime/DB status in development.
-- Database: Knex (`knexfile.ts`, `db:migrate`/`db:rollback`/`db:seed`), first migration enables PostGIS, `docker-compose.yml` for `postgis/postgis:16-3.4`. **Unverified** — Docker is not installed yet.
+- Database: Knex (`knexfile.ts`, `db:migrate`/`db:rollback`/`db:seed`), first migration enables PostGIS, `docker-compose.yml` for `postgis/postgis:16-3.4`, published on host port `DB_PORT` (default 5433, so it does not clash with a local PostgreSQL on 5432). Verified: container healthy and the PostGIS migration applies.
 - Vitest: 33 tests covering Arabic/English plurals, ar/en key parity, route-param validation and the health endpoint.
 - Repo hygiene: `.gitattributes` (LF), extended `.gitignore` (`.env`, `node_modules`, build output, `uploads/`), `.env.example`, `.nvmrc`.
 
 ### Known gaps
 - Node 22 not verified locally (dev machine runs Node 24); all dependencies declare Node 22.12+ support.
-- PostGIS/Docker setup untested. A non-Docker PostgreSQL is already listening on port 5432 on the dev machine, which will conflict with `docker compose up` until it is stopped or the port mapping changes.
