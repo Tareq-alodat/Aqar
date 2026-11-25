@@ -1,0 +1,38 @@
+{
+  "app": {
+    "name": "عقار",
+    "tagline": "ابحث عن عقارك على الخريطة"
+  },
+  "countries": {
+    "jo": "الأردن"
+  },
+  "header": {
+    "home": "الصفحة الرئيسية",
+    "country": "الدولة: {country}",
+    "switchLanguage": "English",
+    "switchLanguageLabel": "Switch to English",
+    "switchToLight": "التبديل إلى المظهر الفاتح",
+    "switchToDark": "التبديل إلى المظهر الداكن"
+  },
+  "map": {
+    "title": "البحث على الخريطة",
+    "filtersPlaceholder": "الفلاتر ستظهر هنا",
+    "listHeading": "نتائج البحث",
+    "mapPlaceholder": "الخريطة قيد الإنشاء",
+    "resultsCount": {
+      "zero": "لا توجد عقارات في هذه المنطقة",
+      "one": "عقار واحد في هذه المنطقة",
+      "two": "عقاران في هذه المنطقة",
+      "few": "{count} عقارات في هذه المنطقة",
+      "many": "{count} عقارًا في هذه المنطقة",
+      "other": "{count} عقار في هذه المنطقة"
+    }
+  },
+  "errors": {
+    "notFoundTitle": "الصفحة غير موجودة",
+    "notFoundBody": "لم نتمكن من العثور على الصفحة التي تبحث عنها.",
+    "genericTitle": "حدث خطأ",
+    "genericBody": "حدث خطأ غير متوقع. حاول مرة أخرى لاحقًا.",
+    "backHome": "العودة إلى الخريطة"
+  }
+}

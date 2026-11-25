@@ -1,4 +1,22 @@
+# Dependencies
 node_modules/
+
+# Environment / secrets (keep the example)
 .env
+.env.*
+!.env.example
+
+# Build output
+build/
 dist/
+.react-router/
+coverage/
+
+# Uploaded files (dev storage)
+uploads/
+
+# Logs & OS / editor files
 *.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

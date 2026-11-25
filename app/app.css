@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@import "@fontsource/cairo/400.css";
+@import "@fontsource/cairo/600.css";
+@import "@fontsource/cairo/700.css";
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/dm-sans/700.css";
+
+/* `dark:` variant follows the theme class on <html> (set server-side from a cookie). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Theme tokens (SPEC §14). Dark is the default; values switch with the
+ * class on <html>. Use these tokens, never ad-hoc hex values in components.
+ */
+:root,
+.dark {
+  --aqar-background: #0f0f13;
+  --aqar-surface: #16161d;
+  --aqar-card: #1c1c26;
+  --aqar-foreground: #f0ede8;
+  --aqar-muted: #8a8795;
+  color-scheme: dark;
+}
+
+/* Light palette is not defined in SPEC §14 yet — provisional values. */
+.light {
+  --aqar-background: #f7f6f3;
+  --aqar-surface: #ffffff;
+  --aqar-card: #efede8;
+  --aqar-foreground: #1a1922;
+  --aqar-muted: #5f5c69;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-background: var(--aqar-background);
+  --color-surface: var(--aqar-surface);
+  --color-card: var(--aqar-card);
+  --color-foreground: var(--aqar-foreground);
+  --color-muted: var(--aqar-muted);
+}
+
+@theme {
+  --color-primary: #d4a843; /* gold — sale */
+  --color-success: #2a9d8f; /* teal — rent */
+  --color-exchange: #8b7fd4; /* purple — exchange */
+  --color-error: #e63946;
+
+  --font-arabic: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-latin: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}

@@ -1,0 +1,23 @@
+# Local development database only. Production uses managed PostgreSQL + PostGIS
+# (Supabase or Neon) — see docs/SPEC.md §0.
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: aqar-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aqar
+      POSTGRES_PASSWORD: aqar # dev-only credentials, matches .env.example
+      POSTGRES_DB: aqar
+    ports:
+      - "5432:5432"
+    volumes:
+      - aqar-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aqar -d aqar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  aqar-pgdata:

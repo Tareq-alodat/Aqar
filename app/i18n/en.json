@@ -1,0 +1,34 @@
+{
+  "app": {
+    "name": "Aqar",
+    "tagline": "Find your property on the map"
+  },
+  "countries": {
+    "jo": "Jordan"
+  },
+  "header": {
+    "home": "Home",
+    "country": "Country: {country}",
+    "switchLanguage": "العربية",
+    "switchLanguageLabel": "التبديل إلى العربية",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
+  },
+  "map": {
+    "title": "Map search",
+    "filtersPlaceholder": "Filters will appear here",
+    "listHeading": "Search results",
+    "mapPlaceholder": "Map coming soon",
+    "resultsCount": {
+      "one": "1 property in this area",
+      "other": "{count} properties in this area"
+    }
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "We couldn't find the page you're looking for.",
+    "genericTitle": "Something went wrong",
+    "genericBody": "An unexpected error occurred. Please try again later.",
+    "backHome": "Back to the map"
+  }
+}

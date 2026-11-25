@@ -1,0 +1,84 @@
+import {
+  Link,
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  isRouteErrorResponse,
+  useFetchers,
+  useRouteLoaderData,
+} from "react-router";
+import type { Route } from "./+types/root";
+import { useLocale, useT } from "./i18n/useT";
+import { DEFAULT_COUNTRY } from "./shared/countries";
+import { DEFAULT_LOCALE, dirFor, localeFromPathname } from "./shared/locales";
+import { DEFAULT_THEME, themeSchema } from "./shared/schemas/theme";
+import { getTheme } from "./utils/theme.server";
+import "./app.css";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const locale = localeFromPathname(new URL(request.url).pathname);
+  const theme = await getTheme(request);
+  return { locale, theme };
+}
+
+/** Theme being submitted by the toggle, so the page switches before the round-trip ends. */
+function usePendingTheme() {
+  const fetcher = useFetchers().find((f) => f.formAction === "/theme" && f.formData);
+  const parsed = themeSchema.safeParse(fetcher?.formData?.get("theme"));
+  return parsed.success ? parsed.data : undefined;
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+  const locale = data?.locale ?? DEFAULT_LOCALE;
+  const theme = usePendingTheme() ?? data?.theme ?? DEFAULT_THEME;
+
+  return (
+    <html lang={locale} dir={dirFor(locale)} className={theme}>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+      </head>
+      <body
+        className={`min-h-dvh bg-background text-foreground antialiased ${
+          locale === "ar" ? "font-arabic" : "font-latin"
+        }`}
+      >
+        {children}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+export default function App() {
+  return <Outlet />;
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const t = useT();
+  const locale = useLocale();
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  const title = t(notFound ? "errors.notFoundTitle" : "errors.genericTitle");
+
+  if (!notFound && import.meta.env.DEV) console.error(error);
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-4 p-6 text-center">
+      <title>{`${title} | ${t("app.name")}`}</title>
+      <h1 className="text-2xl font-bold">{title}</h1>
+      <p className="text-muted">{t(notFound ? "errors.notFoundBody" : "errors.genericBody")}</p>
+      <Link
+        to={`/${locale}/${DEFAULT_COUNTRY}/map`}
+        className="rounded-lg bg-primary px-4 py-2 font-semibold text-background"
+      >
+        {t("errors.backHome")}
+      </Link>
+    </main>
+  );
+}
