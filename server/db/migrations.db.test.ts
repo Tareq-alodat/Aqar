@@ -1,6 +1,7 @@
 import type { Knex } from "knex";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as C from "../../app/shared/constants";
+import { PHONE_RULES } from "../../app/shared/phone";
 import { createTestDb } from "./test/testDb";
 
 let db: Knex;
@@ -65,6 +66,24 @@ describe("CHECK constraints match app/shared/constants.ts", () => {
     ["contact_numbers", "scope", C.CONTACT_SCOPES],
   ] as const)("%s.%s", async (table, column, values) => {
     expect(await checkValues(table, column)).toEqual([...values].sort());
+  });
+});
+
+describe("phones", () => {
+  it("has phone rules for every country, with the same prefix as countries.phone_prefix", async () => {
+    const rows = await db("countries").orderBy("code").select("code", "phone_prefix");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(Object.fromEntries(rows.map((r) => [r.code, r.phone_prefix]))).toEqual(
+      Object.fromEntries(Object.entries(PHONE_RULES).map(([code, rule]) => [code, rule.prefix])),
+    );
+  });
+
+  it.each([
+    ["users", "phone_hash"],
+    ["properties", "owner_phone_hash"],
+  ])("indexes %s.%s", async (table, column) => {
+    const r = await db.raw<{ rows: Array<{ indexdef: string }> }>("SELECT indexdef FROM pg_indexes WHERE tablename = ?", [table]);
+    expect(r.rows.some((i) => i.indexdef.endsWith(`(${column})`))).toBe(true);
   });
 });
 

@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
-import { toWesternDigits } from "../../app/shared/digits";
+import { E164, normalizePhone } from "../../app/shared/phone";
 
 /**
  * Phone privacy (SPEC §8, CLAUDE.md rule 1): AES-256-GCM ciphertext for the
@@ -31,25 +31,22 @@ export function decrypt(payload: string, key: Buffer): string {
 }
 
 /**
- * Canonical phone form used before hashing/encrypting: Western digits, no
- * spaces/dashes/brackets, `00` international prefix → `+`.
+ * Deterministic HMAC so admins can search by phone without decrypting. Takes
+ * only the normalized E.164 form (`normalizePhone`), so every way of typing
+ * the same number gives the same hash; anything else throws.
  */
-export function normalizePhone(input: string): string {
-  let phone = toWesternDigits(input).replace(/[\s\-().]/g, "");
-  if (phone.startsWith("00")) phone = `+${phone.slice(2)}`;
-  if (!/^\+[0-9]{8,15}$/.test(phone)) throw new Error("Invalid phone number");
-  return phone;
-}
-
-/** Deterministic HMAC so admins can search by phone without decrypting. */
-export function hashPhone(phone: string, key: Buffer): string {
+export function hashPhone(normalized: string, key: Buffer): string {
   assertKey(key);
-  return createHmac("sha256", key).update(normalizePhone(phone)).digest("hex");
+  if (!E164.test(normalized)) throw new Error("hashPhone expects a normalized E.164 number (see normalizePhone)");
+  return createHmac("sha256", key).update(normalized).digest("hex");
 }
 
-/** Encrypt + hash in one step, as stored on users/properties. */
-export function protectPhone(phone: string, keys: { encryptionKey: Buffer; phoneHashKey: Buffer }) {
-  const normalized = normalizePhone(phone);
+/**
+ * Normalize for the listing's/user's country, then encrypt + hash, as stored
+ * on users/properties.
+ */
+export function protectPhone(phone: string, countryCode: string, keys: { encryptionKey: Buffer; phoneHashKey: Buffer }) {
+  const normalized = normalizePhone(phone, countryCode);
   return { encrypted: encrypt(normalized, keys.encryptionKey), hash: hashPhone(normalized, keys.phoneHashKey) };
 }
 

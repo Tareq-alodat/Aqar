@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { decrypt, encrypt, hashPhone, normalizePhone, protectPhone } from "./cryptoService";
+import { normalizePhone } from "../../app/shared/phone";
+import { decrypt, encrypt, hashPhone, protectPhone } from "./cryptoService";
 
 const key = randomBytes(32);
 const hashKey = randomBytes(32);
@@ -34,24 +35,25 @@ describe("encrypt / decrypt", () => {
   });
 });
 
-describe("normalizePhone", () => {
-  it.each([
-    ["+962 79 123 4567", "+962791234567"],
-    ["00962791234567", "+962791234567"],
-    ["+٩٦٢٧٩١٢٣٤٥٦٧", "+962791234567"],
-    ["+962-(79)-123.4567", "+962791234567"],
-  ])("%s → %s", (input, expected) => {
-    expect(normalizePhone(input)).toBe(expected);
-  });
-
-  it.each(["0791234567", "+12", "+962abc", ""])("rejects %j", (input) => {
-    expect(() => normalizePhone(input)).toThrow();
-  });
-});
-
 describe("hashPhone", () => {
-  it("is stable across formatting", () => {
-    expect(hashPhone("+962 79 123 4567", hashKey)).toBe(hashPhone("00962791234567", hashKey));
+  it.each([
+    ["JO", ["0791234567", "079 123 4567", "+962 79 123 4567", "00962791234567", "+962 0791234567", "٠٧٩١٢٣٤٥٦٧"]],
+    ["KW", ["51234567", "5123 4567", "+965 5123 4567", "0096551234567"]],
+    ["SA", ["0512345678", "051 234 5678", "+966 51 234 5678", "00966512345678", "+9660512345678"]],
+    ["AE", ["0501234567", "050-123-4567", "+971 50 123 4567", "00971501234567"]],
+  ] as const)("same %s number, different formats → same hash", (country, formats) => {
+    const hashes = new Set(formats.map((f) => hashPhone(normalizePhone(f, country), hashKey)));
+    expect(hashes.size).toBe(1);
+  });
+
+  it("differs between countries for the same local digits", () => {
+    expect(hashPhone(normalizePhone("0512345678", "SA"), hashKey)).not.toBe(hashPhone(normalizePhone("0512345678", "AE"), hashKey));
+  });
+
+  it("only hashes the normalized form", () => {
+    for (const raw of ["0791234567", "00962791234567", "+962 79 123 4567"]) {
+      expect(() => hashPhone(raw, hashKey)).toThrow("normalized");
+    }
   });
 
   it("depends on the key", () => {
@@ -61,8 +63,12 @@ describe("hashPhone", () => {
 
 describe("protectPhone", () => {
   it("stores the normalized number", () => {
-    const { encrypted, hash } = protectPhone("00962 79 123 4567", { encryptionKey: key, phoneHashKey: hashKey });
+    const { encrypted, hash } = protectPhone("079 123 4567", "JO", { encryptionKey: key, phoneHashKey: hashKey });
     expect(decrypt(encrypted, key)).toBe("+962791234567");
     expect(hash).toBe(hashPhone("+962791234567", hashKey));
+  });
+
+  it("rejects a number that is invalid for the country", () => {
+    expect(() => protectPhone("0791234567", "SA", { encryptionKey: key, phoneHashKey: hashKey })).toThrow("Invalid phone number");
   });
 });

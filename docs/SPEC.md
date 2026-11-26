@@ -199,7 +199,8 @@ Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 
 
 ## 8. Contact privacy & proxy numbers (critical)
 
-- Owner's real phone stored **AES-256-GCM encrypted** (`ENCRYPTION_KEY` from env; store IV + auth tag with ciphertext). Also store `owner_phone_hash` (HMAC-SHA256) so admins can search by phone without decrypting.
+- Owner's real phone stored **AES-256-GCM encrypted** (`ENCRYPTION_KEY` from env; store IV + auth tag with ciphertext). Also store `owner_phone_hash` (HMAC-SHA256, indexed) so admins can search by phone without decrypting.
+- Phones are normalized to E.164 for the listing's/user's country before encrypting and hashing (`normalizePhone(input, countryCode)` in `app/shared/phone.ts`, prefix = `countries.phone_prefix`). Accepted input: the local format (JO `07XXXXXXXX`, KW 8 digits, SA/AE `05XXXXXXXX`) or international `+`/`00`; spaces, dashes, brackets, Arabic-Indic digits and a trunk `0` after the country code are tolerated. Only the normalized form is hashed, so every way of typing a number gives the same hash.
 - Real phone is returned **only** by `GET /api/v1/admin/listings/:id/contact` (admin role).
 - **It must never appear in:** any public API response, **any React Router loader return value** (loader data is serialized into the HTML), client state, localStorage, logs, or error messages. Public serializers use an explicit allow-list of fields — never spread DB rows into responses.
 - `contact_numbers (id, phone_number, whatsapp bool, label, scope ENUM[global, country, admin_area, property], country_code, admin_area_id FK, property_id FK, is_active, created_by FK, created_at)`

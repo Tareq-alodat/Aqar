@@ -101,9 +101,10 @@ export async function seed(knex: Knex): Promise<void> {
 
   const passwordHash = await hashPassword(DEV_PASSWORD);
   let phoneSeq = 0;
-  const phone = () => `+9627${String(90_000_000 + ++phoneSeq * 7_919).slice(0, 8)}`;
+  // Local Jordanian format (07XXXXXXXX), normalized to +9627XXXXXXXX on save.
+  const phone = () => `07${String(90_000_000 + ++phoneSeq * 7_919).slice(0, 8)}`;
   const user = async (email: string, name: string, role: "admin" | "agent" | "owner", companyId: number | null = null) => {
-    const p = protectPhone(phone(), secrets);
+    const p = protectPhone(phone(), "JO", secrets);
     const [row] = await knex("users")
       .insert({ email, name, role, company_id: companyId, password_hash: passwordHash, phone_encrypted: p.encrypted, phone_hash: p.hash })
       .returning("id");
@@ -177,7 +178,7 @@ export async function seed(knex: Knex): Promise<void> {
     const range = p.type === "exchange" ? null : PRICE[p.category][p.type === "rent" ? "rent" : "sale"];
     const price = range ? Math.round(between(range[0], range[1]) / (p.type === "rent" ? 10 : 1000)) * (p.type === "rent" ? 10 : 1000) : null;
     const isLand = p.category === "land";
-    const ownerPhone = protectPhone(phone(), secrets);
+    const ownerPhone = protectPhone(phone(), "JO", secrets);
     const publishedAt = p.status === "published" || p.status === "sold" ? knex.raw(`now() - interval '${45 - i} days'`) : null;
 
     const [row] = await knex("properties")
