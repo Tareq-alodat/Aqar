@@ -6,13 +6,14 @@ Map-based real estate website for Jordan and the Gulf (phase 1: Jordan only). Ar
 ## Stack
 - React 19 + React Router v7 (framework mode, SSR) + TypeScript (strict) + Vite + Tailwind CSS
 - Express server hosting the React Router handler and REST API at `/api/v1`
-- PostgreSQL 16 + PostGIS (Docker), Knex for migrations and queries, Zod for validation
-- MapLibre GL JS + free vector tiles (`MAP_STYLE_URL_*` env), terra-draw for draw-to-search
-- No paid external APIs.
+- PostgreSQL 16 + PostGIS (Docker in dev), Knex for migrations and queries, Zod for validation
+- MapLibre GL JS + OpenFreeMap vector tiles (`MAP_STYLE_URL_*` env), terra-draw for draw-to-search
+- **All software free/open source; only hosting is paid.** No paid third-party services, APIs or libraries.
+- Production: one Linux VPS — Node 22 app, PostgreSQL 16 + PostGIS on the same host, Caddy for HTTPS, images on the VPS disk via the storage interface, nightly `pg_dump` + image backups (SPEC §0).
 
 ## Commands
 Node 22 (`>=22.12 <23`, see `.nvmrc`). Copy `.env.example` to `.env` first.
-- `docker compose up -d` — start local PostGIS (dev only; production DB is managed Supabase/Neon)
+- `docker compose up -d` — start local PostGIS (dev only; production PostgreSQL + PostGIS runs on the VPS)
 - `npm run dev` — Express + Vite dev server with SSR on `PORT` (default 3000); `/` → `/ar/jo/map`
 - `npm run build` / `npm start` — production build (`build/`) and server (`NODE_ENV=production`)
 - `npm run db:migrate` / `npm run db:rollback` / `npm run db:seed` — Knex via `tsx` (`knexfile.ts`)
@@ -21,7 +22,7 @@ Node 22 (`>=22.12 <23`, see `.nvmrc`). Copy `.env.example` to `.env` first.
 - `npm test` — Vitest (`*.test.ts` next to the code)
 
 ## Layout notes
-- `server/index.ts` — Express entry: `/api/v1` (`server/api`), `/uploads` (dev only), then React Router (`server/app.ts`).
+- `server/index.ts` — Express entry: `/api/v1` (`server/api`), `/uploads` (dev only — Caddy serves it in production), then React Router (`server/app.ts`).
 - `app/routes.ts` — route config: `/:lang` (layout, validates locale) → `:country/map` (validates against `ACTIVE_COUNTRIES` in `app/shared/countries.ts`).
 - i18n: `getT(locale)` / `useT()` in `app/i18n`; plurals are nested objects keyed by `Intl.PluralRules` category (`zero/one/two/few/many/other`), `other` required.
 - Theme: cookie `theme` (`dark` default) read in the root loader; toggled via POST `/theme`.

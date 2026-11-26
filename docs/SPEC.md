@@ -15,15 +15,17 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 | Frontend | React 19 + **React Router v7 (framework mode, SSR)** + TypeScript + Vite + Tailwind CSS |
 | Backend | Node.js + Express, hosting the React Router request handler **and** a REST API at `/api/v1` (one server, one repo) |
 | Database | PostgreSQL 16 + **PostGIS** |
-| Maps | **MapLibre GL JS** + free vector tiles (style URL from env) — no paid APIs |
+| Maps | **MapLibre GL JS** + **OpenFreeMap** vector tiles (style URLs from env) — no paid APIs |
 | Markets | Multi-country. Phase 1 launches **Jordan**; Saudi Arabia, Kuwait, UAE exist in the schema with `is_active = false` |
 | Currency | One currency per country (JOD, SAR, KWD, AED). Not selectable per listing. All searches are scoped to one country. |
 | Offers visibility [P2] | Chosen **per listing by the owner**: `public` / `amounts_only` / `private`. Bidders may also choose to appear as "مجهول". |
 | Location privacy | Chosen **per listing by the owner**: `exact` pin or `approximate` (~300 m) |
 | Dev environment | VS Code + Claude Code, PostgreSQL/PostGIS via Docker, `.env` for secrets |
-| Hosting | App server on **GoDaddy Node.js Hosting (Node 22)**. Port read from `process.env.PORT`. `engines.node` is `>=22.12 <23` (22.12 is the minimum Vite/Vitest support). |
-| Production database | **Managed PostgreSQL + PostGIS (Supabase or Neon)**, connected via `DATABASE_URL`. The database is **not** hosted at GoDaddy; Docker PostGIS is for local development only. |
-| Image storage | Always behind the storage interface. Local disk (`LocalDiskStorage`, served at `/uploads`) in development only; **production uses object storage (Cloudinary or Cloudflare R2)**. |
+| Software & services | **All software is free / open source; only hosting is paid.** No paid third-party services or APIs. |
+| Hosting | **One Linux VPS** (provider TBD, e.g. GoDaddy VPS) running **Node 22** (app), **PostgreSQL 16 + PostGIS** (database) and **Caddy** (reverse proxy, automatic HTTPS). Port read from `process.env.PORT`. `engines.node` is `>=22.12 <23` (22.12 is the minimum Vite/Vitest support). |
+| Production database | PostgreSQL 16 + PostGIS **on the same VPS**, connected via `DATABASE_URL` (listening on localhost only). Docker PostGIS (`docker-compose.yml`) is for local development. |
+| Image storage | Always behind the storage interface. **`LocalDiskStorage` in development and production** — on the VPS, files live on its disk under `UPLOAD_DIR` and are served at `/uploads`. |
+| Backups | **Nightly** `pg_dump` of the database and a copy of `UPLOAD_DIR`, kept off the VPS (destination TBD with the provider). |
 
 ---
 
@@ -33,7 +35,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 - **Routing/SSR:** React Router v7 framework mode. Public pages (map, listing detail, SEO pages) are server-rendered. Use loaders/actions for page data; the same service layer also backs `/api/v1`.
 - **Server:** Express app using `@react-router/express`. Mounts:
   - `/api/v1/*` → REST API (JSON, used by client-side map interactions and future mobile apps)
-  - `/uploads/*` → static images (development only, `LocalDiskStorage`; production serves images from object storage)
+  - `/uploads/*` → static images from `UPLOAD_DIR` (`LocalDiskStorage`); in production Caddy serves this path straight from disk
   - `*` → React Router handler
   - socket.io on the same HTTP server **[P2]**
 - **DB access:** Knex (migrations + query builder). PostGIS operations via parameterized `knex.raw` with `?` bindings. **Never** string-concatenate SQL.
@@ -41,9 +43,9 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 - **Styling:** Tailwind CSS using logical utilities (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`) plus `rtl:`/`ltr:` variants. No left/right utilities for layout.
 - **State:** Zustand for client-only state (map view, filters, compare tray [P2]). URL search params are the source of truth for map position and filters.
 - **i18n:** URL-prefixed locales `/ar/...` (default) and `/en/...`. Translation files `app/i18n/ar.json`, `app/i18n/en.json`. `<html lang dir>` set server-side from the locale.
-- **Images:** `sharp` on upload → WebP, max 2000 px long edge + 400 px thumbnail. Storage behind an interface: `LocalDiskStorage` in development; object storage (Cloudinary or Cloudflare R2) in production. Code outside the storage service must not assume files live on local disk.
+- **Images:** `sharp` on upload → WebP, max 2000 px long edge + 400 px thumbnail. Storage behind an interface: `LocalDiskStorage` (VPS disk under `UPLOAD_DIR`) in development and production. Code outside the storage service must not assume files live on local disk, so another backend can be added later without touching callers.
 - **Map:** `maplibre-gl`, MapLibre RTL text plugin (for Arabic labels), built-in GeoJSON clustering, `terra-draw` (MapLibre adapter) for draw-to-search.
-- **Tiles:** style URL from `MAP_STYLE_URL` env (e.g. OpenFreeMap, or MapTiler free tier). Do **not** use `tile.openstreetmap.org` in production (usage policy).
+- **Tiles:** **OpenFreeMap** (free, no API key); dark/light style URLs from `MAP_STYLE_URL_DARK` / `MAP_STYLE_URL_LIGHT`. Show the OpenFreeMap / OpenMapTiles / © OpenStreetMap attribution. Do **not** use `tile.openstreetmap.org` (usage policy) or paid tile providers.
 - **Testing:** Vitest (unit/service), Playwright (a few critical flows) — added from milestone 2 on.
 
 ---
