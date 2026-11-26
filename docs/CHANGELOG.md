@@ -34,5 +34,24 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 ### Known gaps
 - Generated Amman neighbourhood cells are approximations until admins redraw them (admin boundary editing is P2). The 21 Greater Amman municipal districts are recorded but not imported.
 - An OSM `name:en` change does not replace a name already marked reviewed; curate it in `manifest.json` to force it.
-- Each password hash or verify uses ~128 MiB and a few hundred ms; with libuv's 4 threads, concurrent logins peak at ~512 MiB. Size the VPS for it and rate-limit login (milestone 3).
-- Milestone 3 login must run a dummy `verifyPassword` for unknown emails so response time does not reveal which emails exist, and call `needsRehash()` after a successful login.
+- Each password hash or verify uses ~128 MiB and a few hundred ms. (Milestone 3: at most 2 run at once, and login is rate-limited.)
+- (Done in milestone 3: dummy hash for unknown emails, `needsRehash()` on login.)
+
+## Milestone 3 — Auth (2026-11-27)
+
+- **Sessions** (SPEC §13): 15-minute HS256 access JWT (`sub`, `role`, `sid`) + opaque 256-bit refresh token, in httpOnly SameSite=Lax cookies (`Secure` + `__Host-` over https). Every API and page request re-reads the user and checks the session is active, so suspension, role changes and logout apply at once. Refresh tokens are stored as HMAC-SHA256, rotated on use (pages and API) with a 30 s grace window for concurrent requests; reuse after that revokes the whole family. Lifetime: 30 days idle / 90 days absolute, admins 1 day / 7 days (new column `refresh_tokens.family_started_at`; the cap follows the user's current role).
+- **Auth service** (`server/services/authService.ts`): register (always `owner`, optional phone normalized for the country), login (dummy scrypt hash for unknown emails, one error for wrong email or password, "suspended" only after the right password, `needsRehash` re-hash, `last_login_at`, expired tokens pruned), session resolution, logout. scrypt runs at most 2 at a time.
+- **API** `/api/v1/auth`: `POST register | login | refresh | logout`, `GET me` — Zod-validated, explicit response fields, error codes with 400/401/403/409/429. `requireAuth` / `requireRole` middleware; `requireUser` / `requireRole` for loaders and actions.
+- **CSRF**: origin check on every POST/PUT/PATCH/DELETE (API and page actions, including `/theme`) against `PUBLIC_BASE_URL` (`Origin` → `Sec-Fetch-Site` → `Referer`; none → 403). Logout is POST only; `?next=` accepts same-site paths only.
+- **Rate limits** (`rate-limiter-flexible`, in memory): 100/min per IP on `/api/v1`, 5/min per IP for login + register (API and forms share it), 10 failed logins per email per 15 min; 429 with `Retry-After`. `trust proxy` = loopback in production (Caddy).
+- **Pages**: `/:lang/login`, `/:lang/register` (forms with translated field errors, RTL/LTR checked), logout button and user name in the header (`useAuth()`); the root loader passes only `{ id, name, role }`.
+- **Phones**: Jordanian landlines `0[2356]XXXXXXX`, mobiles typed without the leading 0 (JO, SA, AE), and Jordanian mobiles limited to 077/078/079 (also for `+962…` input).
+- **Env**: `JWT_SECRET`, `REFRESH_TOKEN_SECRET` (32 bytes base64, different) required at startup; `PUBLIC_BASE_URL` validated. CI generates throwaway keys.
+- New dependencies (MIT/ISC, no install scripts): `jose`, `rate-limiter-flexible`, `cookie`.
+- Tests: 318 unit (tokens, cookies, origin check, `next` paths, limits, semaphore, schemas, phones, role middleware) and 88 database/HTTP (register/login, dummy hash, re-hash, suspension, rotation, grace, reuse, idle/absolute caps incl. admin and promotion, logout, API status codes and field allow-lists, CSRF, 429s). A 22-step end-to-end run against the dev server (forms, cookies, rotation, logout, leak check of page HTML, rate limit) passed.
+
+### Known gaps
+- Rate-limit counters live in memory: they reset on restart and do not work across several processes (fine for one VPS process).
+- No email verification or password reset (needs sending email; not in phase 1). No "log out on all devices" yet.
+- Registration is for Jordan only (`DEFAULT_COUNTRY`) until other countries go live.
+- Old `refresh_tokens` rows are pruned per user on login; there is no scheduled cleanup yet.

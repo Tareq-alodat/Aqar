@@ -22,8 +22,9 @@ Node 24 LTS (`>=24 <25`, see `.nvmrc`). Copy `.env.example` to `.env` first.
 - `npm test` — Vitest (`*.test.ts` next to the code)
 
 ## Layout notes
-- `server/index.ts` — Express entry: `/api/v1` (`server/api`), `/uploads` (dev only — Caddy serves it in production), then React Router (`server/app.ts`).
-- `app/routes.ts` — route config: `/:lang` (layout, validates locale) → `:country/map` (validates against `ACTIVE_COUNTRIES` in `app/shared/countries.ts`).
+- `server/index.ts` — Express entry: origin check (CSRF), `/api/v1` (`server/api`: rate limit → `authenticate` → routers), `/uploads` (dev only — Caddy serves it in production), then `authenticate` + React Router (`server/app.ts`, load context from `server/loadContext.ts`).
+- `app/routes.ts` — route config: `/:lang` (layout, validates locale) → `login`, `register`, `:country/map` (validates against `ACTIVE_COUNTRIES` in `app/shared/countries.ts`); POST-only `/theme` and `/logout`.
+- Auth (SPEC §13): `server/services/authService.ts` (register/login/rotation/logout), `tokenService.ts` (JWT, refresh tokens, `SESSION_POLICY`), `rateLimitService.ts`; middleware in `server/middleware/`. Loaders/actions get `context.session` and `context.services`; guard pages with `requireUser`/`requireRole` (`app/utils/auth.server.ts`); components use `useAuth()` (`{ id, name, role }` only).
 - i18n: `getT(locale)` / `useT()` in `app/i18n`; plurals are nested objects keyed by `Intl.PluralRules` category (`zero/one/two/few/many/other`), `other` required.
 - Theme: cookie `theme` (`dark` default) read in the root loader; toggled via POST `/theme`.
 

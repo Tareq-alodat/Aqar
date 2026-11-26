@@ -48,6 +48,7 @@ jobs:
           cp .env.example .env
           key() { node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"; }
           sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$(key)|; s|^PHONE_HASH_KEY=.*|PHONE_HASH_KEY=$(key)|" .env
+          sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(key)|; s|^REFRESH_TOKEN_SECRET=.*|REFRESH_TOKEN_SECRET=$(key)|" .env
 
       - run: npm run typecheck
       - run: npm run lint

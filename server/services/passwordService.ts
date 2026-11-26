@@ -1,4 +1,5 @@
 import { randomBytes, scrypt as scryptCb, timingSafeEqual, type ScryptOptions } from "node:crypto";
+import { Semaphore } from "./concurrency";
 
 /**
  * Password hashing with Node's built-in scrypt (no native dependency).
@@ -25,10 +26,25 @@ interface StoredHash {
   key: Buffer;
 }
 
+/**
+ * At most two scrypt runs at once (~256 MiB peak); further logins queue. Keeps
+ * memory bounded on the VPS no matter how many requests arrive together.
+ */
+export const SCRYPT_CONCURRENCY = 2;
+const scryptSlots = new Semaphore(SCRYPT_CONCURRENCY);
+
 function scrypt(password: string, salt: Buffer, keylen: number, options: ScryptOptions): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    scryptCb(password.normalize("NFKC"), salt, keylen, options, (err, key) => (err ? reject(err) : resolve(key)));
-  });
+  return scryptSlots.run(
+    () =>
+      new Promise<Buffer>((resolve, reject) => {
+        scryptCb(password.normalize("NFKC"), salt, keylen, options, (err, key) => (err ? reject(err) : resolve(key)));
+      }),
+  );
+}
+
+/** Running/queued scrypt calls (tests and diagnostics). */
+export function scryptStats() {
+  return scryptSlots.stats;
 }
 
 function parse(stored: string): StoredHash | null {

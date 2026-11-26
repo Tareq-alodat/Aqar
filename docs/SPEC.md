@@ -93,7 +93,7 @@ The admin decides which fields describe an exact address in each country, in wha
 
 ## 3. Users & roles
 
-JWT auth. Roles: `admin`, `agent`, `owner`.
+JWT auth (details in §13). Roles: `admin`, `agent`, `owner`. Anyone can register as an `owner`; admins change roles.
 
 | Role | Rights |
 |---|---|
@@ -200,7 +200,7 @@ Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 
 ## 8. Contact privacy & proxy numbers (critical)
 
 - Owner's real phone stored **AES-256-GCM encrypted** (`ENCRYPTION_KEY` from env; store IV + auth tag with ciphertext). Also store `owner_phone_hash` (HMAC-SHA256, indexed) so admins can search by phone without decrypting.
-- Phones are normalized to E.164 for the listing's/user's country before encrypting and hashing (`normalizePhone(input, countryCode)` in `app/shared/phone.ts`, prefix = `countries.phone_prefix`). Accepted input: the local format (JO `07XXXXXXXX`, KW 8 digits, SA/AE `05XXXXXXXX`) or international `+`/`00`; spaces, dashes, brackets, Arabic-Indic digits and a trunk `0` after the country code are tolerated. Only the normalized form is hashed, so every way of typing a number gives the same hash.
+- Phones are normalized to E.164 for the listing's/user's country before encrypting and hashing (`normalizePhone(input, countryCode)` in `app/shared/phone.ts`, prefix = `countries.phone_prefix`). Accepted input: the local formats — JO mobile `07[789]XXXXXXX` with or without the leading `0`, JO landline `0[2356]XXXXXXX` (leading `0` required); KW 8 digits; SA/AE mobile `05XXXXXXXX` or `5XXXXXXXX` — or international `+`/`00`; spaces, dashes, brackets, Arabic-Indic digits and a trunk `0` after the country code are tolerated. Jordanian numbers must be a 077/078/079 mobile or a 02/03/05/06 landline however they are typed (including `+962…`). Only the normalized form is hashed, so every way of typing a number gives the same hash. A phone is optional at registration and required when submitting a listing (milestone 6).
 - Real phone is returned **only** by `GET /api/v1/admin/listings/:id/contact` (admin role).
 - **It must never appear in:** any public API response, **any React Router loader return value** (loader data is serialized into the HTML), client state, localStorage, logs, or error messages. Public serializers use an explicit allow-list of fields — never spread DB rows into responses.
 - `contact_numbers (id, phone_number, whatsapp bool, label, scope ENUM[global, country, admin_area, property], country_code, admin_area_id FK, property_id FK, is_active, created_by FK, created_at)`
@@ -257,11 +257,13 @@ Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-r
 
 ## 13. Security
 
-- Access JWT 15 min + refresh token 30 days, both in **httpOnly, Secure, SameSite=Lax cookies** (SSR loaders need to read auth). Refresh token rotation with server-side revocation table.
-- CSRF protection on cookie-authenticated mutations (double-submit token or SameSite + origin check).
-- Role middleware on every protected API route; equivalent checks in loaders/actions.
+- **Sessions:** access JWT (HS256, `JWT_SECRET`) 15 min + opaque refresh token, both in **httpOnly, SameSite=Lax, Path=/ cookies** (`aqar_at` / `aqar_rt`; `Secure` and the `__Host-` prefix when `PUBLIC_BASE_URL` is https), so SSR loaders can read auth. The access token holds only user id, role and session (family) id; every request re-reads the user (role, status) and checks the session is still active, so suspension, role changes and logout take effect immediately. The server refuses to start without `JWT_SECRET` and `REFRESH_TOKEN_SECRET`.
+- **Refresh tokens:** stored only as HMAC-SHA256 (`REFRESH_TOKEN_SECRET`) in `refresh_tokens`; one-time use, rotated by the server whenever a request arrives with an expired access token (pages and API) or on `POST /api/v1/auth/refresh`. All tokens of one login form a family. A rotated token presented again within **30 s** is treated as a concurrent request (served, no new tokens); later, as theft: the whole family is revoked. **Lifetime:** sliding expiry after **30 days** of inactivity, never more than **90 days** from login (`family_started_at`); **admins: 1 day / 7 days**. The cap uses the user's current role.
+- **Login:** an unknown email is checked against a dummy scrypt hash, so timing does not reveal which emails exist; the same error (`invalid_credentials`) for a wrong email or password; "suspended" only after the right password; hashes with old scrypt parameters are re-hashed on login (`needsRehash`). At most 2 scrypt runs at once (~128 MiB each); others queue. Registration creates `owner` accounts only (admins assign roles, milestone 7). Email verification and password reset are not in phase 1.
+- **CSRF:** SameSite=Lax cookies + origin check on every POST/PUT/PATCH/DELETE (API and page actions): `Origin`, else `Sec-Fetch-Site: same-origin`, else `Referer` must match `PUBLIC_BASE_URL` (plus `localhost`/`127.0.0.1` in development); requests with none of them are refused (403). Logout is POST only. `?next=` redirects accept only same-site paths.
+- Role middleware on every protected API route (`requireAuth`, `requireRole`); equivalent checks in loaders/actions (`requireUser`, `requireRole` in `app/utils/auth.server.ts`). Pages receive only `{ id, name, role }` of the signed-in user.
 - Zod validation on every endpoint, loader input, and action.
-- Rate limits: 100 req/min general, 5 req/min auth, 30 req/min on map endpoints per IP.
+- Rate limits (in memory, one process): 100 req/min general (`/api/v1`), 5 req/min auth (login + register, API and page forms combined), 30 req/min on map endpoints per IP; plus 10 failed logins per email per 15 min. 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
 - Parameterized SQL only. Uploads: MIME sniffing (not extension), images only, 10 MB max, re-encoded by sharp (strips EXIF incl. GPS).
 - AES-256-GCM for phones; key only from env; never logged.
 - Seed credentials are **development only**; seed script refuses to run when `NODE_ENV=production`.

@@ -13,14 +13,20 @@ import type { Route } from "./+types/root";
 import { useLocale, useT } from "./i18n/useT";
 import { DEFAULT_COUNTRY } from "./shared/countries";
 import { DEFAULT_LOCALE, dirFor, localeFromPathname } from "./shared/locales";
+import type { ClientUser } from "./shared/schemas/auth";
 import { DEFAULT_THEME, themeSchema } from "./shared/schemas/theme";
 import { getTheme } from "./utils/theme.server";
 import "./app.css";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const locale = localeFromPathname(new URL(request.url).pathname);
   const theme = await getTheme(request);
-  return { locale, theme };
+  // Serialized into the HTML: explicit fields only (no email, phone or tokens).
+  const session = context.session;
+  const user: ClientUser | null = session
+    ? { id: session.user.id, name: session.user.name, role: session.user.role }
+    : null;
+  return { locale, theme, user };
 }
 
 /** Theme being submitted by the toggle, so the page switches before the round-trip ends. */
