@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # Same image as docker-compose.yml; host port matches DATABASE_URL_TEST in .env.example.
+      postgis:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: aqar
+          POSTGRES_PASSWORD: aqar
+          POSTGRES_DB: aqar
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U aqar -d aqar"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc # Node 24 LTS
+          cache: npm
+
+      - run: npm ci
+
+      # Dev-only defaults plus throwaway keys generated for this run; no real secrets.
+      - name: Create .env
+        run: |
+          cp .env.example .env
+          key() { node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"; }
+          sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$(key)|; s|^PHONE_HASH_KEY=.*|PHONE_HASH_KEY=$(key)|" .env
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Database tests (migrations, boundary import, seeds)
+        run: npm run test:db
+      - run: npm run build

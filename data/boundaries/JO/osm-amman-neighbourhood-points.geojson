@@ -1,0 +1,2633 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798899785,
+    "name": "طبربور",
+    "name_ar": "طبربور",
+    "name_en": "Tabarbour",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.947222,
+     32.003056
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798899865,
+    "name": "ياجوز",
+    "name_ar": "ياجوز",
+    "name_en": "Yajuz",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.916667,
+     32.033333
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798899875,
+    "name": "أم زويتينة",
+    "name_ar": "أم زويتينة",
+    "name_en": "Um Zeweitina",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.883333,
+     32.033333
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798905091,
+    "name": "الحرية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.883333,
+     31.9
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798906606,
+    "name": "البنيات الجنوبية",
+    "name_ar": "البنيات الجنوبية",
+    "name_en": "Al Bunayyat",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.883333,
+     31.883333
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798906941,
+    "name": "المحطة",
+    "name_ar": "المحطة",
+    "name_en": "Al Mahatta",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9665698,
+     31.9662684
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798906999,
+    "name": "عرجان الشرقية",
+    "name_ar": "عرجان الشرقية",
+    "name_en": "Urjan al Sharqiyah",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9164787,
+     31.9834585
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 802863314,
+    "name": "أم السماق",
+    "name_ar": "أم السماق",
+    "name_en": "Um al Summaq",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.85,
+     31.983333
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 802863494,
+    "name": "رجم الشرائرة",
+    "name_ar": "رجم الشرائرة",
+    "name_en": "Rujm al Sharairah",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.833333,
+     32
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 802869091,
+    "name": "ماركا الشمالية",
+    "name_ar": "ماركا الشمالية",
+    "name_en": "Marka Alshamalia",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.985283,
+     31.9807545
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 802869109,
+    "name": "المبرك",
+    "name_ar": "المبرك",
+    "name_en": "Al Mabrak",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.983333,
+     31.933333
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 802869174,
+    "name": "اليادودة",
+    "name_ar": "اليادودة",
+    "name_en": "Al Yaduda",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.916667,
+     31.85
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 996191784,
+    "name": "الصويفية",
+    "name_ar": "الصويفية",
+    "name_en": "Sweifieh",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8638771,
+     31.958369
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 3312713071,
+    "name": "ماركا الجنوبية",
+    "name_ar": null,
+    "name_en": "South Marka",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9797877,
+     31.9619919
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 3315345898,
+    "name": "اسكان ماركا القديم",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     36.023799,
+     31.9887311
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 3315345899,
+    "name": "اسكان ماركا الجديد",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     36.0202913,
+     31.9843106
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 3315345900,
+    "name": "التطوير الحضري",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     36.0188793,
+     31.988808
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4003468941,
+    "name": "الجاردنز",
+    "name_ar": null,
+    "name_en": "Gardens",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8806996,
+     31.9853265
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4003468991,
+    "name": "الرابية",
+    "name_ar": null,
+    "name_en": "Rabyeh",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8837307,
+     31.9738582
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4011090996,
+    "name": "حي الكرسي",
+    "name_ar": null,
+    "name_en": "Al-Kursi",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8270732,
+     31.9658376
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4013679415,
+    "name": "العبدلي",
+    "name_ar": null,
+    "name_en": "Abdali",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9187494,
+     31.9593159
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4013679418,
+    "name": "جبل اللويبدة",
+    "name_ar": "جبل اللويبدة",
+    "name_en": "Jabal Al-Webdeh",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9278599,
+     31.9557097
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4066545699,
+    "name": "رغدان",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9560974,
+     31.978005
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4267496192,
+    "name": "الجندويل",
+    "name_ar": null,
+    "name_en": "Al-Jandaweel",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8406273,
+     31.9606811
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4268898426,
+    "name": "تلاع العلي",
+    "name_ar": null,
+    "name_en": "Tila' Al-Ali",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8651445,
+     32.0088886
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 5628209417,
+    "name": "الشميساني",
+    "name_ar": null,
+    "name_en": "Shmesani",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.896883,
+     31.9734798
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 5628209418,
+    "name": "البيادر",
+    "name_ar": "البيادر",
+    "name_en": "Bayader",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8387542,
+     31.9468458
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 5628209419,
+    "name": "جبل الحسين",
+    "name_ar": "جبل الحسين",
+    "name_en": "Jabal Al-Husain",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9176969,
+     31.9674546
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 5628210121,
+    "name": "جبل عمان",
+    "name_ar": "جبل عمان",
+    "name_en": "Jabal Amman",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9214735,
+     31.9507057
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 5628210122,
+    "name": "البلد",
+    "name_ar": "البلد",
+    "name_en": "Downtown",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9354156,
+     31.9502369
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7112786602,
+    "name": "جبل الأشرفية",
+    "name_ar": "جبل الأشرفية",
+    "name_en": "Jabal al-Ashrafiyeh",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9377277,
+     31.9410464
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487669949,
+    "name": "الذراع",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9162999,
+     31.9318548
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487706050,
+    "name": "المقابلين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9125073,
+     31.9028128
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487707212,
+    "name": "الروضة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9209803,
+     31.9156211
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487708938,
+    "name": "الياسمين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8889266,
+     31.915556
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487712883,
+    "name": "الحسنية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8971795,
+     31.9065117
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487714505,
+    "name": "حطين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9280465,
+     31.8922157
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487724231,
+    "name": "أم قصير",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9121885,
+     31.8927572
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7487734354,
+    "name": "الأخضر",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9138238,
+     31.9367533
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7488791004,
+    "name": "نزال",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9129861,
+     31.9327799
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489148734,
+    "name": "النظيف",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9263549,
+     31.9371484
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489168943,
+    "name": "أم الحيران",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9391537,
+     31.9072724
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489187407,
+    "name": "المعادي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9598581,
+     31.9149958
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489201307,
+    "name": "أم نوارة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9614264,
+     31.9300778
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489625837,
+    "name": "الايمان",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9450223,
+     31.8728612
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489627556,
+    "name": "الرقيم",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9887087,
+     31.8916972
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489654767,
+    "name": "جاوا الجنوبي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9315096,
+     31.8535426
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489658042,
+    "name": "الوفاء",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9485665,
+     31.8418803
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489665453,
+    "name": "الاحسان",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9502318,
+     31.8647537
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489666368,
+    "name": "جاوا الشمالي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.934706,
+     31.8640537
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489674013,
+    "name": "التقوى",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9714131,
+     31.8681306
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489679230,
+    "name": "الجويدة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9432285,
+     31.890927
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489686972,
+    "name": "الطيبة وخريبة السوق",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9249532,
+     31.8704597
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489700976,
+    "name": "العوده",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9413014,
+     31.9309468
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489712984,
+    "name": "جبل التاج",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9502887,
+     31.9493412
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489721283,
+    "name": "الهلال",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8985896,
+     31.9304232
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489737062,
+    "name": "الحمرانية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9027319,
+     31.9202187
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489748141,
+    "name": "الأميرة عالية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9772742,
+     31.9415121
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489764006,
+    "name": "الربوة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9869436,
+     31.9495863
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489765057,
+    "name": "جبل النصر",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9639499,
+     31.9605353
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489766401,
+    "name": "المنارة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9619222,
+     31.9448458
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489773575,
+    "name": "الأمير الحسن",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9728259,
+     31.9588223
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489777601,
+    "name": "صالحية العابد",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9994638,
+     31.9553373
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489928717,
+    "name": "أبو صوانة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9831394,
+     31.880806
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489931225,
+    "name": "المغبة الشرقي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9733278,
+     31.8852819
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7510440136,
+    "name": "الصحابة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8751431,
+     31.9078221
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7510441339,
+    "name": "جبل الجوفة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9517202,
+     31.9532089
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7510461411,
+    "name": "العدلية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9280808,
+     31.958683
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7510462212,
+    "name": "القصور",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9376175,
+     31.9595293
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7510466880,
+    "name": "وادي الحدادة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9317051,
+     31.9598951
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7528773147,
+    "name": "التلاع الشرقي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8773417,
+     31.9834051
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7528818554,
+    "name": "بركة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8790916,
+     31.9900071
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7528833833,
+    "name": "أم حجير",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8881938,
+     32.0452701
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7528838503,
+    "name": "المحبة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8791308,
+     32.0478607
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529845542,
+    "name": "التلاع الشمالي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8654389,
+     31.9985676
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529860034,
+    "name": "الخالدين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8481028,
+     32.0011053
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529873448,
+    "name": "خلدا",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8448489,
+     31.9900572
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529892953,
+    "name": "الهاشمي الشمالي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9588989,
+     31.9702644
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529905348,
+    "name": "الهاشمي الجنوبي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9527754,
+     31.9621867
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529913601,
+    "name": "الروابي",
+    "name_ar": null,
+    "name_en": "Al-Rawabi",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8557533,
+     31.9656982
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529924358,
+    "name": "ام اذينة الغربي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8680279,
+     31.9680516
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529942022,
+    "name": "ام اذينة الشرقي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8739473,
+     31.9668244
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529942903,
+    "name": "السهل",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8539063,
+     31.9557393
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529970706,
+    "name": "الرحمانية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.832703,
+     32.0116399
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529970842,
+    "name": "عبدون الجنوبي",
+    "name_ar": null,
+    "name_en": "Southern Abdoun",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.885959,
+     31.9412478
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529971606,
+    "name": "البنيات الشمالي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8868261,
+     31.8916051
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7530349772,
+    "name": "الفضيلة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8541843,
+     32.0199059
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7530380190,
+    "name": "البشائر",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8490988,
+     32.013291
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7533584458,
+    "name": "الظهير",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8532555,
+     31.9162918
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7533612729,
+    "name": "الرونق",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8403752,
+     31.9498506
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7533628433,
+    "name": "المدينة الطبية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8288568,
+     31.9808073
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7533640728,
+    "name": "الصناعة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8425131,
+     31.9396977
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7533759804,
+    "name": "الرباحية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8140554,
+     31.9737278
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537444652,
+    "name": "الفيصل",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9708804,
+     32.0106148
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537469042,
+    "name": "ابو عليا",
+    "name_ar": "ابو عليا",
+    "name_en": "Abu Alia",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9584507,
+     32.0045936
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537470412,
+    "name": "عين رباط",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9743178,
+     32.0071695
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537477977,
+    "name": "حي المطار",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.984868,
+     31.9770765
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537508167,
+    "name": "عين غزال",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9770477,
+     31.9961426
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537515116,
+    "name": "الزهراء",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9980167,
+     31.980814
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537522159,
+    "name": "حمزة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9916274,
+     31.9878235
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537666093,
+    "name": "الرشيد",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8926404,
+     31.9969586
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537671629,
+    "name": "الصديق",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8881261,
+     32.0118171
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537687185,
+    "name": "البلدية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8651188,
+     32.0245135
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537885141,
+    "name": "حي النعير",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8048629,
+     31.9540281
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537900037,
+    "name": "حي وادي السير",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8274618,
+     31.9541388
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537908310,
+    "name": "حي بلال",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7987912,
+     31.9639595
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7538851138,
+    "name": "الفرقان",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8944792,
+     31.8805358
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7538862167,
+    "name": "ام الجدايل",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8934925,
+     31.8858058
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7542366355,
+    "name": "المشيرفة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9954682,
+     32.0015919
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7545990379,
+    "name": "الزهور",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9234606,
+     31.9204466
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7546188607,
+    "name": "الشهيد الجنوبي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.957817,
+     31.9865243
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7546199793,
+    "name": "الشهيد الشمالي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9563258,
+     31.992027
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7546215498,
+    "name": "الصالحين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8547899,
+     31.9885966
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548427817,
+    "name": "الامير الحسين بن عبدالله",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.936023,
+     32.020072
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548427818,
+    "name": "الامانة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8745285,
+     32.0624637
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548427830,
+    "name": "ابو القرام",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9043831,
+     32.0632265
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548428980,
+    "name": "الفاروق",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8874876,
+     32.0584445
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548428981,
+    "name": "الغابة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9518285,
+     32.0139983
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548453708,
+    "name": "حي الذراع",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8131954,
+     31.9339672
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548453710,
+    "name": "حي الدفيانة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.766844,
+     31.953787
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548465713,
+    "name": "البسالة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8802372,
+     32.0542538
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548465719,
+    "name": "الامير حمزة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9317192,
+     32.0453261
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548472332,
+    "name": "حي اكلة الكاشف",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7543464,
+     31.9546115
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548472337,
+    "name": "بدر الجديدة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7808427,
+     31.9664246
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548472338,
+    "name": "بئر السبيل الشرقي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7690335,
+     31.9621793
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548472339,
+    "name": "ام شطيرات",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9035761,
+     32.0810351
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548472340,
+    "name": "ام بلانة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9134626,
+     32.0742482
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548479499,
+    "name": "حي القبة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7832161,
+     31.9711072
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548479500,
+    "name": "حي الفروسية",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.802467,
+     32.0258176
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548479501,
+    "name": "حي الغروس الغربي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7801446,
+     31.9619907
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548479502,
+    "name": "حي الغروس الشرقي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.776163,
+     31.9581231
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548479506,
+    "name": "حي الصنوبر",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8231217,
+     31.9428906
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548479512,
+    "name": "حي السويسة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.7613145,
+     31.953124
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548483811,
+    "name": "ذهيبة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9024558,
+     32.0501278
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484463,
+    "name": "الموحدين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9058313,
+     32.0689254
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484468,
+    "name": "المروج",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9198403,
+     32.051109
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484474,
+    "name": "الكوم الغربي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9315512,
+     32.0334166
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484475,
+    "name": "الكوم الشرقي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9542875,
+     32.0377792
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484685,
+    "name": "مرج الفرس",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9408269,
+     32.0441729
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484692,
+    "name": "طاب كراع",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8918136,
+     32.0511755
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484700,
+    "name": "زبدة السويسة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.76034,
+     31.9582106
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7548484886,
+    "name": "الضياء",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8826673,
+     32.0751082
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 8867005838,
+    "name": "Abdoun-عبدون",
+    "name_ar": "عبدون",
+    "name_en": "Abdoun",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8926603,
+     31.9488329
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 9092799866,
+    "name": "مخيم الوحدات",
+    "name_ar": "مخيم الوحدات",
+    "name_en": "Al-Wehdat camp",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9385753,
+     31.9303618
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 9092799869,
+    "name": "مخيم الحسين",
+    "name_ar": "مخيم الحسين",
+    "name_en": "Jabal el-Hussein camp",
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9250744,
+     31.9679233
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 9836024283,
+    "name": "الياسمين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "neighbourhood"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9315263,
+     31.9490032
+    ]
+   }
+  }
+ ]
+}

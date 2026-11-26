@@ -1,0 +1,17 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "manual",
+    "osm_id": "jubeiha",
+    "name_ar": "الجبيهة",
+    "name_en": "Al-Jubeiha",
+    "name_en_reviewed": true,
+    "note": "Not in OpenStreetMap (2026-11-26). Placed by hand north of the University of Jordan, between the OSM points البلدية (32.0245, 35.8651) and أم زويتينة (32.0333, 35.8833). Verify on a map."
+   },
+   "geometry": { "type": "Point", "coordinates": [35.8735, 32.0262] }
+  }
+ ]
+}
