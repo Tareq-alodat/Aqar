@@ -1,0 +1,37 @@
+{
+  "country": "JO",
+  "layers": [
+    {
+      "type": "osm",
+      "level": "governorate",
+      "file": "osm-governorates.geojson",
+      "simplify_m": 0,
+      "name_overrides": {
+        "2925599": { "name_ar": "جرش", "name_en": "Jerash" },
+        "2925616": { "name_en": "Ajloun" },
+        "2926346": { "name_en": "Karak" },
+        "2926347": { "name_en": "Ma'an" }
+      }
+    },
+    {
+      "type": "union",
+      "level": "city",
+      "file": "osm-city-districts.geojson",
+      "simplify_m": 0,
+      "groups": [
+        { "key": "amman", "name_ar": "عمان", "name_en": "Amman", "osm_ids": [13376001, 13376002, 13376005, 13376006, 13376007] },
+        { "key": "irbid", "name_ar": "إربد", "name_en": "Irbid", "osm_ids": [13376097] },
+        { "key": "zarqa", "name_ar": "الزرقاء", "name_en": "Zarqa", "osm_ids": [13376133] },
+        { "key": "aqaba", "name_ar": "العقبة", "name_en": "Aqaba", "osm_ids": [13376081] }
+      ]
+    },
+    {
+      "type": "cells",
+      "level": "area",
+      "points": ["osm-amman-neighbourhood-points.geojson", "manual-amman-neighbourhood-points.geojson"],
+      "polygons": "osm-amman-neighbourhood-polygons.geojson",
+      "clip_to": { "level": "city", "source_ref": "union:amman" },
+      "simplify_m": 0
+    }
+  ]
+}

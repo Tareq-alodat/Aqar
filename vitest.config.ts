@@ -5,7 +5,8 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     include: ["**/*.test.ts", "**/*.test.tsx"],
-    exclude: ["node_modules", "build"],
+    // *.db.test.ts need a database: `npm run test:db` (vitest.db.config.ts).
+    exclude: ["node_modules", "build", "**/*.db.test.ts"],
     environment: "node",
   },
 });

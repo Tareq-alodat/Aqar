@@ -21,3 +21,15 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - Conic gradients (`bg-conic-*`) and gradients set through CSS variables (`bg-linear-(--x)`) are not checked.
 - `react-router typegen`/`build` print a deprecation warning (`envFile` → `envDir: false`) from React Router's own Vite config, not from this repo.
 - Node 22 not verified locally (dev machine runs Node 24); all dependencies declare Node 22.12+ support.
+
+## Milestone 2 — Database (2026-11-26)
+
+- Migrations (`server/db/migrations`): countries and per-country settings, the address field catalog with per-country `visibility`, `admin_areas` (PostGIS `geography`, `source` = osm/generated/manual, `name_en_reviewed`), companies/users, refresh tokens, `properties` (status/precision/currency CHECKs, currency taken from the country by trigger, `point` + stored `display_point`), `property_identifiers` (never public), images, contact numbers, saved listings, and the P2 tables phase 1 writes to (`price_history`, `property_views`).
+- Services: phone encryption + keyed hash (`cryptoService`), password hashing, location (stored privacy offset, pin → deepest area with the 5 km nearest-centroid fallback and `needs_location_review`, area path), identifier normalization/matching and address field handling.
+- Boundary import (`npm run db:import-boundaries -- JO`): reads `data/boundaries/JO/manifest.json` and upserts `admin_areas` in one transaction — 12 OSM governorates, 4 cities built from their OSM districts, and ~147 Amman neighbourhood cells (nearest-point cells clipped to Amman; Dabouq keeps its OSM polygon; Jubeiha placed by hand). Re-runs keep ids and slugs, never touch `manual` rows, and keep an English name marked reviewed unless the repo curates a replacement (manifest override, union group or manual point); missing English names are transliterated and flagged for review. OSM data is committed with sources and ODbL attribution in `data/boundaries/JO/SOURCES.md`; `scripts/fetch-osm-boundaries.ts` refreshes it.
+- Dev seed (`server/db/seeds/01_dev_data.ts`, refuses to run in production, deterministic): 1 admin, 2 agents in a verified company, 3 owners; 40 published listings across Amman areas and other cities, 3 pending (one pinned just across the border, flagged for location review), 2 sold; exact/approximate mix, price history, property identifiers and contact numbers.
+- Database tests (`npm run test:db`, `vitest.db.config.ts`): recreate a `*_test` database, check migrations roll back and forward, CHECK constraints match `app/shared/constants`, and cover the boundary import (re-run stability, reviewed/manual protection, pin lookup) and the seed. `npm test` excludes them. CI runs them against a PostGIS service with throwaway keys.
+
+### Known gaps
+- Generated Amman neighbourhood cells are approximations until admins redraw them (admin boundary editing is P2). The 21 Greater Amman municipal districts are recorded but not imported.
+- An OSM `name:en` change does not replace a name already marked reviewed; curate it in `manifest.json` to force it.

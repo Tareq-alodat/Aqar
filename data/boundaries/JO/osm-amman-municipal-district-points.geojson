@@ -1,0 +1,383 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 798906612,
+    "name": "منطقة القويسمة",
+    "name_ar": null,
+    "name_en": "Al Quwaysimah",
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.95,
+     31.916667
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 1923515191,
+    "name": "شفا بدران",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9072147,
+     32.0401622
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4064715581,
+    "name": "منطقة مرج الحمام",
+    "name_ar": null,
+    "name_en": "Marj Al-hamam",
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8517493,
+     31.9016521
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4232938787,
+    "name": "الكمالية",
+    "name_ar": null,
+    "name_en": "Al Kamaleyah",
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8259522,
+     32.0294262
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4267496190,
+    "name": "منطقة أبو نصير",
+    "name_ar": null,
+    "name_en": "Abu-Nusair",
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8805481,
+     32.0519988
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4267499255,
+    "name": "منطقة وادي السير",
+    "name_ar": null,
+    "name_en": "Wadi Al-Seer",
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8299165,
+     31.9545949
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 4301448530,
+    "name": "منطقة طارق",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.944708,
+     31.9929547
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489174028,
+    "name": "منطقة المقابلين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9041164,
+     31.896258
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489665448,
+    "name": "جاوا",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9350331,
+     31.8594266
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489752744,
+    "name": "منطقة اليرموك",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9381443,
+     31.9356438
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7489808015,
+    "name": "منطقة رأس العين",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9277181,
+     31.9308116
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7528884902,
+    "name": "منطقة ناعور",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8201986,
+     31.8704106
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529858090,
+    "name": "منطقة تلاع العلي",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.8662013,
+     31.9946531
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7529869944,
+    "name": "منطقة بسمان",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9239446,
+     31.9876803
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7533627218,
+    "name": "منطقة النصر",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9667846,
+     31.9526184
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537470429,
+    "name": "منطقة ماركا",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9801466,
+     31.9777206
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537845238,
+    "name": "منطقة التطوير",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     36.053595,
+     31.9967568
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537887410,
+    "name": "منطقة بدر",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9069621,
+     31.9307151
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7537893769,
+    "name": "منطقة زهران",
+    "name_ar": "منطقة زهران",
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9041397,
+     31.9542665
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7542445322,
+    "name": "منطقة احد",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     36.0326446,
+     31.8875652
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osm_type": "node",
+    "osm_id": 7546179365,
+    "name": "منطقة المدينة",
+    "name_ar": null,
+    "name_en": null,
+    "place": "suburb"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     35.9288274,
+     31.9450446
+    ]
+   }
+  }
+ ]
+}
