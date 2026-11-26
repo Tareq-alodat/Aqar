@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.12 <23"
+    "node": ">=24 <25"
   },
   "scripts": {
     "dev": "tsx server/index.ts",
@@ -46,7 +46,7 @@
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^22.20.7",
+    "@types/node": "^24.19.4",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",

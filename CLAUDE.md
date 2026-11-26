@@ -9,10 +9,10 @@ Map-based real estate website for Jordan and the Gulf (phase 1: Jordan only). Ar
 - PostgreSQL 16 + PostGIS (Docker in dev), Knex for migrations and queries, Zod for validation
 - MapLibre GL JS + OpenFreeMap vector tiles (`MAP_STYLE_URL_*` env), terra-draw for draw-to-search
 - **All software free/open source; only hosting is paid.** No paid third-party services, APIs or libraries.
-- Production: one Linux VPS — Node 22 app, PostgreSQL 16 + PostGIS on the same host, Caddy for HTTPS, images on the VPS disk via the storage interface, nightly `pg_dump` + image backups (SPEC §0).
+- Production: one Linux VPS — Node 24 LTS app, PostgreSQL 16 + PostGIS on the same host, Caddy for HTTPS, images on the VPS disk via the storage interface, nightly `pg_dump` + image backups (SPEC §0).
 
 ## Commands
-Node 22 (`>=22.12 <23`, see `.nvmrc`). Copy `.env.example` to `.env` first.
+Node 24 LTS (`>=24 <25`, see `.nvmrc`). Copy `.env.example` to `.env` first.
 - `docker compose up -d` — start local PostGIS (dev only; production PostgreSQL + PostGIS runs on the VPS)
 - `npm run dev` — Express + Vite dev server with SSR on `PORT` (default 3000); `/` → `/ar/jo/map`
 - `npm run build` / `npm start` — production build (`build/`) and server (`NODE_ENV=production`)

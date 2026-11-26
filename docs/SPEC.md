@@ -22,7 +22,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 | Location privacy | Chosen **per listing by the owner**: `exact` pin or `approximate` (~300 m) |
 | Dev environment | VS Code + Claude Code, PostgreSQL/PostGIS via Docker, `.env` for secrets |
 | Software & services | **All software is free / open source; only hosting is paid.** No paid third-party services or APIs. |
-| Hosting | **One Linux VPS** (provider TBD, e.g. GoDaddy VPS) running **Node 22** (app), **PostgreSQL 16 + PostGIS** (database) and **Caddy** (reverse proxy, automatic HTTPS). Port read from `process.env.PORT`. `engines.node` is `>=22.12 <23` (22.12 is the minimum Vite/Vitest support). |
+| Hosting | **One Linux VPS** (provider TBD, e.g. GoDaddy VPS) running **Node 24 LTS** (app), **PostgreSQL 16 + PostGIS** (database) and **Caddy** (reverse proxy, automatic HTTPS). Port read from `process.env.PORT`. `engines.node` is `>=24 <25` (Node 24 LTS). |
 | Production database | PostgreSQL 16 + PostGIS **on the same VPS**, connected via `DATABASE_URL` (listening on localhost only). Docker PostGIS (`docker-compose.yml`) is for local development. |
 | Image storage | Always behind the storage interface. **`LocalDiskStorage` in development and production** — on the VPS, files live on its disk under `UPLOAD_DIR` and are served at `/uploads`. |
 | Backups | **Nightly** `pg_dump` of the database and a copy of `UPLOAD_DIR`, kept off the VPS (destination TBD with the provider). |
