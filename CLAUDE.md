@@ -17,6 +17,7 @@ Node 22 (`>=22.12 <23`, see `.nvmrc`). Copy `.env.example` to `.env` first.
 - `npm run build` / `npm start` — production build (`build/`) and server (`NODE_ENV=production`)
 - `npm run db:migrate` / `npm run db:rollback` / `npm run db:seed` — Knex via `tsx` (`knexfile.ts`)
 - `npm run typecheck` — `react-router typegen` + `tsc --noEmit`
+- `npm run lint` — ESLint (`eslint.config.ts`); custom rule `aqar/no-physical-direction` (`eslint-rules/`) fails on left/right Tailwind utilities in `app/` TS/TSX and CSS `@apply`; `css/prefer-logical-properties` covers left/right CSS properties
 - `npm test` — Vitest (`*.test.ts` next to the code)
 
 ## Layout notes
@@ -29,7 +30,7 @@ Node 22 (`>=22.12 <23`, see `.nvmrc`). Copy `.env.example` to `.env` first.
 - **Review existing code and docs before writing new code.** Before changing a feature, read the files involved and summarize what exists.
 - Work one milestone from `docs/SPEC.md` §18 at a time. For anything larger than a small fix, propose a short plan and wait for approval.
 - Stay inside the requested scope. Do not build `[P2]` features unless asked.
-- After each milestone: typecheck clean, tests pass, add a short entry to `docs/CHANGELOG.md`.
+- After each milestone: typecheck and lint clean, tests pass, add a short entry to `docs/CHANGELOG.md`.
 - If the spec is ambiguous or contradicts the code, ask — don't guess silently.
 
 ## Non-negotiable rules
