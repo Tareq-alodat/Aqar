@@ -24,6 +24,46 @@
       "other": "{count} properties in this area"
     }
   },
+  "auth": {
+    "loginLink": "Log in",
+    "logout": "Log out",
+    "signedInAs": "Signed in as {name}",
+    "login": {
+      "title": "Log in",
+      "heading": "Log in to your account",
+      "submit": "Log in",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Create one"
+    },
+    "register": {
+      "title": "Create account",
+      "heading": "Create your account",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Log in",
+      "passwordHint": "At least {min} characters.",
+      "phoneHint": "Optional. For example 079 123 4567 or 06 512 3456. You'll need it to submit a listing."
+    },
+    "fields": {
+      "name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "phone": "Phone number"
+    },
+    "errors": {
+      "name_invalid": "Enter your name (2 to 80 characters).",
+      "email_invalid": "Enter a valid email address.",
+      "password_too_short": "The password must be at least {min} characters.",
+      "password_too_long": "The password must be at most {max} characters.",
+      "password_required": "Enter your password.",
+      "phone_invalid": "Enter a valid phone number, for example 079 123 4567.",
+      "email_taken": "An account with this email already exists.",
+      "invalid_credentials": "The email or password is incorrect.",
+      "account_suspended": "This account is suspended. Please contact us.",
+      "rate_limited": "Too many attempts. Please wait a minute and try again.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
   "errors": {
     "notFoundTitle": "Page not found",
     "notFoundBody": "We couldn't find the page you're looking for.",

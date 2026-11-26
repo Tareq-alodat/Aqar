@@ -1,5 +1,6 @@
 import { Link, useLocation, useParams } from "react-router";
 import { ThemeToggle } from "~/components/ui/ThemeToggle";
+import { UserMenu } from "./UserMenu";
 import { useLocale, useT } from "~/i18n/useT";
 import { DEFAULT_COUNTRY } from "~/shared/countries";
 import { switchLocalePath } from "~/shared/locales";
@@ -45,6 +46,7 @@ export function Header() {
           {t("header.switchLanguage")}
         </Link>
         <ThemeToggle />
+        <UserMenu />
       </nav>
     </header>
   );

@@ -21,6 +21,11 @@ const envSchema = z.object({
   // Optional at startup so the app can boot without them; services that need them call requireSecrets().
   ENCRYPTION_KEY: optional(key32),
   PHONE_HASH_KEY: optional(key32),
+  // Auth (SPEC §13). Optional here so tests and scripts can import env; the server requires them at startup.
+  JWT_SECRET: optional(key32),
+  REFRESH_TOKEN_SECRET: optional(key32),
+  // Public origin of the site: CSRF origin check and Secure cookies (https).
+  PUBLIC_BASE_URL: z.url().default("http://localhost:3000"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -41,5 +46,26 @@ export function requireSecrets(): Secrets {
   return {
     encryptionKey: Buffer.from(env.ENCRYPTION_KEY, "base64"),
     phoneHashKey: Buffer.from(env.PHONE_HASH_KEY, "base64"),
+  };
+}
+
+export interface AuthSecrets {
+  /** HS256 key for access tokens. */
+  jwtSecret: Buffer;
+  /** HMAC key for refresh-token and IP hashes. */
+  refreshTokenSecret: Buffer;
+}
+
+/** Auth keys from env; throws (without echoing values) if missing. The server calls it at startup. */
+export function requireAuthSecrets(): AuthSecrets {
+  if (!env.JWT_SECRET || !env.REFRESH_TOKEN_SECRET) {
+    throw new Error("JWT_SECRET and REFRESH_TOKEN_SECRET must be set (32 bytes, base64). See .env.example.");
+  }
+  if (env.JWT_SECRET === env.REFRESH_TOKEN_SECRET) {
+    throw new Error("JWT_SECRET and REFRESH_TOKEN_SECRET must be different keys.");
+  }
+  return {
+    jwtSecret: Buffer.from(env.JWT_SECRET, "base64"),
+    refreshTokenSecret: Buffer.from(env.REFRESH_TOKEN_SECRET, "base64"),
   };
 }
