@@ -139,6 +139,31 @@ describe("listing detail page", () => {
     }
   });
 
+  it("shows an individual owner's first name only, never the full name; agents keep the full name", async () => {
+    const row = (role: string) =>
+      db("properties as p")
+        .join("users as u", "u.id", "p.owner_id")
+        .where({ "p.status": "published", "u.role": role })
+        .orderBy("p.id")
+        .select("p.id", "p.slug", "u.name");
+    const owners = (await row("owner")) as Array<{ id: number; slug: string; name: string }>;
+    const [agent] = (await row("agent")) as Array<{ id: number; slug: string; name: string }>;
+    expect(owners.length).toBeGreaterThan(0);
+
+    for (const o of owners) {
+      const first = o.name.split(/\s+/u)[0]!;
+      const rest = o.name.slice(first.length).trim();
+      for (const lang of ["ar", "en"]) {
+        const html = (await request(server.app).get(`/${lang}/property/${o.id}-${o.slug}`)).text;
+        expect(html).toContain(first);
+        expect(html).not.toContain(o.name);
+        expect(html).not.toContain(rest);
+      }
+    }
+    const agentHtml = (await request(server.app).get(`/en/property/${agent!.id}-${agent!.slug}`)).text;
+    expect(agentHtml).toContain(agent!.name);
+  });
+
   it("sold listings stay public with a status banner and no contact number", async () => {
     const r = await find({ status: "sold" });
     const res = await request(server.app).get(`/en/property/${r.id}-${r.slug}`);

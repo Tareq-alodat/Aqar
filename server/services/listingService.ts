@@ -68,6 +68,7 @@ export interface ListingDetail {
   address: Array<{ key: string; label: string; value: string }>;
   images: Array<{ url: string; thumbnailUrl: string; width: number; height: number }>;
   owner: {
+    /** Agents: full name. Individuals (owners, admins): first name only — see publicOwnerName. */
     name: string;
     role: Role;
     memberSince: string;
@@ -75,6 +76,18 @@ export interface ListingDetail {
   };
   /** Proxy number; only while the listing is open to enquiries (`published`, `reserved`). */
   contact: ContactNumber | null;
+}
+
+/**
+ * Name shown publicly for the person behind a listing (milestone 5 review):
+ * agents act professionally and keep their full name (with their company);
+ * individuals — every other role — show only their first name, never the
+ * full name.
+ */
+export function publicOwnerName(fullName: string, role: Role): string {
+  const name = fullName.trim();
+  if (role === "agent") return name;
+  return name.split(/\s+/u)[0] ?? "";
 }
 
 export type DetailAccess = "public" | "preview";
@@ -277,7 +290,7 @@ export async function getListingDetail(
         .map((f) => ({ key: f.field_key, label: locale === "ar" ? f.label_ar : f.label_en, value: visible[f.field_key]! })),
       images: images.map((i) => ({ url: i.url, thumbnailUrl: i.thumbnail_url, width: i.width, height: i.height })),
       owner: {
-        name: row.owner_name,
+        name: publicOwnerName(row.owner_name, row.owner_role),
         role: row.owner_role,
         memberSince: row.owner_since.toISOString(),
         company:

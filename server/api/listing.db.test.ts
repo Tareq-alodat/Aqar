@@ -177,6 +177,46 @@ describe("GET /api/v1/listings/:id — privacy", () => {
   });
 });
 
+describe("owner name (individuals: first name only)", () => {
+  it("never returns an individual owner's full name; agents keep full name and company", async () => {
+    const listings = (await db("properties as p")
+      .join("users as u", "u.id", "p.owner_id")
+      .whereIn("p.status", ["published", "reserved", "sold", "rented"])
+      .select("p.id", "u.name", "u.role")) as Array<{ id: number; name: string; role: string }>;
+    const individuals = listings.filter((l) => l.role !== "agent");
+    const agents = listings.filter((l) => l.role === "agent");
+    expect(individuals.length).toBeGreaterThan(0);
+    expect(agents.length).toBeGreaterThan(0);
+
+    for (const l of individuals) {
+      const first = l.name.trim().split(/\s+/u)[0]!;
+      expect(first).not.toBe(l.name); // seed owners have full names
+      for (const lang of ["ar", "en"]) {
+        const res = await request(app).get(`/api/v1/listings/${l.id}?lang=${lang}`);
+        expect(res.body.listing.owner.name).toBe(first);
+        expect(res.text).not.toContain(l.name);
+        // Nor the rest of the name on its own.
+        expect(res.text).not.toContain(l.name.trim().slice(first.length).trim());
+      }
+    }
+    for (const l of agents) {
+      const res = await request(app).get(`/api/v1/listings/${l.id}`);
+      expect(res.body.listing.owner.name).toBe(l.name);
+      expect(res.body.listing.owner.company).not.toBeNull();
+    }
+  });
+
+  it("previews follow the same rule", async () => {
+    const pending = await db("properties as p")
+      .join("users as u", "u.id", "p.owner_id")
+      .where({ "p.status": "pending", "u.role": "owner" })
+      .first("p.id", "u.name", "u.email");
+    const res = await request(app).get(`/api/v1/listings/${pending.id}`).set("Cookie", await login(pending.email));
+    expect(res.body.access).toBe("preview");
+    expect(res.text).not.toContain(pending.name);
+  });
+});
+
 describe("visibility", () => {
   it("hides non-public listings except as a no-store, noindex preview for the owner and admins", async () => {
     const pending = await one({ "p.status": "pending" });
