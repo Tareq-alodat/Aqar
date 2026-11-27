@@ -78,3 +78,10 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - The overlay panels (address path, jump-to, tools) can cover pins near the top of the map on small screens.
 - The site has no favicon yet (`/favicon.ico` → 404; not new).
 - Vite's dev live-reload socket fails when another dev server already uses its port (24678) — development only.
+
+## Hotfix — dev server (2026-11-27)
+
+- **Symptom:** `npm run dev` answered every page with "App services are not set (provideServices must run first)".
+- **Cause:** a dev server process started before pulling milestones 3–4. `tsx` does not reload `server/index.ts`, but Vite reloads `server/app.ts` and the routes from disk on every request, so new route code ran inside the old Express app, which never set the services. A freshly started `npm run dev` worked (Windows, Node 24).
+- **Fix:** `npm run dev` now runs `tsx watch`, so the server restarts when server code changes (e.g. after `git pull`). The React Router handler and its `getLoadContext` are now created in `server/createServer.ts` for both modes (dev: Vite's `virtual:react-router/server-build`; production: React Router's default `build/server/index.js`) and close over this process's services, so `provideServices`/`res.locals.services` and `server/app.ts` are gone.
+- **Test:** `server/createServer.db.test.ts` builds the real development setup (Vite middleware, React Router, auth) against the test database and renders `/ar/jo/map`, `/en/login` and `/`.

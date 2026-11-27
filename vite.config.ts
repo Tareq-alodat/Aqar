@@ -2,13 +2,13 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
-export default defineConfig(({ isSsrBuild }) => ({
+// The SSR build is React Router's default server build (build/server/index.js
+// exports the ServerBuild); server/createServer.ts wraps it in the Express handler.
+export default defineConfig({
   resolve: { tsconfigPaths: true },
   build: {
-    // The SSR bundle exports the React Router Express handler from server/app.ts.
-    rollupOptions: isSsrBuild ? { input: "./server/app.ts" } : undefined,
     // MapLibre GL is ~1.2 MB (≈320 kB gzipped) in its own chunk, loaded only when the map renders.
     chunkSizeWarningLimit: 1300,
   },
   plugins: [tailwindcss(), reactRouter()],
-}));
+});
