@@ -147,7 +147,19 @@
       "other": "{count} حمّام"
     },
     "sqm": "{area} م²",
-    "noPhoto": "لا توجد صورة بعد"
+    "noPhoto": "لا توجد صورة بعد",
+    "amenityTags": {
+      "air_conditioning": "تكييف",
+      "central_heating": "تدفئة مركزية",
+      "solar_heater": "سخان شمسي",
+      "balcony": "شرفة",
+      "storage": "مخزن",
+      "maid_room": "غرفة خادمة",
+      "security": "حراسة",
+      "view": "إطلالة",
+      "laundry_room": "غرفة غسيل",
+      "fireplace": "مدفأة"
+    }
   },
   "nav": {
     "label": "التنقل الرئيسي",
@@ -193,6 +205,101 @@
       "rate_limited": "محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.",
       "generic": "حدث خطأ. حاول مرة أخرى."
     }
+  },
+  "detail": {
+    "breadcrumb": "الموقع",
+    "address": "العنوان",
+    "description": "الوصف",
+    "similar": "عقارات مشابهة قريبة",
+    "pricePerSqm": "{price} للمتر المربع",
+    "views": {
+      "zero": "لم يُشاهد بعد",
+      "one": "شوهد مرة واحدة",
+      "two": "شوهد مرتين",
+      "few": "شوهد {count} مرات",
+      "many": "شوهد {count} مرة",
+      "other": "شوهد {count} مرة"
+    },
+    "save": "حفظ",
+    "saved": "محفوظ",
+    "preview": "معاينة: هذا الإعلان غير منشور (الحالة: {status}).",
+    "status": {
+      "draft": "مسودة",
+      "pending": "قيد المراجعة",
+      "published": "منشور",
+      "rejected": "مرفوض",
+      "reserved": "محجوز",
+      "sold": "مُباع",
+      "rented": "مؤجَّر",
+      "archived": "مؤرشف"
+    },
+    "statusBanner": {
+      "reserved": "هذا العقار محجوز.",
+      "sold": "تم بيع هذا العقار.",
+      "rented": "تم تأجير هذا العقار."
+    },
+    "gallery": {
+      "label": "الصور",
+      "thumbnails": "اختر صورة",
+      "photoOf": "الصورة {n} من {total}",
+      "lightbox": "الصور بملء الشاشة",
+      "close": "إغلاق",
+      "previous": "الصورة السابقة",
+      "next": "الصورة التالية"
+    },
+    "features": {
+      "title": "المواصفات",
+      "amenities": "المزايا",
+      "area": "المساحة",
+      "bedrooms": "غرف النوم",
+      "bathrooms": "الحمّامات",
+      "floors": "عدد الطوابق",
+      "floorNumber": "الطابق",
+      "groundFloor": "الطابق الأرضي",
+      "age": "عمر العقار",
+      "new": "جديد",
+      "years": {
+        "zero": "جديد",
+        "one": "سنة واحدة",
+        "two": "سنتان",
+        "few": "{count} سنوات",
+        "many": "{count} سنة",
+        "other": "{count} سنة"
+      },
+      "furnished": "الفرش"
+    },
+    "furnished": {
+      "yes": "مفروش",
+      "no": "غير مفروش",
+      "partial": "مفروش جزئيًا"
+    },
+    "location": {
+      "title": "الموقع",
+      "viewOnMap": "عرض على الخريطة",
+      "approximate": "يعرض المالك موقعًا تقريبيًا: العقار داخل الدائرة.",
+      "mapLabel": "موقع العقار"
+    },
+    "contact": {
+      "title": "التواصل",
+      "call": "اتصال",
+      "whatsapp": "واتساب",
+      "proxyNote": "هذا رقم عقار الخاص بهذا الإعلان، ونحن نوصلك بالمالك.",
+      "message": "مرحبًا، أنا مهتم بهذا العقار: {title}\n{url}",
+      "unavailable": "التواصل غير متاح لهذا الإعلان."
+    },
+    "share": {
+      "share": "مشاركة",
+      "copy": "نسخ الرابط",
+      "copied": "تم نسخ الرابط",
+      "whatsapp": "مشاركة عبر واتساب"
+    },
+    "owner": {
+      "owner": "المالك",
+      "agent": "وسيط عقاري",
+      "memberSince": "عضو منذ {date}",
+      "verified": "موثّق"
+    },
+    "saveError": "تعذّر تحديث العقارات المحفوظة. حاول مرة أخرى."
   },
   "errors": {
     "notFoundTitle": "الصفحة غير موجودة",

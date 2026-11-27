@@ -8,6 +8,7 @@ export default [
     index("routes/lang-home.tsx"),
     route("login", "routes/login.tsx"),
     route("register", "routes/register.tsx"),
+    route("property/:idSlug", "routes/listing.tsx"),
     route(":country/map", "routes/map.tsx"),
   ]),
   route("*", "routes/not-found.tsx"),

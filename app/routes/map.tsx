@@ -122,6 +122,7 @@ export default function MapPage() {
     if (!p) return null;
     return {
       id: p.id,
+      slug: null, // the detail page redirects to the full URL
       title: t(`listing.categories.${p.category}`),
       price: p.price,
       currency: p.currency,

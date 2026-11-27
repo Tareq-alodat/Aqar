@@ -4,6 +4,7 @@ import type { AppLoadContext } from "react-router";
 import { requestMeta } from "./middleware/authenticate";
 import type { AuthCookies } from "./services/authCookies";
 import type { AuthService, RequestMeta, Session } from "./services/authService";
+import type { ViewConfig } from "./services/viewService";
 
 /** Server services that page loaders/actions use (created once in server/createServer.ts). */
 export interface AppServices {
@@ -11,6 +12,10 @@ export interface AppServices {
   cookies: AuthCookies;
   /** Database for page loaders (map search SSR); public loaders use the same services as /api/v1. */
   db: Knex;
+  /** View counting: visitor cookie settings (listing detail). */
+  views: ViewConfig;
+  /** Origin of PUBLIC_BASE_URL (e.g. https://aqar.example), for absolute URLs such as canonical links. */
+  publicOrigin: string;
 }
 
 declare module "react-router" {

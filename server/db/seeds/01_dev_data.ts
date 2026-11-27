@@ -1,6 +1,8 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import type { Knex } from "knex";
-import type { Category, ListingStatus, ListingType, LocationPrecision } from "../../../app/shared/constants";
-import { requireSecrets } from "../../env";
+import { AMENITY_TAGS, type Category, type ListingStatus, type ListingType, type LocationPrecision } from "../../../app/shared/constants";
+import { env, requireSecrets } from "../../env";
 import { protectPhone } from "../../services/cryptoService";
 import { getIdentifierScheme, normalizeIdentifier, type IdentifierInput } from "../../services/identifierService";
 import { computeDisplayPoint, findAdminAreaForPoint, type LngLat } from "../../services/locationService";
@@ -26,6 +28,31 @@ function rng(seed: number) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** Hue per category for the generated placeholder photos. */
+const PLACEHOLDER_HUE: Record<Category, number> = { apartment: 210, villa: 150, house: 30, land: 90, commercial: 280 };
+
+/**
+ * Writes a placeholder "photo" (SVG, generated here — nothing is downloaded)
+ * to UPLOAD_DIR/seed and returns its public URL (/uploads/seed/…).
+ */
+async function writePlaceholder(propertyId: number, n: number, category: Category): Promise<string> {
+  const dir = path.resolve(env.UPLOAD_DIR, "seed");
+  await mkdir(dir, { recursive: true });
+  const hue = (PLACEHOLDER_HUE[category] + n * 23) % 360;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="hsl(${hue},45%,38%)"/><stop offset="1" stop-color="hsl(${(hue + 40) % 360},40%,18%)"/>
+</linearGradient></defs>
+<rect width="1200" height="800" fill="url(#g)"/>
+<path d="M420 520V360l180-130 180 130v160z" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="14" stroke-linejoin="round"/>
+<rect x="560" y="420" width="80" height="100" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="14"/>
+<text x="600" y="640" font-family="sans-serif" font-size="44" fill="rgba(255,255,255,.75)" text-anchor="middle">${category} · ${propertyId} · ${n + 1}</text>
+</svg>`;
+  const file = `${propertyId}-${n + 1}.svg`;
+  await writeFile(path.join(dir, file), svg, "utf8");
+  return `/uploads/seed/${file}`;
 }
 
 interface AreaRow {
@@ -76,6 +103,8 @@ export async function seed(knex: Knex): Promise<void> {
   }
   const secrets = requireSecrets();
   const random = rng(20261126);
+  // Separate stream for fields added later (amenities, photos), so earlier seed data stays the same.
+  const extra = rng(20261128);
   const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)]!;
   const between = (min: number, max: number) => min + random() * (max - min);
 
@@ -211,8 +240,16 @@ export async function seed(knex: Knex): Promise<void> {
         display_point: knex.raw("ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography", [display.lng, display.lat]),
         location_precision: p.precision,
         address: JSON.stringify(
-          isLand ? {} : { street: `شارع ${pick(["الملكة رانيا", "زهران", "مكة", "الأمير حسن", "عبدالله غوشة"])}`, building_number: String(Math.round(between(1, 120))) },
+          isLand
+            ? {}
+            : {
+                street: `شارع ${pick(["الملكة رانيا", "زهران", "مكة", "الأمير حسن", "عبدالله غوشة"])}`,
+                building_number: String(Math.round(between(1, 120))),
+                // admin_only in Jordan (SPEC §2.3): never shown publicly.
+                ...(p.category === "apartment" ? { apartment_number: String(1 + Math.floor(extra() * 20)) } : {}),
+              },
         ),
+        amenities: isLand ? [] : AMENITY_TAGS.filter(() => extra() < 0.3),
         owner_phone_encrypted: ownerPhone.encrypted,
         owner_phone_hash: ownerPhone.hash,
         status: p.status,
@@ -223,6 +260,15 @@ export async function seed(knex: Knex): Promise<void> {
       })
       .returning("id");
     ids.push(row.id);
+
+    // Placeholder photos (generated locally as SVG) for most published/sold listings, to exercise the gallery.
+    if (p.status !== "pending" && i % 4 !== 3) {
+      const count = 1 + Math.floor(extra() * 5);
+      for (let n = 0; n < count; n++) {
+        const url = await writePlaceholder(row.id, n, p.category);
+        await knex("property_images").insert({ property_id: row.id, url, thumbnail_url: url, width: 1200, height: 800, order_index: n });
+      }
+    }
 
     await knex("price_history").insert({ property_id: row.id, price, currency: "JOD", changed_by: p.owner });
     // A few published listings had a price drop.

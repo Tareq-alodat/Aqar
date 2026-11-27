@@ -52,7 +52,8 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
   const cookies = createAuthCookies({ secure: publicOrigin.startsWith("https:") });
   const limiters = createLimiters();
   const auth = createAuthService({ db: o.db, secrets: o.authSecrets, limiters, phoneSecrets: o.phoneSecrets });
-  const services = { auth, cookies, db: o.db };
+  const views = { secret: o.authSecrets.refreshTokenSecret, secure: publicOrigin.startsWith("https:") };
+  const services = { auth, cookies, db: o.db, views, publicOrigin };
   // Compute the dummy password hash now rather than on the first failed login.
   auth.warmUp().catch(() => console.error("[auth] could not prepare the dummy password hash"));
 
@@ -71,7 +72,7 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
 
   app.use(
     "/api/v1",
-    createApiRouter({ isProduction: o.isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db: o.db }),
+    createApiRouter({ isProduction: o.isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db: o.db, views }),
   );
 
   // Local image storage is development-only here; Caddy serves /uploads in production (SPEC §0).

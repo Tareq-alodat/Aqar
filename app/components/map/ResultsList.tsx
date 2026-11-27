@@ -22,7 +22,6 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
   const hoveredId = useMapUi((s) => s.hoveredId);
   const selectedId = useMapUi((s) => s.selectedId);
   const setHovered = useMapUi((s) => s.setHovered);
-  const select = useMapUi((s) => s.select);
   const pages = Math.max(1, Math.ceil(listings.total / listings.pageSize));
 
   // A pin was clicked: bring its card into view.
@@ -73,7 +72,6 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
                   currencyDecimals={currencyDecimals}
                   active={item.id === hoveredId || item.id === selectedId}
                   onHover={setHovered}
-                  onSelect={select}
                 />
               </li>
             ))}

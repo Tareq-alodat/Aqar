@@ -41,6 +41,8 @@ export interface MapPoints {
 
 export interface ListingCard {
   id: number;
+  /** Detail URL slug (/:lang/property/{id}-{slug}); null when unknown (the page redirects). */
+  slug: string | null;
   title: string;
   price: number | null;
   currency: string;

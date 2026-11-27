@@ -1,4 +1,6 @@
+import { Link } from "react-router";
 import { useLocale, useT } from "~/i18n/useT";
+import { listingPath } from "~/shared/listingUrl";
 import type { Category, ListingType, RentPeriod } from "~/shared/constants";
 import { formatNumber, formatPrice } from "~/utils/format";
 import type { ListingCard as Card } from "~/components/map/types";
@@ -56,14 +58,14 @@ interface ListingCardProps {
   active?: boolean;
   compact?: boolean;
   onHover?: (id: number | null) => void;
-  onSelect?: (id: number) => void;
 }
 
 /**
  * Result card (SPEC §5.4): photo, price, type, category, area, beds, baths, m².
- * The detail page arrives in milestone 5; until then the card selects its pin.
+ * The whole card links to the detail page (`/:lang/property/{id}-{slug}`); the
+ * title is the real link, stretched over the card.
  */
-export function ListingCard({ item, currencyDecimals, active, compact, onHover, onSelect }: ListingCardProps) {
+export function ListingCard({ item, currencyDecimals, active, compact, onHover }: ListingCardProps) {
   const t = useT();
   const locale = useLocale();
   const specs = [
@@ -77,7 +79,7 @@ export function ListingCard({ item, currencyDecimals, active, compact, onHover, 
       data-listing-id={item.id}
       onMouseEnter={() => onHover?.(item.id)}
       onMouseLeave={() => onHover?.(null)}
-      className={`group flex gap-3 rounded-xl border bg-surface p-2.5 transition-colors ${
+      className={`group relative flex gap-3 rounded-xl border bg-surface p-2.5 transition-colors ${
         active ? "border-primary" : "border-card hover:border-muted/60"
       }`}
     >
@@ -108,13 +110,12 @@ export function ListingCard({ item, currencyDecimals, active, compact, onHover, 
             {t(`listing.types.${item.listingType}`)}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => onSelect?.(item.id)}
-          className="line-clamp-2 text-start text-sm font-medium hover:text-primary focus-visible:text-primary"
+        <Link
+          to={listingPath(locale, item.id, item.slug)}
+          className="line-clamp-2 text-start text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-xl group-hover:text-primary focus-visible:text-primary focus-visible:after:ring-2 focus-visible:after:ring-primary"
         >
           {item.title}
-        </button>
+        </Link>
         <p className="truncate text-xs text-muted">
           {t(`listing.categories.${item.category}`)}
           {item.areaName ? ` · ${item.areaName}` : ""}
