@@ -117,7 +117,7 @@ Visitors (not logged in) can browse the map, view listings, and see the proxy co
 
 **Location:** `point geography(Point,4326)` (true pin), `display_point geography(Point,4326)`, `location_precision ENUM[exact, approximate]`, `admin_area_id FK`, `address jsonb` (typed address fields per §2.3; replaces `street_ar/en`), `country_code FK`. Unit identifiers live in `property_identifiers` (§2.4).
 
-**Contact:** `owner_phone_encrypted` (AES-256-GCM, pre-filled from the user's profile phone, editable per listing), `contact_number_id FK nullable` (property-level proxy override).
+**Contact:** `owner_phone_encrypted` (AES-256-GCM, pre-filled from the user's profile phone, editable per listing). A listing's own proxy number (property-level override) is a `contact_numbers` row with `scope = 'property'` (§8); `properties` has no contact-number column (`contact_number_id` was dropped in milestone 5).
 
 **Owner settings:** `offers_visibility ENUM[public, amounts_only, private]` default `amounts_only` [used in P2].
 
