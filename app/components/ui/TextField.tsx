@@ -24,8 +24,8 @@ export function TextField({ label, hint, error, className, ...input }: TextField
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`rounded-lg border bg-background px-3 py-2 text-foreground outline-none focus:border-primary ${
-          error ? "border-error" : "border-card"
+        className={`rounded-lg border bg-background px-3 py-2 text-foreground outline-none focus:border-primary-text focus:ring-1 focus:ring-primary-text ${
+          error ? "border-error-text" : "border-muted"
         } ${className ?? ""}`}
         {...input}
       />
@@ -35,7 +35,7 @@ export function TextField({ label, hint, error, className, ...input }: TextField
         </p>
       )}
       {error && (
-        <p id={errorId} className="text-xs text-error">
+        <p id={errorId} className="text-xs text-error-text">
           {error}
         </p>
       )}

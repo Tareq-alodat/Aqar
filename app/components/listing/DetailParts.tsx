@@ -12,7 +12,7 @@ import { formatNumber } from "~/utils/format";
 const DetailMap = lazy(() => import("./DetailMap"));
 const noSubscribe = () => () => {};
 
-const card = "rounded-2xl border border-card bg-surface p-4";
+const card = "rounded-2xl border border-border bg-surface p-4";
 
 /** Breadcrumb from the area hierarchy (SPEC §10); each step opens the map on that area. */
 export function AreaBreadcrumb({ path }: { path: Array<{ id: number; name: string; bbox: BBox }> }) {
@@ -29,14 +29,14 @@ export function AreaBreadcrumb({ path }: { path: Array<{ id: number; name: strin
     <nav aria-label={t("detail.breadcrumb")}>
       <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
         <li>
-          <Link to={`/${locale}/${DEFAULT_COUNTRY}/map`} className="hover:text-primary hover:underline">
+          <Link to={`/${locale}/${DEFAULT_COUNTRY}/map`} className="hover:text-primary-text hover:underline">
             {t(`countries.${DEFAULT_COUNTRY}`)}
           </Link>
         </li>
         {path.map((a) => (
           <li key={a.id} className="flex items-center gap-1.5">
             <span aria-hidden="true">›</span>
-            <Link to={mapAt(a.bbox)} className="hover:text-primary hover:underline">
+            <Link to={mapAt(a.bbox)} className="hover:text-primary-text hover:underline">
               {a.name}
             </Link>
           </li>
@@ -96,7 +96,7 @@ export function FeatureGrid({ v }: { v: FeatureValues }) {
       {chips.length > 0 && (
         <ul className="flex flex-wrap gap-2" aria-label={t("detail.features.amenities")}>
           {chips.map((c) => (
-            <li key={c} className="rounded-full border border-card px-3 py-1 text-sm">
+            <li key={c} className="rounded-full border border-border px-3 py-1 text-sm">
               {c}
             </li>
           ))}
@@ -112,12 +112,12 @@ export function ContactBox({ phone, whatsapp, message, sticky }: { phone: string
   const button = "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold";
   const actions = (
     <div className="flex gap-2">
-      <a href={telHref(phone)} className={`${button} bg-primary text-on-accent`}>
+      <a href={telHref(phone)} className={`${button} bg-primary text-on-primary hover:bg-primary-hover`}>
         <PhoneIcon />
         {t("detail.contact.call")}
       </a>
       {whatsapp && (
-        <a href={whatsappChatHref(phone, message)} target="_blank" rel="noopener noreferrer" className={`${button} bg-success text-on-accent`}>
+        <a href={whatsappChatHref(phone, message)} target="_blank" rel="noopener noreferrer" className={`${button} bg-success text-on-primary`}>
           <ChatIcon />
           {t("detail.contact.whatsapp")}
         </a>
@@ -125,7 +125,7 @@ export function ContactBox({ phone, whatsapp, message, sticky }: { phone: string
     </div>
   );
   if (sticky) {
-    return <div className="fixed inset-x-0 bottom-0 z-30 border-t border-card bg-surface/95 p-3 backdrop-blur lg:hidden">{actions}</div>;
+    return <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 backdrop-blur lg:hidden">{actions}</div>;
   }
   return (
     <section aria-labelledby="contact-title" className={card}>
@@ -150,7 +150,7 @@ export function FavoriteButton({ listingId, initial }: { listingId: number; init
   const [saved, setSaved] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const className = "flex items-center gap-2 rounded-xl border border-card px-3 py-2 text-sm font-medium hover:bg-card";
+  const className = "flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-card";
 
   if (!user) {
     return (
@@ -179,7 +179,7 @@ export function FavoriteButton({ listingId, initial }: { listingId: number; init
         <HeartIcon filled={saved} />
         {saved ? t("detail.saved") : t("detail.save")}
       </button>
-      <span role="status" aria-live="polite" className="text-xs text-error">
+      <span role="status" aria-live="polite" className="text-xs text-error-text">
         {failed ? t("detail.saveError") : ""}
       </span>
     </div>
@@ -196,7 +196,7 @@ export function ShareButtons({ url, title }: { url: string; title: string }) {
     () => "share" in navigator,
     () => false,
   );
-  const className = "flex items-center gap-2 rounded-xl border border-card px-3 py-2 text-sm font-medium hover:bg-card";
+  const className = "flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-card";
   const copy = async () => {
     await navigator.clipboard.writeText(url);
     setCopied(true);
@@ -241,7 +241,7 @@ export function OwnerCard({
     .join("");
   return (
     <section aria-labelledby="owner-title" className={`${card} flex items-center gap-3`}>
-      <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-card text-lg font-bold text-primary">
+      <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-card text-lg font-bold text-primary-text">
         {initials}
       </span>
       <div className="min-w-0">
@@ -256,7 +256,7 @@ export function OwnerCard({
             {owner.company.logoUrl && <img src={owner.company.logoUrl} alt="" className="size-5 rounded object-cover" />}
             <span className="truncate">{owner.company.name}</span>
             {owner.company.verified && (
-              <span className="rounded-full bg-success px-2 py-0.5 text-[11px] font-semibold text-on-accent">{t("detail.owner.verified")}</span>
+              <span className="rounded-full bg-success px-2 py-0.5 text-[11px] font-semibold text-on-primary">{t("detail.owner.verified")}</span>
             )}
           </p>
         )}
@@ -334,7 +334,7 @@ function ChatIcon() {
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={`size-5 ${filled ? "fill-error text-error" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className={`size-5 ${filled ? "fill-error-text text-error-text" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
       <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
     </svg>
   );

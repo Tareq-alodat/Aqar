@@ -17,8 +17,9 @@ const AGE_OPTIONS = [1, 5, 10, 20, 30];
 const BATH_OPTIONS = [1, 2, 3, 4];
 
 const chip = (on: boolean) =>
-  `rounded-full border px-3 py-1.5 text-sm transition-colors ${on ? "border-primary bg-primary text-on-accent" : "border-card bg-background hover:border-muted"}`;
-const field = "rounded-lg border border-card bg-background px-2.5 py-1.5 text-sm";
+  `rounded-full border px-3 py-1.5 text-sm transition-colors ${on ? "border-primary bg-primary text-on-primary hover:bg-primary-hover" : "border-muted/60 bg-background hover:border-foreground"}`;
+// Form fields: border in `muted` so the control boundary reaches 3:1 (WCAG 1.4.11).
+const field = "rounded-lg border border-muted bg-background px-2.5 py-1.5 text-sm placeholder:text-muted";
 
 /** Number box applied on blur or Enter (no request per keystroke). */
 function NumberBox({ label, value, onCommit }: { label: string; value: number | undefined; onCommit(v: number | undefined): void }) {
@@ -193,7 +194,7 @@ export function FilterPanel({ filters, areas, onChange, layout, onDone }: Filter
 
   const active = countFilters(filters);
   const reset = active > 0 && (
-    <button type="button" onClick={() => onChange({})} className="text-sm text-primary hover:underline">
+    <button type="button" onClick={() => onChange({})} className="text-sm text-primary-text hover:underline">
       {t("filters.reset")}
     </button>
   );
@@ -205,7 +206,7 @@ export function FilterPanel({ filters, areas, onChange, layout, onDone }: Filter
         {extra}
         <div className="flex items-center justify-between gap-3 pt-2">
           {reset || <span />}
-          <button type="button" onClick={onDone} className="rounded-lg bg-primary px-4 py-2 font-semibold text-on-accent">
+          <button type="button" onClick={onDone} className="rounded-lg bg-primary px-4 py-2 font-semibold text-on-primary hover:bg-primary-hover">
             {t("filters.done")}
           </button>
         </div>
@@ -218,13 +219,13 @@ export function FilterPanel({ filters, areas, onChange, layout, onDone }: Filter
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         {basic}
         <div className="flex items-center gap-4 pb-1">
-          <button type="button" aria-expanded={more} onClick={() => setMore(!more)} className="text-sm font-medium hover:text-primary">
+          <button type="button" aria-expanded={more} onClick={() => setMore(!more)} className="text-sm font-medium hover:text-primary-text">
             {more ? t("filters.fewer") : t("filters.more")}
           </button>
           {reset}
         </div>
       </div>
-      {more && <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-t border-card pt-3">{extra}</div>}
+      {more && <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-t border-border pt-3">{extra}</div>}
     </div>
   );
 }

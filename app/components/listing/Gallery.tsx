@@ -44,7 +44,7 @@ export function Gallery({ images, alt }: { images: GalleryImage[]; alt: string }
               aria-selected={i === index}
               aria-label={t("detail.gallery.photoOf", { n: i + 1, total: images.length })}
               onClick={() => setIndex(i)}
-              className={`h-14 w-20 shrink-0 overflow-hidden rounded-md border-2 ${i === index ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"}`}
+              className={`h-14 w-20 shrink-0 overflow-hidden rounded-md border-2 ${i === index ? "border-primary-text" : "border-transparent opacity-70 hover:opacity-100"}`}
             >
               <img src={img.thumbnailUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
             </button>
@@ -161,7 +161,7 @@ function Slides({
         aria-roledescription="carousel"
         aria-label={t("detail.gallery.label")}
         onKeyDown={onKeyDown}
-        className={`flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-xl bg-card outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-primary ${
+        className={`flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-xl bg-card outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-primary-text ${
           size === "lightbox" ? "size-full rounded-none bg-transparent" : "aspect-[3/2]"
         }`}
       >

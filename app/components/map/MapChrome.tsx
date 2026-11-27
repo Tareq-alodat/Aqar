@@ -5,7 +5,7 @@ import type { BBox } from "~/shared/geo";
 import { useMapUi } from "~/store/mapUiStore";
 import type { AreaSummary } from "./types";
 
-const panel = "rounded-xl border border-card bg-surface/95 shadow-lg backdrop-blur";
+const panel = "rounded-xl border border-border bg-surface/95 shadow-lg backdrop-blur";
 
 /**
  * Full address path of the area in view (SPEC §5.2 drill-down):
@@ -36,7 +36,7 @@ export function AreaPath({ country, countryBBox, path }: { country: ActiveCountr
                   {c.label}
                 </span>
               ) : (
-                <button type="button" onClick={() => fitTo(c.bbox!)} className="text-muted hover:text-primary hover:underline">
+                <button type="button" onClick={() => fitTo(c.bbox!)} className="text-muted hover:text-primary-text hover:underline">
                   {c.label}
                 </button>
               )}
@@ -63,7 +63,7 @@ export function JumpTo({ areas, path }: { areas: AreaSummary[]; path: AreaSummar
     const area = areas.find((a) => String(a.id) === id);
     if (area) fitTo(area.bbox);
   };
-  const select = "max-w-40 rounded-lg border border-card bg-background px-2 py-1.5 text-sm";
+  const select = "max-w-40 rounded-lg border border-muted bg-background px-2 py-1.5 text-sm";
   return (
     <div className={`${panel} flex items-center gap-2 px-2 py-1.5`} role="group" aria-label={t("map.jumpTo")}>
       <select aria-label={t("map.governorate")} value={current ?? ""} onChange={(e) => go(e.target.value)} className={select}>
@@ -120,15 +120,15 @@ export function MapToolbar({
     <div className="flex flex-col items-start gap-2">
       <div className={`${panel} flex flex-wrap items-center gap-2 px-2 py-1.5`}>
         {hasPolygon ? (
-          <button type="button" onClick={onClearPolygon} className={`${button} bg-primary text-on-accent`}>
+          <button type="button" onClick={onClearPolygon} className={`${button} bg-primary text-on-primary hover:bg-primary-hover`}>
             {t("map.clearArea")}
           </button>
         ) : drawing ? (
-          <button type="button" onClick={() => setDrawing(false)} className={`${button} border border-card hover:bg-card`}>
+          <button type="button" onClick={() => setDrawing(false)} className={`${button} border border-border hover:bg-card`}>
             {t("map.cancelDraw")}
           </button>
         ) : (
-          <button type="button" onClick={() => setDrawing(true)} className={`${button} border border-card hover:bg-card`}>
+          <button type="button" onClick={() => setDrawing(true)} className={`${button} border border-border hover:bg-card`}>
             {t("map.drawArea")}
           </button>
         )}
@@ -141,7 +141,7 @@ export function MapToolbar({
       </div>
       {drawing && <p className={`${panel} max-w-72 px-3 py-2 text-xs text-muted`}>{t("map.drawHint")}</p>}
       {pendingMove && !hasPolygon && (
-        <button type="button" onClick={onSearchThisArea} className={`${button} bg-primary text-on-accent shadow-lg`}>
+        <button type="button" onClick={onSearchThisArea} className={`${button} bg-primary text-on-primary shadow-lg hover:bg-primary-hover`}>
           {t("map.searchThisArea")}
         </button>
       )}

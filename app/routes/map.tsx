@@ -155,13 +155,13 @@ export default function MapPage() {
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
       {/* Filter bar above both panes (desktop). */}
-      <div className="hidden border-b border-card bg-surface px-4 py-3 lg:block">
+      <div className="hidden border-b border-border bg-surface px-4 py-3 lg:block">
         <FilterPanel filters={state.filters} areas={data.jumpAreas} onChange={onFilters} layout="bar" />
       </div>
 
       <div className="relative grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[2fr_3fr]">
         {/* Results on the start side (right in Arabic, left in English). */}
-        <aside className="hidden min-h-0 flex-col border-e border-card bg-background lg:flex">{list}</aside>
+        <aside className="hidden min-h-0 flex-col border-e border-border bg-background lg:flex">{list}</aside>
 
         <div className="relative min-h-0 overflow-hidden bg-card">
           {mounted ? (
@@ -199,7 +199,7 @@ export default function MapPage() {
               <button
                 type="button"
                 onClick={() => setFiltersOpen(true)}
-                className="rounded-xl border border-card bg-surface/95 px-3 py-2 text-sm font-medium shadow-lg lg:hidden"
+                className="rounded-xl border border-border bg-surface/95 px-3 py-2 text-sm font-medium shadow-lg lg:hidden"
               >
                 {t("filters.button", { count: activeFilters })}
               </button>
@@ -227,7 +227,7 @@ export default function MapPage() {
                   type="button"
                   onClick={() => select(null)}
                   aria-label={t("map.closeCard")}
-                  className="absolute -top-2 end-2 flex size-7 items-center justify-center rounded-full border border-card bg-surface text-muted shadow"
+                  className="absolute -top-2 end-2 flex size-7 items-center justify-center rounded-full border border-border bg-surface text-muted shadow"
                 >
                   ×
                 </button>
@@ -248,7 +248,7 @@ export default function MapPage() {
       {/* Mobile filters sheet. */}
       {filtersOpen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-background lg:hidden" role="dialog" aria-modal="true" aria-labelledby="filters-title">
-          <div className="flex items-center justify-between border-b border-card px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 id="filters-title" className="text-lg font-semibold">
               {t("filters.title")}
             </h2>

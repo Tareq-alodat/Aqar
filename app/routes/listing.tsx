@@ -74,7 +74,7 @@ export default function ListingPage() {
         </p>
       )}
       {access === "public" && listing.status !== "published" && (
-        <p role="status" className="mt-3 rounded-xl border border-card bg-card px-4 py-2 text-sm font-semibold">
+        <p role="status" className="mt-3 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold">
           {t(`detail.statusBanner.${listing.status}`)}
         </p>
       )}
@@ -101,7 +101,7 @@ export default function ListingPage() {
               currency={listing.currency}
               decimals={listing.currencyDecimals}
               rentPeriod={listing.rentPeriod}
-              className="text-2xl font-bold text-primary"
+              className="text-2xl font-bold text-primary-text"
             />
             {listing.pricePerSqm !== null && listing.rentPeriod === null && (
               <p className="text-sm text-muted">
@@ -144,7 +144,7 @@ export default function ListingPage() {
                 <h2 id="location-title" className="text-lg font-semibold">
                   {t("detail.location.title")}
                 </h2>
-                <Link to={mapHref} className="text-sm text-primary hover:underline">
+                <Link to={mapHref} className="text-sm text-primary-text hover:underline">
                   {t("detail.location.viewOnMap")}
                 </Link>
               </div>
@@ -158,7 +158,7 @@ export default function ListingPage() {
           {listing.contact ? (
             <ContactBox phone={listing.contact.phone} whatsapp={listing.contact.whatsapp} message={contactMessage} />
           ) : (
-            listing.status !== "published" && <p className="rounded-2xl border border-card bg-surface p-4 text-sm text-muted">{t("detail.contact.unavailable")}</p>
+            listing.status !== "published" && <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">{t("detail.contact.unavailable")}</p>
           )}
           <div className="flex flex-wrap gap-2">
             {access === "public" && <FavoriteButton listingId={listing.id} initial={saved} />}

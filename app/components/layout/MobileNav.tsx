@@ -16,10 +16,10 @@ export function MobileNav() {
   const onMap = location.pathname.endsWith("/map");
   const accountHref = user ? mapHref : `/${locale}/login?next=${encodeURIComponent(location.pathname + location.search)}`;
   const item = (active: boolean) =>
-    `flex flex-1 flex-col items-center gap-0.5 py-1.5 text-xs ${active ? "text-primary" : "text-muted hover:text-foreground"}`;
+    `flex flex-1 flex-col items-center gap-0.5 py-1.5 text-xs ${active ? "text-primary-text" : "text-muted hover:text-foreground"}`;
 
   return (
-    <nav aria-label={t("nav.label")} className="z-30 flex h-14 shrink-0 border-t border-card bg-surface lg:hidden">
+    <nav aria-label={t("nav.label")} className="z-30 flex h-14 shrink-0 border-t border-border bg-surface lg:hidden">
       <Link to={mapHref} className={item(onMap)} aria-current={onMap ? "page" : undefined}>
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
           <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" />

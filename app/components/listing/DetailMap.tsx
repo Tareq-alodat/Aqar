@@ -47,14 +47,15 @@ export default function DetailMap({ lng, lat, precision, styleUrl, locale, dir, 
     map.addControl(new AttributionControl({ compact: false, customAttribution: ATTRIBUTION }), controlPosition("bottom-end", dir));
 
     map.on("load", () => {
-      const primary = themeColor("--color-primary");
+      // Brand colour that stays visible on both basemaps (lighter tint in dark mode).
+      const primary = themeColor("--color-primary-text");
       if (precision === "exact") {
         map.addSource("aqar-pin", { type: "geojson", data: { type: "Point", coordinates: [lng, lat] } });
         map.addLayer({
           id: "aqar-pin",
           type: "circle",
           source: "aqar-pin",
-          paint: { "circle-radius": 9, "circle-color": primary, "circle-stroke-width": 3, "circle-stroke-color": themeColor("--color-on-accent") },
+          paint: { "circle-radius": 9, "circle-color": themeColor("--color-sale"), "circle-stroke-width": 3, "circle-stroke-color": themeColor("--color-on-primary") },
         });
       } else {
         map.addSource("aqar-area", {
