@@ -6,7 +6,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "dev": "tsx server/index.ts",
+    "dev": "tsx watch --clear-screen=false server/index.ts",
     "build": "react-router build",
     "start": "cross-env NODE_ENV=production tsx server/index.ts",
     "typecheck": "react-router typegen && tsc --noEmit",
