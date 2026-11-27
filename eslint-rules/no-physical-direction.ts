@@ -12,6 +12,13 @@ import type * as ESTree from "estree";
  * under an `rtl:` or `ltr:` variant are allowed, because they are explicitly
  * direction-aware.
  *
+ * Also (milestone 4, map UI): physical keys/values in JSX `style={{…}}`
+ * objects (`marginLeft` → `marginInlineStart`, `textAlign: "left"` →
+ * `"start"`), MapLibre control corners passed as literals to `addControl`
+ * (use `controlPosition("top-end", dir)`), and left/right `anchor` options of
+ * `new Popup()` / `new Marker()`. Map layer properties such as `text-anchor`
+ * place labels around a point geographically and are not checked.
+ *
  * Two kinds of finding:
  * - logical: a start/end equivalent exists (`pl-4` → `ps-4`,
  *   `[margin-left:3px]` → `[margin-inline-start:3px]`).
@@ -23,7 +30,7 @@ import type * as ESTree from "estree";
 
 const CLASS_HELPERS = new Set(["cn", "clsx", "cva", "twMerge", "classNames"]);
 
-function isClassHelperCall(node: ESTree.Node): node is ESTree.CallExpression {
+function isClassHelperCall(node: ESTree.Node): boolean {
   return node.type === "CallExpression" && node.callee.type === "Identifier" && CLASS_HELPERS.has(node.callee.name);
 }
 
@@ -228,6 +235,57 @@ export function checkToken(token: string): Finding | null {
   return null;
 }
 
+/** Physical CSS properties in JSX `style` objects (camelCase) → logical property. */
+const STYLE_PROPERTIES: Readonly<Record<string, string>> = {
+  left: "insetInlineStart",
+  right: "insetInlineEnd",
+  marginLeft: "marginInlineStart",
+  marginRight: "marginInlineEnd",
+  paddingLeft: "paddingInlineStart",
+  paddingRight: "paddingInlineEnd",
+  borderLeft: "borderInlineStart",
+  borderRight: "borderInlineEnd",
+  borderLeftWidth: "borderInlineStartWidth",
+  borderRightWidth: "borderInlineEndWidth",
+  borderLeftColor: "borderInlineStartColor",
+  borderRightColor: "borderInlineEndColor",
+  borderLeftStyle: "borderInlineStartStyle",
+  borderRightStyle: "borderInlineEndStyle",
+  borderTopLeftRadius: "borderStartStartRadius",
+  borderTopRightRadius: "borderStartEndRadius",
+  borderBottomLeftRadius: "borderEndStartRadius",
+  borderBottomRightRadius: "borderEndEndRadius",
+  scrollMarginLeft: "scrollMarginInlineStart",
+  scrollMarginRight: "scrollMarginInlineEnd",
+  scrollPaddingLeft: "scrollPaddingInlineStart",
+  scrollPaddingRight: "scrollPaddingInlineEnd",
+};
+
+/** Style properties whose left/right *values* have logical keywords. */
+const STYLE_VALUES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  textAlign: { left: "start", right: "end" },
+  float: { left: "inline-start", right: "inline-end" },
+  clear: { left: "inline-start", right: "inline-end" },
+};
+
+/** MapLibre control corners (`map.addControl(control, "top-left")`) → logical corner for `controlPosition()`. */
+const MAP_CORNERS: Readonly<Record<string, string>> = {
+  "top-left": "top-start",
+  "top-right": "top-end",
+  "bottom-left": "bottom-start",
+  "bottom-right": "bottom-end",
+};
+
+/** MapLibre/other popup and marker classes whose `anchor` option is physical. */
+const ANCHORED_CLASSES = new Set(["Popup", "Marker"]);
+
+function propertyName(p: ESTree.Property): string | null {
+  if (p.computed) return null;
+  if (p.key.type === "Identifier") return p.key.name;
+  if (p.key.type === "Literal" && typeof p.key.value === "string") return p.key.value;
+  return null;
+}
+
 const rule: Rule.RuleModule = {
   meta: {
     type: "problem",
@@ -238,9 +296,34 @@ const rule: Rule.RuleModule = {
     messages: {
       physical: "'{{token}}' is a physical (left/right) utility. Use '{{replacement}}' (logical) or an rtl:/ltr: variant.",
       mirror: "'{{token}}' does not mirror in RTL. Use the pair '{{ltr}} {{rtl}}'.",
+      styleProperty: "Style property '{{prop}}' is physical (left/right). Use '{{replacement}}'.",
+      styleValue: "'{{prop}}: \"{{value}}\"' is physical. Use '\"{{replacement}}\"'.",
+      mapCorner: "Map control position '{{value}}' does not mirror in RTL. Use controlPosition(\"{{logical}}\", dir).",
+      anchor: "{{cls}} anchor '{{value}}' does not mirror in RTL. Choose the side from the page direction.",
     },
   },
   create(context) {
+    function checkStyleObject(obj: ESTree.ObjectExpression) {
+      for (const p of obj.properties) {
+        if (p.type !== "Property") continue;
+        const name = propertyName(p);
+        if (!name) continue;
+        const replacement = STYLE_PROPERTIES[name];
+        if (replacement) {
+          context.report({ node: p.key, messageId: "styleProperty", data: { prop: name, replacement } });
+          continue;
+        }
+        const values = STYLE_VALUES[name];
+        if (values && p.value.type === "Literal" && typeof p.value.value === "string" && values[p.value.value]) {
+          context.report({
+            node: p.value,
+            messageId: "styleValue",
+            data: { prop: name, value: p.value.value, replacement: values[p.value.value]! },
+          });
+        }
+      }
+    }
+
     function checkText(node: ESTree.Node, text: string) {
       for (const token of text.split(/\s+/)) {
         if (!token) continue;
@@ -281,14 +364,52 @@ const rule: Rule.RuleModule = {
 
     return {
       JSXAttribute(node: ESTree.Node) {
-        const attr = node as unknown as { name: { type: string; name: unknown }; value: ESTree.Node | null };
+        const attr = node as unknown as {
+          name: { type: string; name: unknown };
+          value: (ESTree.Node & { expression?: ESTree.Node }) | null;
+        };
         if (attr.name.type !== "JSXIdentifier") return;
+        // style={{ marginLeft: 8 }}
+        if (attr.name.name === "style") {
+          if (attr.value?.type === ("JSXExpressionContainer" as string) && attr.value.expression?.type === "ObjectExpression") {
+            checkStyleObject(attr.value.expression);
+          }
+          return;
+        }
         if (attr.name.name !== "className" && attr.name.name !== "class") return;
         if (attr.value) checkStrings(attr.value);
       },
       CallExpression(node) {
         if (isClassHelperCall(node)) {
           for (const arg of node.arguments) checkStrings(arg);
+          return;
+        }
+        // map.addControl(control, "top-left")
+        const callee = node.callee;
+        if (callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier" && callee.property.name === "addControl") {
+          const pos = node.arguments[1];
+          if (pos?.type === "Literal" && typeof pos.value === "string" && MAP_CORNERS[pos.value]) {
+            context.report({ node: pos, messageId: "mapCorner", data: { value: pos.value, logical: MAP_CORNERS[pos.value]! } });
+          }
+        }
+      },
+      // new Popup({ anchor: "left" }), new maplibregl.Marker({ anchor: "bottom-right" })
+      NewExpression(node) {
+        const callee = node.callee;
+        const cls =
+          callee.type === "Identifier"
+            ? callee.name
+            : callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier"
+              ? callee.property.name
+              : null;
+        if (!cls || !ANCHORED_CLASSES.has(cls)) return;
+        const options = node.arguments[0];
+        if (options?.type !== "ObjectExpression") return;
+        for (const p of options.properties) {
+          if (p.type !== "Property" || propertyName(p) !== "anchor") continue;
+          if (p.value.type === "Literal" && typeof p.value.value === "string" && /(^|-)(left|right)$/.test(p.value.value)) {
+            context.report({ node: p.value, messageId: "anchor", data: { cls, value: p.value.value } });
+          }
         }
       },
       // CSS files (language "css/css" from @eslint/css): `@apply pl-4 …;`

@@ -1,0 +1,373 @@
+import {
+  AttributionControl,
+  Map as MapLibreMap,
+  NavigationControl,
+  type ExpressionSpecification,
+  type FilterSpecification,
+  type GeoJSONSource,
+  type MapLayerMouseEvent,
+  setWorkerUrl,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+// MapLibre 6 looks for its worker next to its own module, which bundling moves;
+// serve the (self-contained) worker as an asset and point MapLibre at it.
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+import { useEffect, useRef } from "react";
+import { TerraDraw, TerraDrawPolygonMode } from "terra-draw";
+import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
+import type { BBox } from "~/shared/geo";
+import type { Locale } from "~/shared/locales";
+import type { LngLatPair } from "~/shared/polyline";
+import { ATTRIBUTION, controlPosition, OWN, transformStyle } from "./mapStyle";
+import { makePinImage, PIN_IMAGE_EXPRESSION, pinTextColor, themeColor } from "./pins";
+import type { AreaLevelInfo, MapPoints, ViewChange } from "./types";
+
+export interface MapViewProps {
+  locale: Locale;
+  dir: "rtl" | "ltr";
+  country: string;
+  styleUrl: string;
+  initialView: { lng: number; lat: number; zoom: number };
+  levels: AreaLevelInfo[];
+  points: MapPoints;
+  polygon?: LngLatPair[];
+  /** Pin to emphasise (hovered card or selected pin). */
+  activeId: number | null;
+  drawing: boolean;
+  /** Fit the map to these bounds when `key` changes (jump-to, breadcrumb). */
+  fit?: { bbox: BBox; key: number };
+  /** MapLibre control labels in the page language. */
+  controlLabels: Record<string, string>;
+  onViewChange(view: ViewChange): void;
+  onPinClick(id: number): void;
+  onPinHover(id: number | null): void;
+  onDrawFinish(ring: LngLatPair[]): void;
+}
+
+setWorkerUrl(workerUrl);
+
+const SRC_POINTS = `${OWN}points`;
+const SRC_POLY = `${OWN}poly`;
+const areaSrc = (level: string) => `${OWN}area-${level}`;
+const labelSrc = (level: string) => `${OWN}area-labels-${level}`;
+const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const FONT = ["Noto Sans Bold"];
+
+function viewOf(map: MapLibreMap): ViewChange {
+  const b = map.getBounds();
+  const c = map.getCenter();
+  return { lng: c.lng, lat: c.lat, zoom: map.getZoom(), bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] };
+}
+
+/** Adds our sources/layers (once per style; style swaps carry them over via transformStyle). */
+function addOwnLayers(map: MapLibreMap, levels: AreaLevelInfo[], locale: Locale) {
+  if (map.getSource(SRC_POINTS)) return;
+  const fg = themeColor("--color-foreground");
+  const muted = themeColor("--color-muted");
+  const primary = themeColor("--color-primary");
+  const bg = themeColor("--color-background");
+  const name: ExpressionSpecification = locale === "ar" ? ["get", "name_ar"] : ["get", "name_en"];
+
+  levels.forEach((lv, i) => {
+    const next = levels[i + 1];
+    map.addSource(areaSrc(lv.level), { type: "geojson", data: EMPTY, promoteId: "id" });
+    map.addSource(labelSrc(lv.level), { type: "geojson", data: EMPTY });
+    map.addLayer({
+      id: `${OWN}area-fill-${lv.level}`,
+      type: "fill",
+      source: areaSrc(lv.level),
+      minzoom: lv.minZoom,
+      ...(next ? { maxzoom: next.minZoom } : {}),
+      paint: { "fill-color": primary, "fill-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.1, 0] },
+    });
+    map.addLayer({
+      id: `${OWN}area-line-${lv.level}`,
+      type: "line",
+      source: areaSrc(lv.level),
+      minzoom: lv.minZoom,
+      paint: {
+        "line-color": i === levels.length - 1 ? muted : fg,
+        "line-opacity": 0.45,
+        "line-width": Math.max(0.6, 2 - i * 0.6),
+        ...(i === levels.length - 1 ? { "line-dasharray": [2, 2] } : {}),
+      },
+    });
+  });
+
+  map.addSource(SRC_POLY, { type: "geojson", data: EMPTY });
+  map.addLayer({ id: `${OWN}poly-fill`, type: "fill", source: SRC_POLY, paint: { "fill-color": primary, "fill-opacity": 0.08 } });
+  map.addLayer({ id: `${OWN}poly-line`, type: "line", source: SRC_POLY, paint: { "line-color": primary, "line-width": 2 } });
+
+  // Area names above outlines, below pins; a level's labels give way to the next level's.
+  levels.forEach((lv, i) => {
+    const next = levels[i + 1];
+    map.addLayer({
+      id: `${OWN}area-label-${lv.level}`,
+      type: "symbol",
+      source: labelSrc(lv.level),
+      minzoom: lv.minZoom,
+      ...(next ? { maxzoom: next.minZoom } : {}),
+      layout: { "text-field": name, "text-font": FONT, "text-size": 13 - i, "text-padding": 4 },
+      paint: { "text-color": fg, "text-halo-color": bg, "text-halo-width": 1.5, "text-opacity": 0.85 },
+    });
+  });
+
+  map.addSource(SRC_POINTS, { type: "geojson", data: EMPTY, cluster: true, clusterRadius: 48, clusterMaxZoom: 14 });
+  map.addLayer({
+    id: `${OWN}clusters`,
+    type: "circle",
+    source: SRC_POINTS,
+    filter: ["has", "point_count"],
+    paint: {
+      "circle-color": fg,
+      "circle-opacity": 0.92,
+      "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 50, 26, 200, 32],
+      "circle-stroke-color": primary,
+      "circle-stroke-width": 2,
+    },
+  });
+  map.addLayer({
+    id: `${OWN}cluster-count`,
+    type: "symbol",
+    source: SRC_POINTS,
+    filter: ["has", "point_count"],
+    layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": FONT, "text-size": 13, "text-allow-overlap": true },
+    paint: { "text-color": bg },
+  });
+  const pinLayout = {
+    "icon-image": PIN_IMAGE_EXPRESSION as unknown as ExpressionSpecification,
+    "icon-text-fit": "both" as const,
+    "icon-allow-overlap": true,
+    "text-allow-overlap": true,
+    "text-field": ["get", "label"] as ExpressionSpecification,
+    "text-font": FONT,
+    "text-size": 12,
+  };
+  map.addLayer({
+    id: `${OWN}pins`,
+    type: "symbol",
+    source: SRC_POINTS,
+    filter: ["!", ["has", "point_count"]],
+    layout: { ...pinLayout, "symbol-sort-key": ["case", ["get", "is_featured"], 1, 0] },
+    paint: { "text-color": pinTextColor() },
+  });
+  // The hovered/selected pin, drawn on top with a ring (feature-state cannot change layout images).
+  map.addLayer({
+    id: `${OWN}pin-active`,
+    type: "symbol",
+    source: SRC_POINTS,
+    filter: ["==", ["get", "id"], -1],
+    layout: {
+      ...pinLayout,
+      "icon-image": ["concat", "aqar-pin-", ["get", "listing_type"], "-active"],
+      "text-size": 13,
+    },
+    paint: { "text-color": pinTextColor() },
+  });
+}
+
+export default function MapView(props: MapViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const drawRef = useRef<TerraDraw | null>(null);
+  const loadedLevels = useRef(new Set<string>());
+  // Latest props for map event handlers registered once (synced before the effects below run).
+  const latest = useRef(props);
+  useEffect(() => {
+    latest.current = props;
+  });
+
+  // Create the map once.
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const { locale, dir, initialView, styleUrl, controlLabels } = latest.current;
+    const map = new MapLibreMap({
+      container: containerRef.current,
+      style: styleUrl,
+      center: [initialView.lng, initialView.lat],
+      zoom: initialView.zoom,
+      attributionControl: false,
+      locale: controlLabels,
+      transformStyle: transformStyle(locale),
+      dragRotate: false,
+      pitchWithRotate: false,
+      maxZoom: 18,
+      minZoom: 5,
+    });
+    mapRef.current = map;
+    // Development only: lets browser tests inspect what the map renders.
+    if (import.meta.env.DEV) (window as unknown as { __aqarMap?: MapLibreMap }).__aqarMap = map;
+    map.touchZoomRotate.disableRotation();
+    map.addControl(new NavigationControl({ showCompass: false }), controlPosition("top-end", dir));
+    map.addControl(new AttributionControl({ compact: false, customAttribution: ATTRIBUTION }), controlPosition("bottom-end", dir));
+
+    // Pin images are drawn on demand; MapLibre awaits the resolver for every tile that needs one
+    // (the older `styleimagemissing` event only served the first tile).
+    map.setMissingStyleImageResolver((id) => {
+      const pin = makePinImage(id);
+      if (pin && !map.hasImage(id)) map.addImage(id, pin.data, pin.options);
+    });
+
+    const loadOutlines = () => {
+      const zoom = map.getZoom();
+      for (const lv of latest.current.levels) {
+        if (zoom < lv.minZoom - 1 || loadedLevels.current.has(lv.level)) continue;
+        loadedLevels.current.add(lv.level);
+        fetch(`/api/v1/areas/outlines?country=${latest.current.country}&level=${encodeURIComponent(lv.level)}`)
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+          .then((fc: { features: Array<{ properties: { label: [number, number] } & Record<string, unknown> }> }) => {
+            (map.getSource(areaSrc(lv.level)) as GeoJSONSource | undefined)?.setData(fc as never);
+            (map.getSource(labelSrc(lv.level)) as GeoJSONSource | undefined)?.setData({
+              type: "FeatureCollection",
+              features: fc.features.map((f) => ({ type: "Feature", geometry: { type: "Point", coordinates: f.properties.label }, properties: f.properties })),
+            } as never);
+          })
+          .catch(() => loadedLevels.current.delete(lv.level));
+      }
+    };
+
+    map.on("load", () => {
+      addOwnLayers(map, latest.current.levels, latest.current.locale);
+      syncData(map, latest.current);
+      loadOutlines();
+      latest.current.onViewChange(viewOf(map));
+    });
+    // After a theme swap our layers come back through transformStyle; refill outline data if it was lost.
+    map.on("style.load", () => {
+      if (!map.getSource(SRC_POINTS)) {
+        addOwnLayers(map, latest.current.levels, latest.current.locale);
+        loadedLevels.current.clear();
+      }
+      syncData(map, latest.current);
+      loadOutlines();
+    });
+    map.on("moveend", () => {
+      loadOutlines();
+      latest.current.onViewChange(viewOf(map));
+    });
+
+    // Pins and clusters.
+    map.on("click", `${OWN}clusters`, async (e: MapLayerMouseEvent) => {
+      const f = e.features?.[0];
+      const id = f?.properties?.cluster_id as number | undefined;
+      if (id === undefined || f?.geometry.type !== "Point") return;
+      const zoom = await (map.getSource(SRC_POINTS) as GeoJSONSource).getClusterExpansionZoom(id);
+      map.easeTo({ center: f.geometry.coordinates as [number, number], zoom });
+    });
+    const pinId = (e: MapLayerMouseEvent) => Number(e.features?.[0]?.properties?.id);
+    for (const layer of [`${OWN}pins`, `${OWN}pin-active`]) {
+      map.on("click", layer, (e) => latest.current.onPinClick(pinId(e)));
+      map.on("mouseenter", layer, (e) => {
+        map.getCanvas().style.cursor = "pointer";
+        latest.current.onPinHover(pinId(e));
+      });
+      map.on("mouseleave", layer, () => {
+        map.getCanvas().style.cursor = "";
+        latest.current.onPinHover(null);
+      });
+    }
+    for (const layer of [`${OWN}clusters`]) {
+      map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
+    }
+
+    // Areas: hover highlight; click zooms to the area (unless a pin or cluster was hit).
+    let hovered: { source: string; id: number } | null = null;
+    const clearHover = () => {
+      if (hovered) map.setFeatureState(hovered, { hover: false });
+      hovered = null;
+    };
+    for (const lv of latest.current.levels) {
+      const layer = `${OWN}area-fill-${lv.level}`;
+      map.on("mousemove", layer, (e) => {
+        const id = e.features?.[0]?.id;
+        if (typeof id !== "number") return;
+        if (hovered?.id === id && hovered.source === areaSrc(lv.level)) return;
+        clearHover();
+        hovered = { source: areaSrc(lv.level), id };
+        map.setFeatureState(hovered, { hover: true });
+      });
+      map.on("mouseleave", layer, clearHover);
+      map.on("click", layer, (e) => {
+        if (latest.current.drawing) return;
+        const onPin = map.queryRenderedFeatures(e.point, { layers: [`${OWN}pins`, `${OWN}pin-active`, `${OWN}clusters`] });
+        if (onPin.length) return;
+        const raw = e.features?.[0]?.properties?.bbox;
+        const bbox = typeof raw === "string" ? (JSON.parse(raw) as BBox) : (raw as BBox | undefined);
+        if (bbox) map.fitBounds([bbox[0], bbox[1], bbox[2], bbox[3]], { padding: 48, maxZoom: 16 });
+      });
+    }
+
+    return () => {
+      drawRef.current?.stop();
+      drawRef.current = null;
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Data updates.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map?.isStyleLoaded() && map.getSource(SRC_POINTS)) syncData(map, props);
+  }, [props.points, props.polygon, props.activeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Theme change: swap the basemap; our layers are carried over by transformStyle.
+  const firstStyle = useRef(props.styleUrl);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || props.styleUrl === firstStyle.current) return;
+    firstStyle.current = props.styleUrl;
+    map.setStyle(props.styleUrl, { transformStyle: transformStyle(props.locale) });
+  }, [props.styleUrl, props.locale]);
+
+  // Jump-to / breadcrumb.
+  useEffect(() => {
+    const b = props.fit?.bbox;
+    if (b) mapRef.current?.fitBounds([b[0], b[1], b[2], b[3]], { padding: 48, maxZoom: 15 });
+  }, [props.fit?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Draw to search (terra-draw polygon mode).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!props.drawing) {
+      drawRef.current?.stop();
+      drawRef.current = null;
+      return;
+    }
+    const start = () => {
+      const draw = new TerraDraw({
+        adapter: new TerraDrawMapLibreGLAdapter({ map }),
+        modes: [new TerraDrawPolygonMode()],
+      });
+      draw.start();
+      draw.setMode("polygon");
+      draw.on("finish", (id) => {
+        const feature = draw.getSnapshotFeature(id);
+        if (feature?.geometry.type === "Polygon") {
+          latest.current.onDrawFinish(feature.geometry.coordinates[0] as LngLatPair[]);
+        }
+      });
+      drawRef.current = draw;
+    };
+    if (map.isStyleLoaded()) start();
+    else map.once("idle", start);
+  }, [props.drawing]);
+
+  // MapLibre's CSS makes its container `position: relative`, so it needs a sized wrapper.
+  return (
+    <div className="absolute inset-0">
+      <div ref={containerRef} className="size-full" />
+    </div>
+  );
+}
+
+function syncData(map: MapLibreMap, p: MapViewProps) {
+  (map.getSource(SRC_POINTS) as GeoJSONSource | undefined)?.setData(p.points as never);
+  (map.getSource(SRC_POLY) as GeoJSONSource | undefined)?.setData(
+    (p.polygon ? { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [p.polygon] } } : EMPTY) as never,
+  );
+  const filter: FilterSpecification = ["all", ["!", ["has", "point_count"]], ["==", ["get", "id"], p.activeId ?? -1]];
+  if (map.getLayer(`${OWN}pin-active`)) map.setFilter(`${OWN}pin-active`, filter);
+}

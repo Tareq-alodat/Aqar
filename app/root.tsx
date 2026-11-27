@@ -15,8 +15,11 @@ import { DEFAULT_COUNTRY } from "./shared/countries";
 import { DEFAULT_LOCALE, dirFor, localeFromPathname } from "./shared/locales";
 import type { ClientUser } from "./shared/schemas/auth";
 import { DEFAULT_THEME, themeSchema } from "./shared/schemas/theme";
+import { skipSearchOnlyRevalidation } from "./utils/revalidate";
 import { getTheme } from "./utils/theme.server";
 import "./app.css";
+
+export const shouldRevalidate = skipSearchOnlyRevalidation;
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const locale = localeFromPathname(new URL(request.url).pathname);
@@ -81,7 +84,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <p className="text-muted">{t(notFound ? "errors.notFoundBody" : "errors.genericBody")}</p>
       <Link
         to={`/${locale}/${DEFAULT_COUNTRY}/map`}
-        className="rounded-lg bg-primary px-4 py-2 font-semibold text-background"
+        className="rounded-lg bg-primary px-4 py-2 font-semibold text-on-accent"
       >
         {t("errors.backHome")}
       </Link>

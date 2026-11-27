@@ -26,6 +26,9 @@ const envSchema = z.object({
   REFRESH_TOKEN_SECRET: optional(key32),
   // Public origin of the site: CSRF origin check and Secure cookies (https).
   PUBLIC_BASE_URL: z.url().default("http://localhost:3000"),
+  // Basemap styles (SPEC §1): OpenFreeMap, no API key. Empty means the default below.
+  MAP_STYLE_URL_DARK: optional(z.url()).transform((v) => v ?? "https://tiles.openfreemap.org/styles/dark"),
+  MAP_STYLE_URL_LIGHT: optional(z.url()).transform((v) => v ?? "https://tiles.openfreemap.org/styles/positron"),
 });
 
 export type Env = z.infer<typeof envSchema>;

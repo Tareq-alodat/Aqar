@@ -1,4 +1,5 @@
 import type { Request, RequestHandler, Response } from "express";
+import type { Knex } from "knex";
 import type { AppLoadContext } from "react-router";
 import { requestMeta } from "./middleware/authenticate";
 import type { AuthCookies } from "./services/authCookies";
@@ -8,6 +9,8 @@ import type { AuthService, RequestMeta, Session } from "./services/authService";
 export interface AppServices {
   auth: AuthService;
   cookies: AuthCookies;
+  /** Database for page loaders (map search SSR); public loaders use the same services as /api/v1. */
+  db: Knex;
 }
 
 declare module "react-router" {

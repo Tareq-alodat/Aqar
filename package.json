@@ -32,14 +32,18 @@
     "isbot": "^5.2.4",
     "jose": "^6.2.18",
     "knex": "^3.3.0",
+    "maplibre-gl": "^6.19.0",
     "morgan": "^1.12.1",
     "pg": "^8.23.1",
     "rate-limiter-flexible": "^11.6.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router": "~7.18.7",
+    "terra-draw": "^1.40.0",
+    "terra-draw-maplibre-gl-adapter": "^1.5.0",
     "tsx": "^4.23.15",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/css": "^2.0.1",

@@ -16,13 +16,124 @@
   },
   "map": {
     "title": "Map search",
-    "filtersPlaceholder": "Filters will appear here",
     "listHeading": "Search results",
-    "mapPlaceholder": "Map coming soon",
     "resultsCount": {
       "one": "1 property in this area",
       "other": "{count} properties in this area"
-    }
+    },
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "loadingMap": "Loading map…",
+    "searchAsMove": "Search as I move the map",
+    "searchThisArea": "Search this area",
+    "drawArea": "Draw an area",
+    "drawHint": "Click to add corners; click the first corner to finish.",
+    "cancelDraw": "Cancel",
+    "clearArea": "Clear area",
+    "truncated": "Showing the first 3,000 properties. Zoom in to see all of them.",
+    "rateLimited": "You are moving quickly — results will refresh in a moment.",
+    "loadError": "Could not load results. Check your connection and try again.",
+    "drawInvalid": "That shape crosses itself. Please draw it again.",
+    "jumpTo": "Jump to",
+    "governorate": "Governorate",
+    "city": "City",
+    "allGovernorates": "All governorates",
+    "allCities": "All cities",
+    "path": "Location in view",
+    "mapLabel": "Map of properties",
+    "controls": {
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "attribution": "Map credits"
+    },
+    "sheetHandle": "Drag to show more or fewer results",
+    "closeCard": "Close"
+  },
+  "list": {
+    "empty": "No properties match here. Try zooming out or removing filters.",
+    "sort": "Sort",
+    "sorts": {
+      "newest": "Newest",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low",
+      "views": "Most viewed",
+      "ppsqm_asc": "Price per m²: low to high"
+    },
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {pages}",
+    "loading": "Updating results…"
+  },
+  "filters": {
+    "title": "Filters",
+    "button": {
+      "zero": "Filters",
+      "one": "Filters (1)",
+      "other": "Filters ({count})"
+    },
+    "more": "More filters",
+    "fewer": "Fewer filters",
+    "reset": "Clear filters",
+    "done": "Show results",
+    "any": "Any",
+    "type": "Listing type",
+    "category": "Property type",
+    "price": "Price",
+    "minPrice": "Min price",
+    "maxPrice": "Max price",
+    "area": "Size (m²)",
+    "minArea": "Min m²",
+    "maxArea": "Max m²",
+    "beds": "Bedrooms",
+    "bedsOrMore": "5+",
+    "baths": "Bathrooms",
+    "bathsMin": "{count}+",
+    "amenities": "Amenities",
+    "amen": {
+      "pool": "Pool",
+      "parking": "Parking",
+      "garden": "Garden",
+      "elevator": "Elevator",
+      "furnished": "Furnished"
+    },
+    "maxAge": "Max age",
+    "maxAgeOption": {
+      "one": "Up to 1 year",
+      "other": "Up to {count} years"
+    },
+    "onlyIn": "Only in"
+  },
+  "listing": {
+    "types": {
+      "sale": "For sale",
+      "rent": "For rent",
+      "exchange": "Exchange"
+    },
+    "categories": {
+      "house": "House",
+      "apartment": "Apartment",
+      "land": "Land",
+      "villa": "Villa",
+      "commercial": "Commercial"
+    },
+    "perMonth": "/month",
+    "perYear": "/year",
+    "featured": "Featured",
+    "beds": {
+      "one": "1 bedroom",
+      "other": "{count} bedrooms"
+    },
+    "baths": {
+      "one": "1 bathroom",
+      "other": "{count} bathrooms"
+    },
+    "sqm": "{area} m²",
+    "noPhoto": "No photo yet"
+  },
+  "nav": {
+    "label": "Main",
+    "map": "Map",
+    "account": "Account"
   },
   "auth": {
     "loginLink": "Log in",
