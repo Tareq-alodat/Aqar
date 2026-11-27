@@ -26,6 +26,9 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 | Production database | PostgreSQL 16 + PostGIS **on the same VPS**, connected via `DATABASE_URL` (listening on localhost only). Docker PostGIS (`docker-compose.yml`) is for local development. |
 | Image storage | Always behind the storage interface. **`LocalDiskStorage` in development and production** — on the VPS, files live on its disk under `UPLOAD_DIR` and are served at `/uploads`. |
 | Backups | **Nightly** `pg_dump` of the database and a copy of `UPLOAD_DIR`, kept off the VPS (destination TBD with the provider). |
+| Revenue model | **Commission on concluded deals**, paid by the lister (agent or owner): 1 % by default, configurable per country, stored per deal (§19). Collected manually in phase 1 (bank transfer / CliQ); online payment [P2]. Brokerage licensing and the terms text need legal review per country before charging. |
+| Text search | **PostgreSQL only**: full-text search (`arabic` / `english` configs) + `pg_trgm` + an Arabic normalization function (§5.6). No Elasticsearch or paid search service. |
+| Email | A **free-tier** email provider (to be chosen; free products only) for verification, password reset and security notices (§20). No SMS in phase 1 (SMS is always paid). |
 
 ---
 
@@ -93,13 +96,13 @@ The admin decides which fields describe an exact address in each country, in wha
 
 ## 3. Users & roles
 
-JWT auth (details in §13). Roles: `admin`, `agent`, `owner`. Anyone can register as an `owner`; admins change roles.
+JWT auth (details in §13). Roles: `admin`, `agent`, `owner`. Anyone can register as an `owner`; a registered user can **apply to become an agent** (§9 agent applications), and admins change roles.
 
 | Role | Rights |
 |---|---|
 | **admin** | Approve/reject/edit any listing; see real owner phones (admin endpoint only); manage proxy contact numbers; manage users (suspend, change role); view analytics; delete any comment/offer [P2]; system notifications [P2] |
-| **agent** | Unlimited listings; manage own portfolio (edit, delete, mark sold/rented); request featured placement; belongs to a `company` (name, logo, license, verified badge) |
-| **owner** | Up to **5 active listings** (pending + published + reserved), enforced server-side; favorites; offers [P2]; comments [P2] |
+| **agent** | Unlimited listings; manage own portfolio (edit, delete, mark sold/rented); request featured placement; belongs to a `company` (name, logo, license, verified badge); dashboard (§11); pays the commission on deals for listings they submitted (§19) |
+| **owner** | Up to **5 active listings** (pending + published + reserved), enforced server-side; favorites; offers [P2]; comments [P2]; listing statistics (§11); pays the commission on deals for listings they submitted directly (§19) |
 
 Visitors (not logged in) can browse the map, view listings, and see the proxy contact number.
 
@@ -114,11 +117,13 @@ Visitors (not logged in) can browse the map, view listings, and see the proxy co
 
 **Location:** `point geography(Point,4326)` (true pin), `display_point geography(Point,4326)`, `location_precision ENUM[exact, approximate]`, `admin_area_id FK`, `address jsonb` (typed address fields per §2.3; replaces `street_ar/en`), `country_code FK`. Unit identifiers live in `property_identifiers` (§2.4).
 
-**Contact:** `owner_phone_encrypted` (AES-256-GCM, pre-filled from the user's profile phone, editable per listing), `contact_number_id FK nullable` (property-level proxy override).
+**Contact:** `owner_phone_encrypted` (AES-256-GCM, pre-filled from the user's profile phone, editable per listing). A listing's own proxy number (property-level override) is a `contact_numbers` row with `scope = 'property'` (§8); `properties` has no contact-number column (`contact_number_id` was dropped in milestone 5).
 
 **Owner settings:** `offers_visibility ENUM[public, amounts_only, private]` default `amounts_only` [used in P2].
 
-**System:** `status`, `rejection_reason`, `is_featured`, `featured_requested_at`, `view_count`, `slug`, `published_at`, `created_at`, `updated_at`, `needs_location_review bool`.
+**Commission (§19):** `commission_payer_type ENUM[agent, owner]` (set at submission from the submitter's role), `commission_terms_version`, `commission_terms_accepted_at` (the lister accepts the commission terms at submission).
+
+**System:** `status`, `rejection_reason`, `is_featured`, `featured_requested_at`, `view_count`, `slug`, `published_at`, `created_at`, `updated_at`, `needs_location_review bool`, `close_reason ENUM[via_aqar, elsewhere, unavailable] nullable` and `closed_at` (why and when a published/reserved listing was taken off the market, §4.2).
 
 ### 4.2 Status (single vocabulary — use these exact values everywhere)
 `draft → pending → published | rejected`, then `published → reserved | sold | rented | archived`.
@@ -126,7 +131,13 @@ Visitors (not logged in) can browse the map, view listings, and see the proxy co
 - Submit → `pending`.
 - Admin approve → `published` (+ `published_at`).
 - Admin reject → `rejected` + `rejection_reason`; owner can edit and resubmit → `pending`.
-- Owner can mark `sold` / `rented` / `archived`.
+- Owner can mark `sold` / `rented` / `archived`. Marking `sold` or `rented` requires the **final price** (and the rent period, so the annual rent can be derived) and creates a commission record (§19); admins can correct the final price.
+- **Archiving a `published` or `reserved` listing asks for a reason** (stored in `close_reason`, with `closed_at`, and written to the audit trail, §9):
+  - **Sold/rented through AQAR** (`via_aqar`) → the final-price step, exactly like marking sold/rented: the listing becomes `sold` (sale) or `rented` (rent) and a commission record is created (§19). Exchange listings have no price and carry no commission at launch (§19), so they are archived with the reason only.
+  - **Sold/rented elsewhere** (`elsewhere`) → `archived`, no commission record.
+  - **No longer available** (`unavailable`) → `archived`, no commission record.
+  - Marking `sold`/`rented` directly stores `close_reason = via_aqar`. Archiving a listing in any other status (draft, pending, rejected) asks no reason.
+  - Archived listings that had enquiries in the enquiry log are listed for admin follow-up (§9 commissions).
 - `reserved` is set when an offer is accepted [P2].
 - Any owner edit to price, pin, or photos on a `published` listing → back to `pending`. Edits to text/features stay published.
 
@@ -175,6 +186,16 @@ Listing type, category, price range, area range, bedrooms (multi), bathrooms (mi
 ### 5.5 Indexes
 GIST on `properties.display_point`; btree on `(country_code, status, listing_type, category, price)`; btree on `(status, published_at desc)`.
 
+### 5.6 Text search (milestone 4b)
+- **Search bar** on the map page: one bilingual free-text box over listing title, description and area names (the listing's area path). Tolerant of typos and of Arabic spelling variants.
+- **Arabic normalization** (`aqar_normalize_ar(text)`, an `IMMUTABLE` SQL function used both when indexing and on the query): remove diacritics (tashkeel U+064B–U+0652, superscript alef U+0670) and tatweel (U+0640); `أ إ آ` → `ا`; `ة` → `ه`; `ى` → `ي`; Arabic-Indic and Persian digits → Western; lower-case Latin.
+- **Matching and ranking:** PostgreSQL full-text search (`to_tsvector('arabic', …)` for Arabic text, `'english'` for English, `'simple'` for area names) in a stored `tsvector` column on `properties` with a GIN index, plus `pg_trgm` (GIN `gin_trgm_ops` on the normalized title and area names) for typo tolerance (`word_similarity`). A listing matches on full-text **or** trigram similarity above a threshold; results are ranked by `ts_rank` and similarity. Only `status = 'published'`.
+- **Location autocomplete** over `admin_areas` (Arabic and English names, normalized, `pg_trgm` index): suggestions show the area path (e.g. "عبدون، عمان"); choosing one flies the map to the area's bounds (like jump-to, §5.2) rather than filtering by text.
+- **Near me:** a button that asks for the browser's location **only when pressed** (never on page load), then searches within a radius (default 2 km; choices 1/2/5/10 km) of that point with `ST_DWithin` on `display_point`. The location is not stored or logged on the server; in the URL it is rounded to 3 decimals (~100 m).
+- **Search state:** new URL/API parameters `q` (free text, ≤ 100 characters) and `near=lng,lat&radius=` in the shared schema (`app/shared/schemas/mapSearch.ts`); they combine with the filters (§5.3). When `q` is set, results are not limited to the map view and the map fits to the results; "Search this area" returns to view-based search (to confirm at the start of the milestone).
+- **API:** `q` / `near` on `GET /api/v1/listings` and `/api/v1/map/points`; `GET /api/v1/areas/suggest?country=JO&q=` → up to 8 areas with path and bounds. Same rate limits as the other search calls.
+- **Constraint:** PostgreSQL only (built-in full-text search + `pg_trgm`); no Elasticsearch or other search server, and no paid search API.
+
 ---
 
 ## 6. SEO pages
@@ -194,9 +215,9 @@ Google cannot read a map, so the site also generates server-rendered landing pag
 2. **Location:** pick governorate/city to fly the map, then **drop/drag a pin**. Show the detected area path live (server lookup). Fill the country's typed address fields and property identifiers (§2.3–2.4; required ones as configured by the admin), with a note on which are never shown publicly. Choose location privacy (exact / approximate) with a preview of what the public will see.
 3. **Details:** price, features (fields adapt to category), amenities, titles/descriptions (ar/en tabs).
 4. **Photos:** upload, reorder, choose cover.
-5. **Contact & review:** confirm phone (shown with note "لن يظهر رقمك للعامة"), offers visibility setting, summary, submit → `pending`.
+5. **Contact & review:** confirm phone (shown with note "لن يظهر رقمك للعامة"), offers visibility setting, summary, **accept the commission terms** (required checkbox, link to the terms page in Arabic and English; §19), submit → `pending`. The listing stores `commission_payer_type`, `commission_terms_version` and `commission_terms_accepted_at`.
 
-Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 and again on submit.
+Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 and again on submit. From milestone 11, submitting requires a **verified email** (§20); until then, submission is allowed without it. Drafts can be saved either way.
 
 ---
 
@@ -225,6 +246,14 @@ Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 
 - **Users:** list with role, join date, listing count, status; suspend/unsuspend; change role; company verification for agents.
 - **Boundaries viewer:** map of `admin_areas` per country/level, read-only in phase 1; highlights `source = generated` boundaries and English names with `name_en_reviewed = false`.
 - **Analytics (basic in phase 1):** counts of listings by status, users by role, top viewed listings. Charts (by city, per month) **[P2]**.
+- **Agent applications:** a registered user applies to become an agent with company name (ar/en), licence number, logo and optional documents (private files, admin-only, never under public `/uploads`). The admin approves or rejects with a reason (shown to the applicant). Approval sets `role = agent`, creates or links the `company` and marks it verified. One open application per user.
+  `agent_applications (id, user_id FK, company_name_ar, company_name_en, license_number, logo_url, documents jsonb, status ENUM[pending, approved, rejected], rejection_reason, company_id FK nullable, reviewed_by FK, reviewed_at, created_at)`
+- **Enquiry log:** admins/staff record each enquiry received on a proxy number: listing, caller name and phone (**encrypted** like owner phones, §8, plus a phone hash for search), date/time, forwarded to the lister (yes/no, when), outcome (`interested`, `viewing_booked`, `offer`, `not_interested`, `no_answer`), notes. Searchable per listing and per lister (and by caller phone hash). Listers see only a **count** of enquiries per listing, never caller details. Enquiries link the listing and the caller, so a concluded deal can be traced to AQAR (shown next to the commission record, §19).
+  `enquiries (id, property_id FK, lister_user_id FK, contact_number_id FK nullable, caller_name_encrypted, caller_phone_encrypted, caller_phone_hash, received_at, recorded_by FK, forwarded bool, forwarded_at, outcome ENUM[interested, viewing_booked, offer, not_interested, no_answer] nullable, notes, created_at, updated_at)`
+- **Audit trail:** every admin action is written to an **append-only** `audit_log` from the first admin action onward: approve, reject, edit (before/after values of the changed fields), feature toggle, role change, suspend/unsuspend, agent application decisions, contact-number changes, **viewing a real phone number** (owner or caller), commission changes (§19), enquiry edits — and, from listers, **closing a listing** (marking sold/rented or archiving, with the reason and final price). Failed logins are recorded there too (email as a keyed hash, IP hash). Personal data (phones, names, emails) is never copied into `before`/`after`; the entry records that the field changed. Append-only is enforced in the database (a trigger rejects `UPDATE` and `DELETE`). Admin screen to browse and filter it (actor, action, entity, date).
+  `audit_log (id bigserial, actor_user_id FK nullable, action, entity_type, entity_id, before jsonb, after jsonb, reason, ip_hash, created_at)`
+- **Commissions** (§19): due / overdue / paid / waived commissions with filters (country, payer, date); mark invoiced / paid / waived (reason required for waived); correct the final price of a deal; printable invoice; per-country settings for the rate and the payment due period.
+  **Follow-up list:** archived listings that had enquiries in the enquiry log (with the archive reason, enquiry count and last outcome), so the admin can check whether a deal went through AQAR; from there the admin can record the deal (final price → commission record, audited).
 
 ---
 
@@ -238,7 +267,10 @@ View counting: increment at most once per visitor per listing per 24 h (cookie/I
 
 ## 11. Accounts & profile (phase 1 subset)
 
-Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-rented), **Saved** (favorites), **Settings** (name, email, phone, password, language, theme). Agents: company profile page with logo, listings map, verified badge.
+Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-rented — marking sold/rented asks for the final price, §19; archiving a published/reserved listing asks for the reason, §4.2), **Saved** (favorites), **My commissions** (owners and agents: amount, status, due date, invoice; §19), **Settings** (name, email, phone, password, language, theme; data export and account deletion from milestone 11, §20). Agents: company profile page with logo, listings map, verified badge. Owners: **apply to become an agent** (§9).
+
+- **Agent dashboard:** portfolio summary; status pipeline (pending / published / reserved / sold / rented counts); views over time per listing (from `property_views`, per day); enquiry counts per listing (§9, counts only); offer activity once offers exist [P2].
+- **Owner statistics:** views and enquiry counts per listing over time.
 
 `saved_properties (id, user_id FK, property_id FK, saved_at, UNIQUE(user_id, property_id))`
 
@@ -248,13 +280,25 @@ Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-r
 
 - **Offers:** on `sale` and `rent` listings; amount ≥ 80% of listed price (validated client **and** server, 400 on violation, message "الحد الأدنى للعرض هو {amount}"). `exchange` listings take a text "exchange proposal" instead of an amount. Visibility per `offers_visibility`: `public` = amount + name (or مجهول), `amounts_only` = amount + time only, `private` = owner and bidder only. Statuses pending/accepted/rejected/withdrawn; accept → listing `reserved`, other pending offers auto-rejected, all bidders notified. Real-time via socket.io room `property:{id}`.
   `offers (id, property_id, bidder_id, amount, currency, note, is_anonymous, status, created_at, decided_at)`
-- **Compare:** up to 3 listings, floating compare tray, side-by-side table, best price per m² highlighted with a recommendation line.
+- **Compare:** up to 3 listings (4 under consideration — decide later), floating compare tray, side-by-side table, best price per m² highlighted with a recommendation line.
 - **Comments:** threaded, likes (`comment_likes` table), delete own, admin delete any.
 - **Interest:** "أبدي اهتمامك" once per user per listing (`property_interests` table); owner sees count.
 - **Notifications:** bell with unread badge, last 20 dropdown, full history; socket.io room `user:{id}`. Triggers: listing approved/rejected, new offer, offer decided, new comment/reply, price drop on saved listing, new listing matching a saved search.
 - **Saved searches:** store filters **+ map area** (bbox or polygon) — "notify me about new listings in this area".
 - **Price history** (`price_history` table, written from phase 1 on so history exists).
 - **Analytics charts**, admin boundary editor, nearby places layer (schools, mosques, hospitals), featured-listing billing, Gulf country activation.
+- **Price insights** on the listing page: price and price per m² compared with similar listings in the same area (median, range) and with recently sold/rented ones.
+- **Home / discovery page:** featured carousel, category shortcuts, recently viewed and nearby listings, all linking into the map.
+- **Bulk upload for agents:** CSV import with a validation report; listings are created as `pending`.
+- **Follow agents/companies:** followers are notified of new listings.
+- **Admin broadcasts** targeted by role, country/city and category.
+- **Interest notifications** to listers, aggregated per day.
+- **Email notifications** (and push later) in addition to in-app ones.
+- **Ownership documents:** the lister uploads a title deed or contract (private, admin-only) to support identifier verification (§2.4).
+- **"Get directions"** button on exact-pin listings (opens the user's maps app).
+- **Online commission payment** (§19).
+- **Installable web app (PWA)** with push notifications; native iOS/Android apps only after launch.
+- **SMS OTP** (verification/login codes) as a later option; SMS is always paid.
 
 ---
 
@@ -262,13 +306,14 @@ Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-r
 
 - **Sessions:** access JWT (HS256, `JWT_SECRET`) 15 min + opaque refresh token, both in **httpOnly, SameSite=Lax, Path=/ cookies** (`aqar_at` / `aqar_rt`; `Secure` and the `__Host-` prefix when `PUBLIC_BASE_URL` is https), so SSR loaders can read auth. The access token holds only user id, role and session (family) id; every request re-reads the user (role, status) and checks the session is still active, so suspension, role changes and logout take effect immediately. The server refuses to start without `JWT_SECRET` and `REFRESH_TOKEN_SECRET`.
 - **Refresh tokens:** stored only as HMAC-SHA256 (`REFRESH_TOKEN_SECRET`) in `refresh_tokens`; one-time use, rotated by the server whenever a request arrives with an expired access token (pages and API) or on `POST /api/v1/auth/refresh`. All tokens of one login form a family. A rotated token presented again within **30 s** is treated as a concurrent request (served, no new tokens); later, as theft: the whole family is revoked. **Lifetime:** sliding expiry after **30 days** of inactivity, never more than **90 days** from login (`family_started_at`); **admins: 1 day / 7 days**. The cap uses the user's current role.
-- **Login:** an unknown email is checked against a dummy scrypt hash, so timing does not reveal which emails exist; the same error (`invalid_credentials`) for a wrong email or password; "suspended" only after the right password; hashes with old scrypt parameters are re-hashed on login (`needsRehash`). At most 2 scrypt runs at once (~128 MiB each); others queue. Registration creates `owner` accounts only (admins assign roles, milestone 7). Email verification and password reset are not in phase 1.
+- **Login:** an unknown email is checked against a dummy scrypt hash, so timing does not reveal which emails exist; the same error (`invalid_credentials`) for a wrong email or password; "suspended" only after the right password; hashes with old scrypt parameters are re-hashed on login (`needsRehash`). At most 2 scrypt runs at once (~128 MiB each); others queue. Registration creates `owner` accounts only (agents via an approved application; admins assign roles, milestone 7). Email verification, password reset and new-device login notices arrive in milestone 11 (§20).
 - **CSRF:** SameSite=Lax cookies + origin check on every POST/PUT/PATCH/DELETE (API and page actions): `Origin`, else `Sec-Fetch-Site: same-origin`, else `Referer` must match `PUBLIC_BASE_URL` (plus `localhost`/`127.0.0.1` in development); requests with none of them are refused (403). Logout is POST only. `?next=` redirects accept only same-site paths.
 - Role middleware on every protected API route (`requireAuth`, `requireRole`); equivalent checks in loaders/actions (`requireUser`, `requireRole` in `app/utils/auth.server.ts`). Pages receive only `{ id, name, role }` of the signed-in user.
 - Zod validation on every endpoint, loader input, and action.
 - Rate limits (in memory, one process): 100 req/min general (`/api/v1`, including listings and area calls), 5 req/min auth (login + register, API and page forms combined), 60 req/min on `/api/v1/map/points` per IP (its own limit, not counted in the general one; milestone 4 decision); plus 10 failed logins per email per 15 min. 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
 - Parameterized SQL only. Uploads: MIME sniffing (not extension), images only, 10 MB max, re-encoded by sharp (strips EXIF incl. GPS).
-- AES-256-GCM for phones; key only from env; never logged.
+- AES-256-GCM for phones (owner, user and enquiry-caller phones); key only from env; never logged.
+- Admin actions, real-phone views and failed logins go to the append-only `audit_log` (§9).
 - Seed credentials are **development only**; seed script refuses to run when `NODE_ENV=production`.
 
 ---
@@ -328,6 +373,9 @@ MAP_STYLE_URL_DARK=
 MAP_STYLE_URL_LIGHT=
 PUBLIC_BASE_URL=http://localhost:3000
 UPLOAD_DIR=./uploads
+# Milestone 11 (§20): email provider to be chosen (free tier only); names may change with the provider.
+EMAIL_FROM=
+EMAIL_PROVIDER_API_KEY=
 ```
 
 ---
@@ -349,10 +397,50 @@ UPLOAD_DIR=./uploads
 3. **Auth:** register/login/logout, cookies, refresh rotation, roles, CSRF, rate limiting.
 4. **Map search:** map page, points endpoint, clustering, price pins, filters, URL state, list panel/bottom sheet, draw-to-search.
 5. **Listing detail page** incl. contact resolution, similar listings, view counting.
-6. **Submit wizard** incl. pin → area lookup, privacy offset, image pipeline, drafts, limits.
-7. **Admin:** moderation queue, contact numbers, users, boundary viewer, basic counts.
-8. **Profile:** My Listings, Saved, Settings; agent company page.
+6. **Submit wizard** incl. pin → area lookup, privacy offset, image pipeline, drafts, limits, **commission terms checkbox** (terms page ar/en; `commission_payer_type`, terms version and acceptance time stored per listing, §19).
+
+**4b. Text search** (scheduled right after milestone 6): search bar with bilingual free-text search, Arabic normalization, typo tolerance, location autocomplete, "near me" (§5.6). PostgreSQL only.
+
+7. **Admin:** moderation queue, contact numbers, users, boundary viewer, basic counts, **agent applications**, **enquiry log**, **audit trail** (`audit_log` from the first admin action), **commissions** screens and per-country commission settings, final-price correction, follow-up list of archived listings with enquiries (§9, §19).
+8. **Profile:** My Listings (final-price capture when marking sold/rented → commission record; archive reason for published/reserved listings, §4.2), Saved, Settings, **My commissions**; agent company page; **agent dashboard**; **owner statistics** (§11, §19).
 9. **SEO:** area pages, meta/JSON-LD, hreflang, sitemap, robots.
 10. **Hardening:** tests for contact privacy (assert real phone and true point never appear in public responses or rendered HTML), Playwright happy paths, performance check with 10k seeded listings.
+11. **Launch readiness:** email sending (free-tier provider), password reset, email verification (required before submitting listings), new-device login notice, personal-data export and account deletion (§20).
+12. **Deployment:** the VPS setup from §0 — Node 24 LTS app, PostgreSQL 16 + PostGIS on localhost, Caddy with automatic HTTPS (behind Cloudflare: Caddy trusts Cloudflare's IP ranges and forwards the real client IP, so rate limits see visitors, not Cloudflare), `/uploads` served by Caddy, nightly `pg_dump` + `UPLOAD_DIR` backups off the VPS.
 
 Each milestone ends with: typecheck clean, tests passing, short note in `docs/CHANGELOG.md`.
+
+---
+
+## 19. Revenue model: commission on concluded deals
+
+**Decision:** AQAR earns a commission on deals concluded for listings on the site. **Legal:** brokerage licensing must be confirmed per country with a lawyer before charging any commission, and the terms text needs legal review (Arabic and English).
+
+- **Rate:** 1 % by default, **configurable per country by an admin** (`countries.commission_rate numeric(6,4)`, default `0.0100`). The rate is **copied into each commission record**, so later rate changes never affect existing deals.
+- **Basis:** sale → the final sale price; rent → the **annual** rent (monthly rent × 12 for `monthly` listings, the yearly rent for `yearly` ones).
+- **Payer — the lister:** if an agent submitted the listing, the agent pays; if the owner (seller or landlord) listed it directly, the owner pays. Recorded on the listing at submission (`commission_payer_type`, §4.1).
+- **Terms:** at submission the lister must accept the commission terms (checkbox with a link to the terms page in Arabic and English, §7). The listing stores `commission_terms_version` and `commission_terms_accepted_at`. A new terms version applies to listings submitted after it.
+- **Deal closure:** marking a listing `sold` or `rented` — or archiving it with the reason "sold/rented through AQAR" (§4.2) — requires the final price (for rentals: the rent and its period, giving the annual rent). This creates a commission record with status `due`; the admin can correct the final price (audited). The **due date** is the deal date (when the listing is marked sold/rented, i.e. the record's `created_at`) plus the country's payment period (`countries.commission_due_days`, admin setting).
+- **Table:** `commissions (id, property_id FK, payer_user_id FK, payer_type ENUM[agent, owner], deal_type ENUM[sale, rent], final_amount numeric(14,3), currency char(3), rate numeric(6,4), commission_amount numeric(14,3), status ENUM[due, invoiced, paid, waived], due_date, invoiced_at, paid_at, payment_method ENUM[bank_transfer, cliq, cash, other] nullable, payment_reference, notes, created_at, updated_at)`. `final_amount` is the annual amount for rentals; `currency` comes from the listing's country (never user input); amounts use the country's decimal count. "Overdue" is derived (`due_date` passed and status `due` or `invoiced`), not stored. **Every change is written to the audit trail** (§9).
+- **Admin:** commissions screen — due / overdue / paid / waived, filters by country, payer and date; mark invoiced / paid / waived (a reason is required for waived; payment method and reference for paid); correct the final price; a downloadable **invoice** for the payer (printable page, saved as PDF from the browser — no paid service). The listing's enquiries (§9) are shown next to the commission so the deal can be traced to AQAR.
+- **Lister:** a **My commissions** tab (owners and agents) with amounts, status, due dates and invoices (§11).
+- **Collection:** manual in phase 1 (bank transfer / CliQ, recorded by an admin); online payment is **[P2]**.
+- **Placement:** terms checkbox — milestone 6; final-price capture — milestone 8 (admin correction — milestone 7); admin commission screens and settings — milestone 7; lister "My commissions" — milestone 8.
+- **Exchange deals (decision):** no commission at launch; revisit later. Closing an exchange listing stores the reason only (§4.2).
+- **Deals reported as "elsewhere":** no commission record is created, but archived listings that had enquiries appear on the admin follow-up list (§9), where an admin can record the deal if it went through AQAR.
+- **Open questions (decide before milestone 7):** sales tax on the commission and invoice numbering requirements in Jordan (accounting/legal review).
+
+---
+
+## 20. Launch readiness (milestone 11)
+
+- **Email:** sent through a **free-tier** provider (to be chosen; free products only), behind an `emailService` interface so the provider can change. Bilingual templates (the user's language). A sending failure never blocks the user's action, and addresses and tokens are never logged.
+- **Email verification at registration:** a one-time code or link (to be chosen at the start of the milestone); tokens stored as HMAC hashes with an expiry, single use. **Unverified accounts cannot submit listings** (they can browse, save and keep drafts); the check applies from milestone 11, and until then submission is allowed without verification.
+- **Password reset** by email link: single-use, short-lived token (stored hashed); the same response whether or not the email exists; a reset revokes the user's sessions (refresh-token families, §13).
+- **No SMS OTP in phase 1** (SMS is always paid); listed as a later option (§12).
+- **New-device login notice:** an email when someone logs in from a device not seen before (device identified by a first-party cookie id stored as a hash, plus a coarse user-agent summary); the email says how to secure the account.
+- **Personal data (Jordan Personal Data Protection Law):**
+  - **Export:** the user downloads their data (profile, listings, saved listings, their commission records) as a file.
+  - **Account deletion:** the user deletes their account; their listings are archived; personal data (name, email, phones, profile) is removed or anonymized; sessions are revoked. The audit trail and commission records keep only non-personal references (e.g. a user id with no personal data attached) where the law allows. Enquiry caller data follows the same rules on request.
+  - The exact retention rules need legal review before launch.
+
