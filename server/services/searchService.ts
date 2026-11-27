@@ -36,6 +36,8 @@ export interface PointsResult {
 
 export interface ListingCard {
   id: number;
+  /** URL slug: the detail page is /:lang/property/{id}-{slug}. */
+  slug: string | null;
   title: string;
   price: number | null;
   currency: string;
@@ -132,8 +134,9 @@ interface PointRow {
   lat: number;
 }
 
-interface CardRow {
+export interface CardRow {
   id: number;
+  slug: string | null;
   title_ar: string | null;
   title_en: string | null;
   price: string | null;
@@ -214,10 +217,24 @@ export async function searchListings(
   const countRow = await base.clone().count({ n: "*" }).first();
   const total = Number(countRow?.n ?? 0);
 
-  const rows: CardRow[] = await base
+  const rows: CardRow[] = await selectCards(db, base)
+    .orderBy([...ORDER[sort], { column: "p.id", order: "desc" }])
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
+
+  return { total, page, pageSize: PAGE_SIZE, items: rows.map((r) => toCard(r, locale)) };
+}
+
+/**
+ * Adds the result-card columns to a query on `properties as p` (also used for
+ * similar listings). Explicit columns only: never phone, point, address or identifiers.
+ */
+export function selectCards(db: Knex, q: Knex.QueryBuilder): Knex.QueryBuilder {
+  return q
     .leftJoin("admin_areas as a", "a.id", "p.admin_area_id")
     .select(
       "p.id",
+      "p.slug",
       "p.title_ar",
       "p.title_en",
       "p.price",
@@ -235,30 +252,26 @@ export async function searchListings(
       db.raw(
         "(SELECT i.thumbnail_url FROM property_images i WHERE i.property_id = p.id ORDER BY i.order_index LIMIT 1) AS thumbnail_url",
       ),
-    )
-    .orderBy([...ORDER[sort], { column: "p.id", order: "desc" }])
-    .limit(PAGE_SIZE)
-    .offset((page - 1) * PAGE_SIZE);
+    );
+}
 
+/** Title and area name in `locale`, falling back to the other language. */
+export function toCard(r: CardRow, locale: Locale): ListingCard {
   const pick = (ar: string | null, en: string | null) => (locale === "ar" ? (ar ?? en) : (en ?? ar));
   return {
-    total,
-    page,
-    pageSize: PAGE_SIZE,
-    items: rows.map((r) => ({
-      id: r.id,
-      title: pick(r.title_ar, r.title_en) ?? "",
-      price: num(r.price),
-      currency: (r.currency as string).trim(),
-      listingType: r.listing_type,
-      rentPeriod: r.rent_period ?? null,
-      category: r.category,
-      areaName: pick(r.area_name_ar, r.area_name_en),
-      bedrooms: r.bedrooms ?? null,
-      bathrooms: r.bathrooms ?? null,
-      areaSqm: num(r.area_sqm),
-      isFeatured: Boolean(r.is_featured),
-      thumbnailUrl: r.thumbnail_url ?? null,
-    })),
+    id: r.id,
+    slug: r.slug ?? null,
+    title: pick(r.title_ar, r.title_en) ?? "",
+    price: num(r.price),
+    currency: r.currency.trim(),
+    listingType: r.listing_type,
+    rentPeriod: r.rent_period ?? null,
+    category: r.category,
+    areaName: pick(r.area_name_ar, r.area_name_en),
+    bedrooms: r.bedrooms ?? null,
+    bathrooms: r.bathrooms ?? null,
+    areaSqm: num(r.area_sqm),
+    isFeatured: Boolean(r.is_featured),
+    thumbnailUrl: r.thumbnail_url ?? null,
   };
 }

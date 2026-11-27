@@ -6,12 +6,8 @@ import {
   type FilterSpecification,
   type GeoJSONSource,
   type MapLayerMouseEvent,
-  setWorkerUrl,
 } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
-// MapLibre 6 looks for its worker next to its own module, which bundling moves;
-// serve the (self-contained) worker as an asset and point MapLibre at it.
-import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+import "./mapSetup";
 import { useEffect, useRef } from "react";
 import { TerraDraw, TerraDrawPolygonMode } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
@@ -43,8 +39,6 @@ export interface MapViewProps {
   onPinHover(id: number | null): void;
   onDrawFinish(ring: LngLatPair[]): void;
 }
-
-setWorkerUrl(workerUrl);
 
 const SRC_POINTS = `${OWN}points`;
 const SRC_POLY = `${OWN}poly`;

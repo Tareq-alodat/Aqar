@@ -50,3 +50,21 @@ export type ContactScope = (typeof CONTACT_SCOPES)[number];
 /** Owners may have at most this many active listings (pending + published + reserved), SPEC §3. */
 export const OWNER_ACTIVE_LISTING_LIMIT = 5;
 export const OWNER_ACTIVE_STATUSES = ["pending", "published", "reserved"] as const satisfies readonly ListingStatus[];
+
+/** Fixed amenity tags for `properties.amenities` (SPEC §4.1); labels in i18n `listing.amenityTags.*`. */
+export const AMENITY_TAGS = [
+  "air_conditioning",
+  "central_heating",
+  "solar_heater",
+  "balcony",
+  "storage",
+  "maid_room",
+  "security",
+  "view",
+  "laundry_room",
+  "fireplace",
+] as const;
+export type AmenityTag = (typeof AMENITY_TAGS)[number];
+
+/** Statuses whose detail page is public (SPEC §10; milestone 5 decision). `published` and `reserved` show the contact box. */
+export const PUBLIC_DETAIL_STATUSES = ["published", "reserved", "sold", "rented"] as const satisfies readonly ListingStatus[];

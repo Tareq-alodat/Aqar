@@ -3,8 +3,10 @@ import type { Knex } from "knex";
 import { authenticate } from "../middleware/authenticate";
 import { rateLimit } from "../middleware/rateLimit";
 import type { Limiters } from "../services/rateLimitService";
+import type { ViewConfig } from "../services/viewService";
 import { authRouter, type AuthApiDeps } from "./auth";
 import { healthRouter, type HealthDeps } from "./health";
+import { listingRouter } from "./listing";
 import { searchRouter } from "./search";
 
 export interface ApiDeps extends HealthDeps {
@@ -13,22 +15,28 @@ export interface ApiDeps extends HealthDeps {
   limiters?: Limiters;
   /** Map search, listings and areas; omitted only in tests of other routers. */
   db?: Knex;
+  /** View counting (listing detail); needed with `db`. */
+  views?: ViewConfig;
 }
 
-/** /map/points has its own limit (60/min) and is not counted in the general one. */
-const isMapPoints = (req: Request) => req.path === "/map/points";
+/**
+ * Endpoints with their own limit, not counted in the general one:
+ * /map/points (60/min) and the listing view beacon (30/min).
+ */
+const hasOwnLimit = (req: Request) => req.path === "/map/points" || /^\/listings\/[^/]+\/view$/.test(req.path);
 
 /** REST API mounted at /api/v1. */
 export function createApiRouter(deps: ApiDeps): Router {
   const api = Router();
   // Limit first, so a flood costs no database work.
-  if (deps.limiters) api.use(rateLimit(deps.limiters.api, { skip: isMapPoints }));
+  if (deps.limiters) api.use(rateLimit(deps.limiters.api, { skip: hasOwnLimit }));
   api.use(express.json({ limit: "1mb" }));
   if (deps.auth) api.use(authenticate(deps.auth.service, deps.auth.cookies));
 
   api.use("/health", healthRouter(deps));
   if (deps.auth) api.use("/auth", authRouter(deps.auth));
   if (deps.db) api.use(searchRouter({ db: deps.db, limiters: deps.limiters }));
+  if (deps.db && deps.views) api.use(listingRouter({ db: deps.db, views: deps.views, limiters: deps.limiters }));
 
   api.use((_req, res) => {
     res.status(404).json({ error: "not_found" });

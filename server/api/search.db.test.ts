@@ -148,7 +148,7 @@ describe("GET /api/v1/listings", () => {
     const p3 = await request(app).get(`/api/v1/listings?country=JO&bbox=${JORDAN}&page=3`);
     expect(p3.body.items).toHaveLength(points - 40);
     expect(Object.keys(p1.body.items[0]).sort()).toEqual(
-      ["areaName", "areaSqm", "bathrooms", "bedrooms", "category", "currency", "id", "isFeatured", "listingType", "price", "rentPeriod", "thumbnailUrl", "title"].sort(),
+      ["areaName", "areaSqm", "bathrooms", "bedrooms", "category", "currency", "id", "isFeatured", "listingType", "price", "rentPeriod", "slug", "thumbnailUrl", "title"].sort(),
     );
     expect(JSON.stringify(p1.body)).not.toMatch(/phone|"point"|address|identifier/i);
   });

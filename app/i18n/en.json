@@ -128,7 +128,19 @@
       "other": "{count} bathrooms"
     },
     "sqm": "{area} m²",
-    "noPhoto": "No photo yet"
+    "noPhoto": "No photo yet",
+    "amenityTags": {
+      "air_conditioning": "Air conditioning",
+      "central_heating": "Central heating",
+      "solar_heater": "Solar water heater",
+      "balcony": "Balcony",
+      "storage": "Storage room",
+      "maid_room": "Maid's room",
+      "security": "Security",
+      "view": "View",
+      "laundry_room": "Laundry room",
+      "fireplace": "Fireplace"
+    }
   },
   "nav": {
     "label": "Main",
@@ -174,6 +186,93 @@
       "rate_limited": "Too many attempts. Please wait a minute and try again.",
       "generic": "Something went wrong. Please try again."
     }
+  },
+  "detail": {
+    "breadcrumb": "Location",
+    "address": "Address",
+    "description": "Description",
+    "similar": "Similar properties nearby",
+    "pricePerSqm": "{price} per m²",
+    "views": {
+      "one": "Viewed once",
+      "other": "Viewed {count} times"
+    },
+    "save": "Save",
+    "saved": "Saved",
+    "preview": "Preview: this listing is not public (status: {status}).",
+    "status": {
+      "draft": "draft",
+      "pending": "awaiting review",
+      "published": "published",
+      "rejected": "rejected",
+      "reserved": "reserved",
+      "sold": "sold",
+      "rented": "rented",
+      "archived": "archived"
+    },
+    "statusBanner": {
+      "reserved": "This property is reserved.",
+      "sold": "This property has been sold.",
+      "rented": "This property has been rented."
+    },
+    "gallery": {
+      "label": "Photos",
+      "thumbnails": "Choose a photo",
+      "photoOf": "Photo {n} of {total}",
+      "lightbox": "Photos, full screen",
+      "close": "Close",
+      "previous": "Previous photo",
+      "next": "Next photo"
+    },
+    "features": {
+      "title": "Features",
+      "amenities": "Amenities",
+      "area": "Size",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "floors": "Floors",
+      "floorNumber": "Floor",
+      "groundFloor": "Ground floor",
+      "age": "Age",
+      "new": "New",
+      "years": {
+        "one": "1 year",
+        "other": "{count} years"
+      },
+      "furnished": "Furnished"
+    },
+    "furnished": {
+      "yes": "Furnished",
+      "no": "Unfurnished",
+      "partial": "Partly furnished"
+    },
+    "location": {
+      "title": "Location",
+      "viewOnMap": "View on map",
+      "approximate": "The owner shows an approximate location: the property is within the circle.",
+      "mapLabel": "Property location"
+    },
+    "contact": {
+      "title": "Contact",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "proxyNote": "This is Aqar's number for this listing; we put you in touch with the owner.",
+      "message": "Hello, I'm interested in this property: {title}\n{url}",
+      "unavailable": "Contact is not available for this listing."
+    },
+    "share": {
+      "share": "Share",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "whatsapp": "Share on WhatsApp"
+    },
+    "owner": {
+      "owner": "Owner",
+      "agent": "Agent",
+      "memberSince": "Member since {date}",
+      "verified": "Verified"
+    },
+    "saveError": "Could not update your saved properties. Try again."
   },
   "errors": {
     "notFoundTitle": "Page not found",

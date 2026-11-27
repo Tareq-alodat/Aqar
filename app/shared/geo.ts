@@ -37,6 +37,28 @@ export function pointInBBox(lng: number, lat: number, b: BBox): boolean {
   return lng >= b[0] && lng <= b[2] && lat >= b[1] && lat <= b[3];
 }
 
+const EARTH_RADIUS_M = 6_371_008.8;
+
+/**
+ * Closed ring approximating a circle of `radiusM` metres around lng/lat
+ * (great-circle destination points). Used for the approximate-location
+ * circle on the listing page (SPEC §4.3).
+ */
+export function circleRing(lng: number, lat: number, radiusM: number, steps = 64): Array<[number, number]> {
+  const φ1 = (lat * Math.PI) / 180;
+  const λ1 = (lng * Math.PI) / 180;
+  const δ = radiusM / EARTH_RADIUS_M;
+  const ring: Array<[number, number]> = [];
+  for (let i = 0; i < steps; i++) {
+    const θ = (2 * Math.PI * i) / steps;
+    const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+    const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+    ring.push([Number(((λ2 * 180) / Math.PI).toFixed(6)), Number(((φ2 * 180) / Math.PI).toFixed(6))]);
+  }
+  ring.push(ring[0]!);
+  return ring;
+}
+
 /** Ray-casting point-in-polygon for a single ring of [lng, lat] (client-side filtering of cached points). */
 export function pointInRing(lng: number, lat: number, ring: ReadonlyArray<readonly [number, number]>): boolean {
   let inside = false;
