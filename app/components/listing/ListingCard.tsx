@@ -7,9 +7,9 @@ import type { ListingCard as Card } from "~/components/map/types";
 
 /** Background token per listing type (SPEC §5.2 colours). */
 export const TYPE_BADGE: Record<ListingType, string> = {
-  sale: "bg-primary text-on-accent",
-  rent: "bg-success text-on-accent",
-  exchange: "bg-exchange text-on-accent",
+  sale: "bg-sale text-on-primary",
+  rent: "bg-rent text-on-primary",
+  exchange: "bg-exchange text-on-primary",
 };
 
 export function PriceText({
@@ -80,7 +80,7 @@ export function ListingCard({ item, currencyDecimals, active, compact, onHover }
       onMouseEnter={() => onHover?.(item.id)}
       onMouseLeave={() => onHover?.(null)}
       className={`group relative flex gap-3 rounded-xl border bg-surface p-2.5 transition-colors ${
-        active ? "border-primary" : "border-card hover:border-muted/60"
+        active ? "border-primary-text" : "border-border hover:border-muted/60"
       }`}
     >
       <div className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card text-muted ${compact ? "size-20" : "h-24 w-28"}`}>
@@ -112,7 +112,7 @@ export function ListingCard({ item, currencyDecimals, active, compact, onHover }
         </div>
         <Link
           to={listingPath(locale, item.id, item.slug)}
-          className="line-clamp-2 text-start text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-xl group-hover:text-primary focus-visible:text-primary focus-visible:after:ring-2 focus-visible:after:ring-primary"
+          className="line-clamp-2 text-start text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-xl group-hover:text-primary-text focus-visible:text-primary-text focus-visible:after:ring-2 focus-visible:after:ring-primary-text"
         >
           {item.title}
         </Link>

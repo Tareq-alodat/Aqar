@@ -8,10 +8,10 @@ import type { ListingType } from "~/shared/constants";
 
 export const PIN_PREFIX = "aqar-pin-";
 
-/** Theme token per listing type: sale gold, rent teal, exchange purple. */
+/** Theme token per listing type (SPEC §14): sale burgundy, rent slate blue, exchange taupe; white labels. */
 const TYPE_TOKENS: Record<ListingType, string> = {
-  sale: "--color-primary",
-  rent: "--color-success",
+  sale: "--color-sale",
+  rent: "--color-rent",
   exchange: "--color-exchange",
 };
 
@@ -32,9 +32,11 @@ function token(name: string): string {
 }
 
 /** Logical size of the unstretched pill (px); drawn at devicePixelRatio for sharp edges. */
-const H = 24;
-const W = 32;
+const H = 26;
+const W = 34;
 const R = H / 2;
+/** Space kept around the pill for the outline and the featured/active ring. */
+const PAD = 2;
 
 export interface PinImage {
   data: ImageData;
@@ -56,17 +58,25 @@ export function makePinImage(id: string): PinImage | null {
   ctx.scale(pr, pr);
 
   const fill = token(TYPE_TOKENS[type]);
-  const ring = variant === "featured" ? token("--color-foreground") : variant === "active" ? token("--color-on-accent") : null;
+  // Featured: a ring in the accent colour; active (hovered/selected): a ring in the text colour.
+  const ring = variant === "featured" ? token("--color-accent") : variant === "active" ? token("--color-foreground") : null;
 
+  // Outer ring first (full size), then the outline, then the coloured pill inside.
+  if (ring) {
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, R);
+    ctx.fillStyle = ring;
+    ctx.fill();
+  }
+  // Light outline: keeps the pill readable on the dark basemap and between overlapping pins.
   ctx.beginPath();
-  ctx.roundRect(1, 1, W - 2, H - 2, R - 1);
+  ctx.roundRect(PAD - 0.5, PAD - 0.5, W - 2 * PAD + 1, H - 2 * PAD + 1, R - PAD + 0.5);
+  ctx.fillStyle = token("--color-pin-outline");
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(PAD + 1, PAD + 1, W - 2 * PAD - 2, H - 2 * PAD - 2, R - PAD - 1);
   ctx.fillStyle = fill;
   ctx.fill();
-  if (ring) {
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = ring;
-    ctx.stroke();
-  }
 
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
   // Stretch only the straight middle; keep the rounded ends; text sits inside `content`.
@@ -74,17 +84,26 @@ export function makePinImage(id: string): PinImage | null {
   const sy: [number, number] = [(H / 2 - 1) * pr, (H / 2 + 1) * pr];
   return {
     data,
-    options: { pixelRatio: pr, stretchX: [sx], stretchY: [sy], content: [7 * pr, 4 * pr, (W - 7) * pr, (H - 4) * pr] },
+    options: { pixelRatio: pr, stretchX: [sx], stretchY: [sy], content: [8 * pr, 5 * pr, (W - 8) * pr, (H - 5) * pr] },
   };
 }
 
-/** Text colour on pins (dark on gold/teal/purple in both themes). */
+/** Text colour on pins: white on the sale/rent/exchange colours in both themes (≥ 6:1). */
 export function pinTextColor(): string {
-  return token("--color-on-accent");
+  return token("--color-on-primary");
 }
 
 export function themeColor(
-  name: "--color-primary" | "--color-foreground" | "--color-background" | "--color-surface" | "--color-muted" | "--color-on-accent",
+  name:
+    | "--color-primary"
+    | "--color-primary-text"
+    | "--color-foreground"
+    | "--color-background"
+    | "--color-surface"
+    | "--color-muted"
+    | "--color-on-primary"
+    | "--color-accent"
+    | "--color-sale",
 ): string {
   return token(name);
 }

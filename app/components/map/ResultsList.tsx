@@ -32,7 +32,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
 
   return (
     <section aria-labelledby="results-heading" className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-card px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div>
           <h1 id="results-heading" className="text-base font-semibold">
             {t("map.listHeading")}
@@ -46,7 +46,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value as Sort)}
-            className="rounded-lg border border-card bg-background px-2 py-1.5 text-sm"
+            className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm"
           >
             {SORTS.map((s) => (
               <option key={s} value={s}>
@@ -84,7 +84,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
               type="button"
               disabled={listings.page <= 1}
               onClick={() => onPage(listings.page - 1)}
-              className="rounded-lg border border-card px-3 py-1.5 hover:bg-card disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-card disabled:opacity-40"
             >
               {t("list.previous")}
             </button>
@@ -93,7 +93,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
               type="button"
               disabled={listings.page >= pages}
               onClick={() => onPage(listings.page + 1)}
-              className="rounded-lg border border-card px-3 py-1.5 hover:bg-card disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-card disabled:opacity-40"
             >
               {t("list.next")}
             </button>

@@ -14,7 +14,7 @@ export function UserMenu() {
     const onAuthPage = /^\/(ar|en)\/(login|register)\/?$/.test(location.pathname);
     const href = onAuthPage ? `/${locale}/login${location.search}` : `/${locale}/login?next=${encodeURIComponent(here)}`;
     return (
-      <Link to={href} className="rounded-lg px-3 py-1.5 text-sm font-semibold text-primary hover:bg-card">
+      <Link to={href} className="rounded-lg px-3 py-1.5 text-sm font-semibold text-primary-text hover:bg-card">
         {t("auth.loginLink")}
       </Link>
     );

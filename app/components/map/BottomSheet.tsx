@@ -27,7 +27,7 @@ export function BottomSheet({ summary, children }: { summary: ReactNode; childre
 
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-2xl border-t border-card bg-surface shadow-[0_-8px_24px_rgb(0_0_0/0.25)] transition-[height] duration-200 motion-reduce:transition-none"
+      className="absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-2xl border-t border-border bg-surface shadow-[0_-8px_24px_rgb(0_0_0/0.25)] transition-[height] duration-200 motion-reduce:transition-none"
       style={{ height: SNAP_HEIGHT[snap] }}
     >
       <button

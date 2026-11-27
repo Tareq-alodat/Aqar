@@ -58,7 +58,8 @@ function addOwnLayers(map: MapLibreMap, levels: AreaLevelInfo[], locale: Locale)
   if (map.getSource(SRC_POINTS)) return;
   const fg = themeColor("--color-foreground");
   const muted = themeColor("--color-muted");
-  const primary = themeColor("--color-primary");
+  // Brand colour that stays visible on both basemaps (lighter tint in dark mode).
+  const primary = themeColor("--color-primary-text");
   const bg = themeColor("--color-background");
   const name: ExpressionSpecification = locale === "ar" ? ["get", "name_ar"] : ["get", "name_en"];
 

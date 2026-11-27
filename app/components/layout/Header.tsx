@@ -15,14 +15,21 @@ export function Header() {
   const otherLocale = locale === "ar" ? "en" : "ar";
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-card bg-surface px-4">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-border bg-surface px-4">
       <div className="flex items-center gap-3">
-        <Link
-          to={`/${locale}/${DEFAULT_COUNTRY}/map`}
-          aria-label={t("header.home")}
-          className="text-xl font-bold text-primary"
-        >
-          {t("app.name")}
+        {/* Logo (SPEC §14): full logo, mark only below 400 px; light/dark files follow the theme class.
+            Only one image is displayed at a time, so screen readers read one alt text. */}
+        <Link to={`/${locale}/${DEFAULT_COUNTRY}/map`} title={t("header.home")} className="flex shrink-0 items-center rounded-lg">
+          <img src="/brand/aqar-logo.svg" alt={t("header.logoAlt")} width={260} height={120} className="h-11 w-auto dark:hidden max-[399px]:hidden" />
+          <img
+            src="/brand/aqar-logo-dark.svg"
+            alt={t("header.logoAlt")}
+            width={260}
+            height={120}
+            className="hidden h-11 w-auto dark:block max-[399px]:dark:hidden"
+          />
+          <img src="/brand/aqar-mark.svg" alt={t("header.logoAlt")} width={120} height={120} className="hidden size-9 max-[399px]:block max-[399px]:dark:hidden" />
+          <img src="/brand/aqar-mark-dark.svg" alt={t("header.logoAlt")} width={120} height={120} className="hidden size-9 max-[399px]:dark:block" />
         </Link>
         {country.success && (
           <span

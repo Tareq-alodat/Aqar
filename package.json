@@ -17,11 +17,12 @@
     "db:seed": "tsx node_modules/knex/bin/cli.js --knexfile knexfile.ts seed:run",
     "lint": "eslint .",
     "db:import-boundaries": "tsx scripts/import-boundaries.ts",
-    "test:db": "vitest run --config vitest.db.config.ts"
+    "test:db": "vitest run --config vitest.db.config.ts",
+    "icons": "tsx scripts/generate-icons.ts"
   },
   "dependencies": {
-    "@fontsource/cairo": "^5.3.0",
-    "@fontsource/dm-sans": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "@react-router/express": "~7.18.7",
     "@react-router/node": "~7.18.7",
     "compression": "^1.8.2",
@@ -62,6 +63,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",
     "jiti": "^2.7.0",
+    "sharp": "^0.35.5",
     "supertest": "^7.3.2",
     "tailwind-csstree": "^0.4.2",
     "tailwindcss": "^4.3.5",

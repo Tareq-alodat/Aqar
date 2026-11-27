@@ -69,7 +69,7 @@ export default function LoginPage() {
       footer={
         <>
           {t("auth.login.noAccount")}{" "}
-          <Link to={registerHref} className="font-semibold text-primary hover:underline">
+          <Link to={registerHref} className="font-semibold text-primary-text hover:underline">
             {t("auth.login.registerLink")}
           </Link>
         </>
