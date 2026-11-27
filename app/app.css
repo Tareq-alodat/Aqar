@@ -46,6 +46,8 @@
   --color-success: #2a9d8f; /* teal — rent */
   --color-exchange: #8b7fd4; /* purple — exchange */
   --color-error: #e63946;
+  /* Text on the gold/teal/purple accents, the same in both themes (readable on all three). */
+  --color-on-accent: #0f0f13;
 
   --font-arabic: "Cairo", ui-sans-serif, system-ui, sans-serif;
   --font-latin: "DM Sans", ui-sans-serif, system-ui, sans-serif;

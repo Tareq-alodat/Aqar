@@ -1,0 +1,60 @@
+import type { ControlPosition, ExpressionSpecification, StyleSpecification } from "maplibre-gl";
+import type { Locale } from "~/shared/locales";
+
+/**
+ * Basemap (SPEC §1, §5): OpenFreeMap styles (no API key). Labels are rewritten
+ * per page language; MapLibre 6 shapes Arabic and orders RTL text itself (the
+ * RTL text plugin is deprecated there and not loaded).
+ */
+
+export const DEFAULT_STYLE_URLS = {
+  dark: "https://tiles.openfreemap.org/styles/dark",
+  light: "https://tiles.openfreemap.org/styles/positron",
+} as const;
+
+/**
+ * Required credit, always visible (also on mobile, where MapLibre would collapse it).
+ * OpenFreeMap's tiles add their own "OpenFreeMap © OpenMapTiles Data from OpenStreetMap";
+ * the wording "© OpenStreetMap contributors" is ours (it also covers our OSM-derived boundaries).
+ */
+export const ATTRIBUTION = [
+  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>',
+];
+
+/** Label in the page language, falling back to the local name. */
+export function nameExpression(locale: Locale): ExpressionSpecification {
+  return locale === "ar"
+    ? ["coalesce", ["get", "name:ar"], ["get", "name"]]
+    : ["coalesce", ["get", "name:en"], ["get", "name_en"], ["get", "name:latin"], ["get", "name"]];
+}
+
+const usesName = (v: unknown) => JSON.stringify(v ?? null).includes('"name');
+
+/** Prefix of our own sources/layers, carried over when the basemap style is swapped (theme change). */
+export const OWN = "aqar-";
+
+/**
+ * Basemap labels in one language (OpenFreeMap shows Latin + local names
+ * together), and our own sources/layers kept across style swaps.
+ */
+export function transformStyle(locale: Locale) {
+  return (previous: StyleSpecification | undefined, next: StyleSpecification): StyleSpecification => {
+    const layers = next.layers.map((layer) => {
+      if (layer.type !== "symbol" || !usesName(layer.layout?.["text-field"])) return layer;
+      return { ...layer, layout: { ...layer.layout, "text-field": nameExpression(locale) } };
+    });
+    if (!previous) return { ...next, layers };
+    const ownSources = Object.fromEntries(Object.entries(previous.sources).filter(([id]) => id.startsWith(OWN)));
+    const ownLayers = previous.layers.filter((l) => l.id.startsWith(OWN));
+    return { ...next, sources: { ...next.sources, ...ownSources }, layers: [...layers, ...ownLayers] };
+  };
+}
+
+export type LogicalPosition = "top-start" | "top-end" | "bottom-start" | "bottom-end";
+
+/** MapLibre control corners are physical; map them from logical ones so controls mirror in RTL. */
+export function controlPosition(position: LogicalPosition, dir: "rtl" | "ltr"): ControlPosition {
+  const [vertical, side] = position.split("-") as ["top" | "bottom", "start" | "end"];
+  const physical = (side === "start") === (dir === "ltr") ? "left" : "right";
+  return `${vertical}-${physical}` as ControlPosition;
+}

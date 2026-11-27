@@ -2,12 +2,13 @@ import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 
 /**
  * Rate limits (SPEC §13), in memory: one Node process on one VPS. Counters
- * reset on restart, which is acceptable for these limits. The map endpoint
- * limit (30/min) arrives with milestone 4.
+ * reset on restart, which is acceptable for these limits.
  */
 export const LIMITS = {
-  /** Every /api/v1 request, per IP. */
+  /** Every /api/v1 request except /map/points, per IP. */
   api: { points: 100, duration: 60 },
+  /** /api/v1/map/points (GET and POST), per IP — its own limit, not counted in `api` (milestone 4 decision). */
+  mapPoints: { points: 60, duration: 60 },
   /** Login and register attempts (API and page forms share it), per IP. */
   authIp: { points: 5, duration: 60 },
   /** Failed logins per email, against guessing spread over many IPs. */
@@ -20,6 +21,7 @@ export type Limiters = Record<LimiterName, RateLimiterMemory>;
 export function createLimiters(): Limiters {
   return {
     api: new RateLimiterMemory({ keyPrefix: "api", ...LIMITS.api }),
+    mapPoints: new RateLimiterMemory({ keyPrefix: "map_points", ...LIMITS.mapPoints }),
     authIp: new RateLimiterMemory({ keyPrefix: "auth_ip", ...LIMITS.authIp }),
     loginEmail: new RateLimiterMemory({ keyPrefix: "login_email", ...LIMITS.loginEmail }),
   };

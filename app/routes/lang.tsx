@@ -1,7 +1,10 @@
 import { Outlet, data } from "react-router";
 import { Header } from "~/components/layout/Header";
 import { langParamsSchema } from "~/shared/schemas/routeParams";
+import { skipSearchOnlyRevalidation } from "~/utils/revalidate";
 import type { Route } from "./+types/lang";
+
+export const shouldRevalidate = skipSearchOnlyRevalidation;
 
 export function loader({ params }: Route.LoaderArgs) {
   const parsed = langParamsSchema.safeParse(params);

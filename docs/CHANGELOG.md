@@ -55,3 +55,26 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - No email verification or password reset (needs sending email; not in phase 1). No "log out on all devices" yet.
 - Registration is for Jordan only (`DEFAULT_COUNTRY`) until other countries go live.
 - Old `refresh_tokens` rows are pruned per user on login; there is no scheduled cleanup yet.
+
+## Milestone 4 — Map search (2026-11-27)
+
+- **Map** (`app/components/map/MapView.tsx`, client-only): MapLibre GL 6 + OpenFreeMap tiles, no API key. `dark` basemap for the dark theme (default) and `positron` for light, both muted so the pins stand out; the basemap swaps with the theme. Basemap labels show one language (`name:ar` / `name:en`, falling back to `name`). **Arabic is shaped by MapLibre 6 itself**: the RTL text plugin is deprecated there and replaces the built-in support, so it is not loaded. "© OpenStreetMap contributors" is always visible (never collapsed, also on mobile) next to OpenFreeMap's own credit. Controls mirror in RTL (`controlPosition()`).
+- **Drill-down**: governorate / city / neighbourhood outlines and labels appear from each level's `map_min_zoom` (6 / 9 / 12 for Jordan); clicking an area zooms to it. The full address path of the area in view (e.g. الأردن › عمان › عمان › عبدون) updates while panning and zooming; each part zooms back out. Governorate and city dropdowns jump to an area. No external geocoding.
+- **Pins and clusters**: short prices (`85K`, `1.2M`, `450/mo`, translated suffix) in sale gold / rent teal / exchange purple from the theme tokens, a ring for featured listings, clusters that zoom in on click. Hovering a card highlights its pin; clicking a pin scrolls to its card (desktop) or opens a mini card (mobile).
+- **Search**: filters of SPEC §5.3, sort, pages of 20, "search as I move" (300 ms debounce) or "Search this area", draw-to-search (terra-draw) with "Clear area". All of it lives in the URL (`useMapUrlState`), so every view is shareable; map moves update the URL without re-running loaders (`shouldRevalidate`).
+- **Client cache**: points are fetched for the view padded by 25 %; zooming in or small pans inside it with the same filters do not refetch. A 429 shows a gentle message and retries after `Retry-After`.
+- **API**: `GET/POST /api/v1/map/points` (cap 3,000 + `truncated`; adds `rent_period` to the SPEC's point properties), `GET /api/v1/listings` (cards in the page language), `GET /api/v1/areas/tree | outlines | at`. One Zod schema for URL, loader and API (`app/shared/schemas/mapSearch.ts`); published listings and `display_point` only, explicit fields (no phone, true point, address or identifiers — tested). Self-crossing polygons are refused (400).
+- **Rate limits**: `/map/points` has its own 60/min per IP and is not counted in the general 100/min; listings and area calls stay under 100/min.
+- **Page**: server-rendered first paint (results, count, address path); desktop split view with the list on the start side; mobile full-screen map with a three-position bottom sheet, filters sheet and a bottom nav with Map and the account link only (Saved/Add/Profile come with milestones 6 and 8).
+- **RTL lint rule** extended: physical keys/values in JSX `style` objects, MapLibre `addControl(…, "top-left")` corners and left/right `Popup`/`Marker` anchors.
+- **Theme**: new token `--color-on-accent` for text on gold/teal/purple (pins, badges); the gold buttons now use it, fixing light-on-gold text in the light theme.
+- Fixed while testing in a browser: MapLibre 6's worker is now served as a bundled asset (`setWorkerUrl`) — without it the map failed to load in both dev and the production build; pin images use `setMissingStyleImageResolver` (the `styleimagemissing` event only served the first tile, so most pins were invisible); the map container is sized explicitly (MapLibre's CSS overrides `position`).
+- New dependencies (BSD/MIT, no install scripts): `maplibre-gl`, `terra-draw`, `terra-draw-maplibre-gl-adapter`, `zustand`.
+- Tests: 359 unit (search schema/URL round-trip, polyline, geometry, price labels and formatting, points cache, basemap label rewrite and theme swap, control positions, new lint rule cases) and 102 database/HTTP (published-only, display point never the true point, every filter, polygon search, invalid input, paging/sorting/language fallback, area tree/outlines/path per zoom, the separate 60/min limit). Browser check in Edge (headless) against the dev server and the production build: ar/en × dark/light, drill-down path, no refetch on zoom-in, URL state, filter refetch, mobile sheet and nav, worker and attribution.
+
+### Known gaps
+- Listing cards are not links yet: the detail page arrives in milestone 5. There are no photos until the submit wizard (milestone 6), so cards show a category icon.
+- The map chunk is ~1.2 MB (≈320 kB gzipped) plus a ~550 kB worker, loaded only on the map page.
+- The overlay panels (address path, jump-to, tools) can cover pins near the top of the map on small screens.
+- The site has no favicon yet (`/favicon.ico` → 404; not new).
+- Vite's dev live-reload socket fails when another dev server already uses its port (24678) — development only.

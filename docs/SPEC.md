@@ -44,7 +44,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 - **State:** Zustand for client-only state (map view, filters, compare tray [P2]). URL search params are the source of truth for map position and filters.
 - **i18n:** URL-prefixed locales `/ar/...` (default) and `/en/...`. Translation files `app/i18n/ar.json`, `app/i18n/en.json`. `<html lang dir>` set server-side from the locale.
 - **Images:** `sharp` on upload → WebP, max 2000 px long edge + 400 px thumbnail. Storage behind an interface: `LocalDiskStorage` (VPS disk under `UPLOAD_DIR`) in development and production. Code outside the storage service must not assume files live on local disk, so another backend can be added later without touching callers.
-- **Map:** `maplibre-gl`, MapLibre RTL text plugin (for Arabic labels), built-in GeoJSON clustering, `terra-draw` (MapLibre adapter) for draw-to-search.
+- **Map:** `maplibre-gl` 6, built-in GeoJSON clustering, `terra-draw` (MapLibre adapter) for draw-to-search. Arabic labels: MapLibre 6 shapes Arabic and orders RTL text itself, so the (now deprecated) RTL text plugin is not loaded. Basemap labels are rewritten to the page language (`name:ar` / `name:en`, falling back to `name`). The map worker is served as a bundled asset (`setWorkerUrl`); pin images come from `setMissingStyleImageResolver`.
 - **Tiles:** **OpenFreeMap** (free, no API key); dark/light style URLs from `MAP_STYLE_URL_DARK` / `MAP_STYLE_URL_LIGHT`. Show the OpenFreeMap / OpenMapTiles / © OpenStreetMap attribution. Do **not** use `tile.openstreetmap.org` (usage policy) or paid tile providers.
 - **Testing:** Vitest (unit/service), Playwright (a few critical flows) — added from milestone 2 on.
 
@@ -150,12 +150,13 @@ Up to 20 per listing; first = cover; drag-and-drop reorder; jpg/png/webp, max 10
 - Hovering a result card highlights its pin; clicking a pin scrolls/highlights the card (desktop) or opens a mini card (mobile).
 
 ### 5.2 Behaviour
-- **Search as I move the map** (toggle, default on): on `moveend`, debounce 300 ms, query by current bbox.
+- **Search as I move the map** (toggle, default on): on `moveend`, debounce 300 ms, query by current bbox; when off, a "Search this area" button appears. Points are fetched for the view padded by 25 % on each side and cached in the browser: while the view stays inside that area with the same filters (zooming in, small pans), nothing is refetched; a truncated response is never reused. A 429 shows a gentle message and retries after `Retry-After`.
 - **Draw to search:** polygon tool (terra-draw). Active polygon replaces bbox filtering; "Clear area" button restores it.
 - **URL holds state:** `/ar/jo/map?lat=31.95&lng=35.91&z=12&type=sale&cat=apartment&minPrice=50000&maxPrice=150000&beds=2,3&poly=<encoded>`. Any view is shareable and restorable on refresh.
 - **Country switcher** in header flies the map to the country's default center and resets currency.
 - **Jump to location:** governorate/city dropdowns (from `admin_areas`) fly the map to that area's bounds. No external geocoding API in phase 1.
-- **Drill-down:** area outlines and labels appear by level as the user zooms in (each level's `map_min_zoom`, §2.3) — cities first, then neighbourhoods. The full address path of the area in view (country › governorate › city › area) is shown and updates while drilling down.
+- **Drill-down:** area outlines and labels appear by level as the user zooms in (each level's `map_min_zoom`, §2.3) — cities first, then neighbourhoods. The full address path of the area in view (country › governorate › city › area) is shown and updates while drilling down: it is the path of the deepest area containing the map centre among the levels visible at the current zoom; each part zooms back out to that area. Clicking an area zooms to it.
+- **Basemap & credit:** OpenFreeMap `dark` (default theme) and `positron` (light) — both muted so the pins stand out; switching theme swaps the basemap. "© OpenStreetMap contributors" (linked to the OSM copyright page) is always visible next to OpenFreeMap's own credit, never collapsed.
 - **Pins:** price label in short form (`85K`, `1.2M`, `450/mo`), colour by listing type — sale = gold `#d4a843`, rent = teal `#2a9d8f`, exchange = purple `#8b7fd4`. Featured listings get a ring.
 - **Clustering:** MapLibre GeoJSON source with `cluster: true`; cluster bubbles show count; click zooms in.
 - Result count always visible ("124 عقار في هذه المنطقة").
@@ -164,7 +165,9 @@ Up to 20 per listing; first = cover; drag-and-drop reorder; jpg/png/webp, max 10
 Listing type, category, price range, area range, bedrooms (multi), bathrooms (min), amenities (pool, parking, garden, elevator, furnished), max property age, governorate/city. Sort (list only): newest, price ↑, price ↓, most viewed, price per m² ↑.
 
 ### 5.4 API
-- `GET /api/v1/map/points?country=JO&bbox=minLng,minLat,maxLng,maxLat&<filters>` → GeoJSON `FeatureCollection` of `display_point`s with minimal properties `{id, price, currency, listing_type, category, is_featured}`. Cap 3,000 features; if exceeded return `truncated: true` and the client shows "zoom in to see all".
+- `GET /api/v1/map/points?country=JO&bbox=minLng,minLat,maxLng,maxLat&<filters>` → GeoJSON `FeatureCollection` of `display_point`s with minimal properties `{id, price, currency, listing_type, rent_period, category, is_featured}` (`rent_period` for the "450/mo" label). Cap 3,000 features; if exceeded return `truncated: true` and the client shows "zoom in to see all". **Rate limit: 60/min per IP, separate from (not counted in) the general 100/min.**
+- `GET /api/v1/areas/tree?country=JO` → area levels with their `map_min_zoom` and the first two levels' areas with bounds (jump-to dropdowns). `GET /api/v1/areas/outlines?country=JO&level=` → that level's boundaries simplified for display (cached; label point and bounds per area). `GET /api/v1/areas/at?country=JO&lng=&lat=&z=` → address path at a point for a zoom.
+- Search state (URL, page loader and API share one Zod schema, `app/shared/schemas/mapSearch.ts`): `type, cat, minPrice, maxPrice, minArea, maxArea, beds` (list; `5` = 5+), `baths` (min), `amen` (`pool, parking, garden, elevator, furnished`), `maxAge, area` (governorate/city id, includes everything inside), `sort, page`, and `poly` (encoded polyline, ≤ 100 corners, must not cross itself).
 - `POST /api/v1/map/points` with `{ polygon: GeoJSON, ...filters }` for draw-to-search.
 - `GET /api/v1/listings?country=JO&bbox=...|polygon=...&<filters>&sort=&page=&pageSize=20` → result cards (cover thumb, title, price, type, category, area name, beds, baths, area_sqm).
 - Spatial predicates: `ST_Intersects(display_point, ST_MakeEnvelope(...)::geography)` / `ST_Covers(polygon, display_point)`. Only `status = 'published'`.
@@ -263,7 +266,7 @@ Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-r
 - **CSRF:** SameSite=Lax cookies + origin check on every POST/PUT/PATCH/DELETE (API and page actions): `Origin`, else `Sec-Fetch-Site: same-origin`, else `Referer` must match `PUBLIC_BASE_URL` (plus `localhost`/`127.0.0.1` in development); requests with none of them are refused (403). Logout is POST only. `?next=` redirects accept only same-site paths.
 - Role middleware on every protected API route (`requireAuth`, `requireRole`); equivalent checks in loaders/actions (`requireUser`, `requireRole` in `app/utils/auth.server.ts`). Pages receive only `{ id, name, role }` of the signed-in user.
 - Zod validation on every endpoint, loader input, and action.
-- Rate limits (in memory, one process): 100 req/min general (`/api/v1`), 5 req/min auth (login + register, API and page forms combined), 30 req/min on map endpoints per IP; plus 10 failed logins per email per 15 min. 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
+- Rate limits (in memory, one process): 100 req/min general (`/api/v1`, including listings and area calls), 5 req/min auth (login + register, API and page forms combined), 60 req/min on `/api/v1/map/points` per IP (its own limit, not counted in the general one; milestone 4 decision); plus 10 failed logins per email per 15 min. 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
 - Parameterized SQL only. Uploads: MIME sniffing (not extension), images only, 10 MB max, re-encoded by sharp (strips EXIF incl. GPS).
 - AES-256-GCM for phones; key only from env; never logged.
 - Seed credentials are **development only**; seed script refuses to run when `NODE_ENV=production`.

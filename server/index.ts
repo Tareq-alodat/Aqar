@@ -22,7 +22,8 @@ const publicOrigin = new URL(env.PUBLIC_BASE_URL).origin;
 const cookies = createAuthCookies({ secure: publicOrigin.startsWith("https:") });
 const limiters = createLimiters();
 const auth = createAuthService({ db: getDb(), secrets: authSecrets, limiters, phoneSecrets: requireSecrets });
-const services = { auth, cookies };
+const db = getDb();
+const services = { auth, cookies, db };
 // Compute the dummy password hash now rather than on the first failed login.
 auth.warmUp().catch(() => console.error("[auth] could not prepare the dummy password hash"));
 
@@ -39,7 +40,7 @@ app.use(morgan(isProduction ? "tiny" : "dev"));
 // CSRF: state-changing requests (API and page forms) must come from our own origin.
 app.use(originCheck(allowedOrigins));
 
-app.use("/api/v1", createApiRouter({ isProduction, checkDatabase, auth: { service: auth, cookies }, limiters }));
+app.use("/api/v1", createApiRouter({ isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db }));
 
 // Local image storage is development-only here; Caddy serves /uploads in production (SPEC §0).
 if (!isProduction) {
