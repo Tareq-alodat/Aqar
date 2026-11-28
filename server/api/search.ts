@@ -12,7 +12,7 @@ import {
 } from "../../app/shared/schemas/mapSearch";
 import { localeSchema } from "../../app/shared/schemas/routeParams";
 import { rateLimit } from "../middleware/rateLimit";
-import { getAreaTree, getOutlines, getPathAt, suggestAreas } from "../services/areaService";
+import { getAreaTree, getAreaWithPath, getOutlines, getPathAt, suggestAreas } from "../services/areaService";
 import type { Limiters } from "../services/rateLimitService";
 import {
   assertValidPolygon,
@@ -73,6 +73,7 @@ const postPointsSchema = z.object({
   filters: z.record(z.string(), z.string().max(500)).default({}),
 });
 
+const areaQuery = z.object({ country: countryCodeSchema, id: z.coerce.number().int().positive().max(2_147_483_647) });
 const outlinesQuery = z.object({ country: countryCodeSchema, level: z.string().regex(/^[a-z][a-z0-9_]{0,31}$/) });
 const atQuery = z.object({
   country: countryCodeSchema,
@@ -187,6 +188,20 @@ export function searchRouter({ db, limiters }: SearchApiDeps): Router {
       const q = suggestQuery.safeParse(req.query);
       if (!q.success) return badRequest(res, [...new Set(q.error.issues.map((i) => String(i.path[0])))]);
       res.set("Cache-Control", "public, max-age=300").json({ items: await suggestAreas(db, q.data.country, q.data.q) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // One area with its ancestors (selected-area filter: chip, outline, dropdowns).
+  // Registered after /areas/at and /areas/suggest, which this path would otherwise match.
+  router.get("/areas/:id", async (req, res, next) => {
+    try {
+      const q = areaQuery.safeParse({ ...req.query, id: req.params.id });
+      if (!q.success) return badRequest(res, q.error.issues.map((i) => String(i.path[0])));
+      const path = await getAreaWithPath(db, q.data.country, q.data.id);
+      if (!path) return void res.status(404).json({ error: "not_found" });
+      res.set("Cache-Control", "public, max-age=3600").json({ path });
     } catch (error) {
       next(error);
     }

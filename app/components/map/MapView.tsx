@@ -27,6 +27,8 @@ export interface MapViewProps {
   levels: AreaLevelInfo[];
   points: MapPoints;
   polygon?: LngLatPair[];
+  /** The selected-area filter (`area=`): its outline stays highlighted (SPEC §5.2). */
+  selectedArea?: { id: number; level: string } | null;
   /** Pin to emphasise (hovered card or selected pin). */
   activeId: number | null;
   drawing: boolean;
@@ -42,6 +44,7 @@ export interface MapViewProps {
 
 const SRC_POINTS = `${OWN}points`;
 const SRC_POLY = `${OWN}poly`;
+const SRC_SELECTED = `${OWN}selected-area`;
 const areaSrc = (level: string) => `${OWN}area-${level}`;
 const labelSrc = (level: string) => `${OWN}area-labels-${level}`;
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -84,6 +87,9 @@ function ownPaint(levels: AreaLevelInfo[]): Record<string, Record<string, unknow
     };
     paint[`${OWN}area-label-${lv.level}`] = { "text-color": fg, "text-halo-color": bg };
   });
+  // Selected area (the `area=` filter): primary 2 px outline, 8 % fill, whatever the zoom.
+  paint[`${OWN}selected-fill`] = { "fill-color": primary, "fill-opacity": 0.08 };
+  paint[`${OWN}selected-line`] = { "line-color": primary, "line-width": 2 };
   paint[`${OWN}poly-fill`] = { "fill-color": primary, "fill-opacity": 0.08 };
   paint[`${OWN}poly-line`] = { "line-color": primary, "line-width": 2 };
   // Clusters: primary colour, white count and halo, slightly darker on hover.
@@ -131,6 +137,10 @@ function addOwnLayers(map: MapLibreMap, levels: AreaLevelInfo[], locale: Locale)
       paint: { ...paint[`${OWN}area-line-${lv.level}`], ...(i === levels.length - 1 ? { "line-dasharray": [2, 2] } : {}) },
     });
   });
+
+  map.addSource(SRC_SELECTED, { type: "geojson", data: EMPTY });
+  map.addLayer({ id: `${OWN}selected-fill`, type: "fill", source: SRC_SELECTED, paint: paint[`${OWN}selected-fill`] });
+  map.addLayer({ id: `${OWN}selected-line`, type: "line", source: SRC_SELECTED, paint: paint[`${OWN}selected-line`] });
 
   map.addSource(SRC_POLY, { type: "geojson", data: EMPTY });
   map.addLayer({ id: `${OWN}poly-fill`, type: "fill", source: SRC_POLY, paint: paint[`${OWN}poly-fill`] });
@@ -214,6 +224,8 @@ export default function MapView(props: MapViewProps) {
   const mapRef = useRef<MapLibreMap | null>(null);
   const drawRef = useRef<TerraDraw | null>(null);
   const loadedLevels = useRef(new Set<string>());
+  /** Outline collections per level, shared by the level layers and the selected-area highlight. */
+  const outlines = useRef(new Map<string, Promise<OutlineFC>>());
   // Latest props for map event handlers registered once (synced before the effects below run).
   const latest = useRef(props);
   useEffect(() => {
@@ -256,9 +268,8 @@ export default function MapView(props: MapViewProps) {
       for (const lv of latest.current.levels) {
         if (zoom < lv.minZoom - 1 || loadedLevels.current.has(lv.level)) continue;
         loadedLevels.current.add(lv.level);
-        fetch(`/api/v1/areas/outlines?country=${latest.current.country}&level=${encodeURIComponent(lv.level)}`)
-          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-          .then((fc: { features: Array<{ properties: { label: [number, number] } & Record<string, unknown> }> }) => {
+        levelOutlines(outlines.current, latest.current.country, lv.level)
+          .then((fc) => {
             (map.getSource(areaSrc(lv.level)) as GeoJSONSource | undefined)?.setData(fc as never);
             (map.getSource(labelSrc(lv.level)) as GeoJSONSource | undefined)?.setData({
               type: "FeatureCollection",
@@ -268,11 +279,13 @@ export default function MapView(props: MapViewProps) {
           .catch(() => loadedLevels.current.delete(lv.level));
       }
     };
+    const showSelected = () => void syncSelected(map, outlines.current, latest.current);
 
     map.on("load", () => {
       addOwnLayers(map, latest.current.levels, latest.current.locale);
       syncData(map, latest.current);
       loadOutlines();
+      showSelected();
       latest.current.onViewChange(viewOf(map));
     });
     // After a theme swap our layers come back through transformStyle; refill outline data if it was lost.
@@ -286,6 +299,7 @@ export default function MapView(props: MapViewProps) {
       }
       syncData(map, latest.current);
       loadOutlines();
+      showSelected();
     });
     map.on("moveend", () => {
       loadOutlines();
@@ -370,6 +384,14 @@ export default function MapView(props: MapViewProps) {
     if (map?.isStyleLoaded() && map.getSource(SRC_POINTS)) syncData(map, props);
   }, [props.points, props.polygon, props.activeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Selected-area outline (`area=`).
+  useEffect(() => {
+    const map = mapRef.current;
+    // Not gated on isStyleLoaded(): it is false while tiles load (e.g. during the fit animation), and the
+    // source exists from the first load on (the load/style.load handlers sync it otherwise).
+    if (map?.getSource(SRC_SELECTED)) void syncSelected(map, outlines.current, props);
+  }, [props.selectedArea?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Theme change: swap the basemap; our layers are carried over by transformStyle.
   const firstStyle = useRef(props.styleUrl);
   useEffect(() => {
@@ -428,4 +450,39 @@ function syncData(map: MapLibreMap, p: MapViewProps) {
   );
   const filter: FilterSpecification = ["all", ["!", ["has", "point_count"]], ["==", ["get", "id"], p.activeId ?? -1]];
   if (map.getLayer(`${OWN}pin-active`)) map.setFilter(`${OWN}pin-active`, filter);
+}
+
+type OutlineFC = { type: "FeatureCollection"; features: Array<{ id?: number; properties: { id: number; label: [number, number] } & Record<string, unknown> }> };
+
+/** Outlines of one level, fetched once per map (the server caches them too). */
+function levelOutlines(cache: Map<string, Promise<OutlineFC>>, country: string, level: string): Promise<OutlineFC> {
+  let hit = cache.get(level);
+  if (!hit) {
+    hit = fetch(`/api/v1/areas/outlines?country=${country}&level=${encodeURIComponent(level)}`).then((r) =>
+      r.ok ? (r.json() as Promise<OutlineFC>) : Promise.reject(new Error(String(r.status))),
+    );
+    // A failed request may be retried later.
+    hit.catch(() => cache.delete(level));
+    cache.set(level, hit);
+  }
+  return hit;
+}
+
+/** Draws the selected area's outline (or nothing), whatever the zoom. */
+const latestSelected = new WeakMap<MapLibreMap, number | undefined>();
+
+async function syncSelected(map: MapLibreMap, cache: Map<string, Promise<OutlineFC>>, p: MapViewProps) {
+  const source = () => map.getSource(SRC_SELECTED) as GeoJSONSource | undefined;
+  const sel = p.selectedArea;
+  latestSelected.set(map, sel?.id);
+  if (!sel) return source()?.setData(EMPTY as never);
+  try {
+    const fc = await levelOutlines(cache, p.country, sel.level);
+    const feature = fc.features.find((f) => f.properties.id === sel.id);
+    // The selection may have changed while the outlines were loading.
+    if (latestSelected.get(map) !== sel.id) return;
+    source()?.setData((feature ? { type: "FeatureCollection", features: [feature] } : EMPTY) as never);
+  } catch {
+    // The filter still applies; only the highlight is missing.
+  }
 }

@@ -122,6 +122,9 @@ export async function getAreaTree(db: Knex, countryCode: string): Promise<{ leve
     .where({ country_code: countryCode, is_active: true })
     .whereIn("level", jumpLevels)
     .select("id", "parent_id", "level", "name_ar", "name_en", db.raw(BBOX_SQL("boundary")));
+  // Top level first (callers treat the first area's level as the top one), then by id for a stable order.
+  const rank = (level: string) => jumpLevels.indexOf(level);
+  rows.sort((a: { level: string; id: number }, b: { level: string; id: number }) => rank(a.level) - rank(b.level) || a.id - b.id);
   return {
     levels,
     areas: rows.map((r) => ({ id: r.id, parentId: r.parent_id, level: r.level, nameAr: r.name_ar, nameEn: r.name_en, bbox: toBBox(r) })),
@@ -165,6 +168,28 @@ export async function getPathAt(
     nameEn: r.name_en,
     bbox: toBBox(r),
   }));
+}
+
+/**
+ * An active area of the country and its ancestors, root first (e.g. Amman
+ * governorate → Amman city → Abdoun), or null. Used for the selected-area
+ * filter (`area=`, SPEC §5.2): its chip, outline and the jump dropdowns.
+ */
+export async function getAreaWithPath(db: Knex, countryCode: string, id: number): Promise<AreaSummary[] | null> {
+  const result = await db.raw<{ rows: Array<BBoxRow & { id: number; parent_id: number | null; level: string; name_ar: string; name_en: string }> }>(
+    `WITH RECURSIVE path AS (
+       SELECT a.id, a.parent_id, a.level, a.name_ar, a.name_en, a.boundary, 0 AS depth
+         FROM admin_areas a WHERE a.id = ? AND a.country_code = ? AND a.is_active
+       UNION ALL
+       SELECT a.id, a.parent_id, a.level, a.name_ar, a.name_en, a.boundary, p.depth + 1
+         FROM admin_areas a JOIN path p ON a.id = p.parent_id
+        WHERE p.depth < 10
+     )
+     SELECT id, parent_id, level, name_ar, name_en, ${BBOX_SQL("boundary")} FROM path ORDER BY depth DESC`,
+    [id, countryCode],
+  );
+  if (result.rows.length === 0) return null;
+  return result.rows.map((r) => ({ id: r.id, parentId: r.parent_id, level: r.level, nameAr: r.name_ar, nameEn: r.name_en, bbox: toBBox(r) }));
 }
 
 export interface AreaSuggestion extends AreaSummary {

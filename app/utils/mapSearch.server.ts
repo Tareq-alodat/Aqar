@@ -1,11 +1,11 @@
 import { data, type AppLoadContext } from "react-router";
 import type { ActiveCountry } from "~/shared/countries";
 import { toCountryCode } from "~/shared/countries";
-import { bboxAround } from "~/shared/geo";
+import { bboxAround, viewForBBox } from "~/shared/geo";
 import type { Locale } from "~/shared/locales";
 import { parseMapSearch, searchScope } from "~/shared/schemas/mapSearch";
 import { env } from "../../server/env";
-import { getAreaTree, getPathAt } from "../../server/services/areaService";
+import { getAreaTree, getAreaWithPath, getPathAt } from "../../server/services/areaService";
 import { getCountry } from "../../server/services/countryService";
 import { assertValidPolygon, InvalidPolygonError, searchListings, type SearchArea } from "../../server/services/searchService";
 
@@ -26,7 +26,13 @@ export async function loadMapPage(context: AppLoadContext, request: Request, cou
   if (!info) throw data(null, { status: 404 });
 
   const { state } = parseMapSearch(new URL(request.url).searchParams);
-  const view = state.view ?? { lat: info.center.lat, lng: info.center.lng, z: info.zoom };
+  // The selected-area filter (`area=`): its ancestors for the chip, outline and dropdowns.
+  const selectedAreaPath = state.filters.area !== undefined ? await getAreaWithPath(db, code, state.filters.area) : null;
+  // A link with an area but no map position opens on that area.
+  const selected = selectedAreaPath?.at(-1);
+  const view =
+    state.view ??
+    (selected ? viewForBBox(selected.bbox, SSR_MAP_WIDTH, SSR_MAP_HEIGHT) : { lat: info.center.lat, lng: info.center.lng, z: info.zoom });
 
   let poly = state.poly;
   if (poly) {
@@ -63,6 +69,7 @@ export async function loadMapPage(context: AppLoadContext, request: Request, cou
     jumpAreas: tree.areas,
     listings,
     path,
+    selectedAreaPath,
     styles: { dark: env.MAP_STYLE_URL_DARK, light: env.MAP_STYLE_URL_LIGHT },
   };
 }

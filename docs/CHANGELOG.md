@@ -262,3 +262,21 @@ First part of milestone 7 (split agreed: 7a supervisor model, 7b moderation, 7c 
 - Reassign button, moderation queue, "show phone", audit-log browser: 7b. Agent registrations: 7c. Users screen (suspend/reactivate), settings, overdue reminders: 7d. Boundary viewer and counts: 7e.
 - No accessibility (axe) run this time; the browser check was visual only.
 - The work-mobile country is not stored; editing a profile assumes Jordan unless another country is chosen (international `+` input works for any country).
+
+## Fix — choosing an area filters results (2026-11-28)
+
+- **Bug:** choosing الزرقاء in the governorate dropdown only flew the map to Zarqa's bounds; with no `area=` in the URL the list and pins used the viewport rectangle, which covers east Amman (36 results incl. إسكان ماركا).
+- **Now** (SPEC §5.2 "Jump to location = area filter"):
+  - The jump dropdowns, the filters' "only in" select and an area suggestion in the search bar all set `area=<id>` **and** fit the map to the area.
+  - While `area=` is set, the list, the count and the pins only include that area and its descendants (area ∩ viewport while "search as I move" is on).
+- **Chip:** a removable area chip ("الزرقاء ×") sits next to the search bar, on its own row on mobile. Removing it clears `area=`. The dropdowns and the filter select reflect the same value.
+- **Outline:** the selected area keeps its outline highlighted (primary 2 px, 8 % fill), at any zoom. Clicking an outline on the map stays zoom-only.
+- **Shared links:** a link with `area=` and no map position opens fitted to the area. The server-rendered first paint uses the area's bounds (`viewForBBox`).
+- **New:** `GET /api/v1/areas/:id?country=` returns an area with its ancestors (`getAreaWithPath`), for the chip, the outline and the dropdowns when `area=` comes from a link or Back/Forward.
+- **Also fixed:**
+  - The jump tree returned areas in database order, so the "governorate" dropdown could list the four cities. It now lists the top level first.
+  - `useMapUrlState` built updates on the last rendered URL, so a map move right after a filter change could drop that filter (seen when choosing an area fits the map). Updates now build on the latest requested URL.
+- **Tests:**
+  - 491 unit: `area=` URL ↔ state round trip and `viewForBBox`.
+  - 209 database/HTTP: a listing inside Zarqa's bounding box but outside Zarqa is excluded from pins, list and count; `/areas/:id`; jump-tree order; the server-rendered chip in `/ar` and `/en`.
+  - Browser check (headless Edge, throwaway database): choose الزرقاء → `area=` set, map fitted, only Zarqa listings, outline drawn, chip removal restores viewport results. Shared-link pages in `/ar` and `/en`, light and dark, desktop and mobile: no overflow, no app console errors.

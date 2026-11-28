@@ -142,3 +142,32 @@ describe("text search state (milestone 4b)", () => {
     expect(toSearchParams({ ...base, q: "x", inView: true }).get("in")).toBe("view");
   });
 });
+
+describe("selected-area filter (area=) round trip", () => {
+  it("parses area= into filters.area and writes it back", () => {
+    const { state, invalid } = parseMapSearch(new URLSearchParams("lat=32.06&lng=36.09&z=9&area=42&type=sale"));
+    expect(invalid).toEqual([]);
+    expect(state.filters).toEqual({ area: 42, type: "sale" });
+    const out = toSearchParams(state);
+    expect(out.get("area")).toBe("42");
+    expect(parseMapSearch(out).state).toEqual(state);
+  });
+
+  it("clearing the area removes the parameter; bad values are dropped", () => {
+    const { state } = parseMapSearch(new URLSearchParams("area=42&cat=villa"));
+    expect(toSearchParams({ ...state, filters: { ...state.filters, area: undefined } }).has("area")).toBe(false);
+    for (const bad of ["abc", "0", "-3", "1.5", "99999999999"]) {
+      const r = parseMapSearch(new URLSearchParams(`area=${bad}`));
+      expect(r.state.filters.area, bad).toBeUndefined();
+      expect(r.invalid).toEqual(["area"]);
+    }
+  });
+
+  it("counts as an active filter and combines with a text search in view", () => {
+    const { state } = parseMapSearch(new URLSearchParams("area=7&q=villa&in=view"));
+    expect(countFilters(state.filters)).toBe(1);
+    expect(searchScope(state)).toBe("view");
+    expect(toSearchParams(state).toString()).toBe("area=7&q=villa&in=view");
+  });
+});
+

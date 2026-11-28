@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useSyncExternalStore } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { data, useLoaderData } from "react-router";
 import { MobileNav } from "~/components/layout/MobileNav";
 import { ListingCard } from "~/components/listing/ListingCard";
@@ -6,11 +6,12 @@ import { BottomSheet } from "~/components/map/BottomSheet";
 import { SlidersHorizontal } from "lucide-react";
 import { chip, FilterPanel } from "~/components/map/FilterPanel";
 import { LISTING_TYPES } from "~/shared/constants";
-import { AreaPath, JumpTo, MapToolbar, Notice } from "~/components/map/MapChrome";
+import { AreaChip, AreaPath, JumpTo, MapToolbar, Notice } from "~/components/map/MapChrome";
 import { ResultsList } from "~/components/map/ResultsList";
 import { NearMe, SearchBox } from "~/components/map/SearchBar";
-import type { AreaSuggestion, ListingCard as Card, ViewChange } from "~/components/map/types";
+import type { AreaSuggestion, AreaSummary, ListingCard as Card, ViewChange } from "~/components/map/types";
 import { useMapSearch } from "~/components/map/useMapSearch";
+import { useSelectedArea } from "~/components/map/useSelectedArea";
 import { useMapUrlState } from "~/hooks/useMapUrlState";
 import { useTheme } from "~/hooks/useTheme";
 import { getT } from "~/i18n";
@@ -108,11 +109,32 @@ export default function MapPage() {
     const sort = q ? (state.sort === DEFAULT_SORT ? "relevance" : state.sort) : state.sort === "relevance" ? DEFAULT_SORT : state.sort;
     update({ q, inView: false, sort, page: 1 }, { push: true });
   };
-  // Choosing a place flies there; a text search then follows the map.
-  const onLocation = (area: AreaSuggestion) => {
+  // Selected-area filter (SPEC §5.2): `area=` is the only source of truth for the chip,
+  // the jump dropdowns, the filters' area select and the highlighted outline.
+  const selectedArea = useSelectedArea(data.countryCode, state.filters.area, data.selectedAreaPath, () =>
+    update({ filters: { ...state.filters, area: undefined }, page: 1 }),
+  );
+  /** Filters results to the area (and its descendants) and fits the map to it; a text search then follows the map. */
+  const applyArea = (area: { id: number; bbox: BBox }) => {
     fitTo(area.bbox);
-    if (search.scope === "country") update({ inView: true, page: 1 }, { push: true });
+    update({ filters: { ...state.filters, area: area.id }, page: 1, ...(search.scope === "country" ? { inView: true } : {}) }, { push: true });
   };
+  const onArea = (path: AreaSummary[] | null) => {
+    if (!path?.length) return update({ filters: { ...state.filters, area: undefined }, page: 1 }, { push: true });
+    selectedArea.remember(path);
+    applyArea(path.at(-1)!);
+  };
+  // A link with an area but no map position: fit the real map size to the area once (the server started from a guess).
+  const fitOnOpen = useRef(state.filters.area !== undefined && !state.view);
+  useEffect(() => {
+    if (fitOnOpen.current && selectedArea.area) {
+      fitOnOpen.current = false;
+      fitTo(selectedArea.area.bbox);
+    }
+  }, [selectedArea.area, fitTo]);
+  // A place chosen in the search box: same as a dropdown choice (its ancestors are looked up).
+  const onLocation = (area: AreaSuggestion) => applyArea(area);
+  const clearArea = () => onArea(null);
   const onNear = (near: LngLat | undefined) => {
     setDrawing(false);
     update({ near, poly: undefined, inView: false, page: 1 }, { push: true });
@@ -185,6 +207,7 @@ export default function MapPage() {
   );
   const activeFilters = countFilters(state.filters);
   const countKey = search.scope === "country" || search.scope === "near" ? "map.resultsCountSearch" : "map.resultsCount";
+  const areaChip = selectedArea.area && <AreaChip area={selectedArea.area} onRemove={clearArea} />;
   const searchRow = (
     <>
       <SearchBox country={data.countryCode} q={state.q} onSearch={onSearch} onLocation={onLocation} />
@@ -196,12 +219,16 @@ export default function MapPage() {
     <div className="flex h-[calc(100dvh-4rem)] flex-col">
       {/* Filter bar above both panes (desktop). */}
       <div className="hidden border-b border-border bg-card px-4 py-3 lg:block">
-        <div className="mb-3 flex max-w-2xl items-center gap-2">{searchRow}</div>
-        <FilterPanel filters={state.filters} areas={data.jumpAreas} onChange={onFilters} layout="bar" />
+        <div className="mb-3 flex max-w-3xl items-center gap-2">
+          {searchRow}
+          {areaChip}
+        </div>
+        <FilterPanel filters={state.filters} areas={data.jumpAreas} selectedPath={selectedArea.path} onChange={onFilters} onArea={onArea} layout="bar" />
       </div>
 
       {/* Mobile: search box and "near me" above the type chips. */}
       <div className="flex items-center gap-2 bg-card px-3 pt-2 lg:hidden">{searchRow}</div>
+      {areaChip && <div className="flex bg-card px-3 pt-2 lg:hidden">{areaChip}</div>}
 
       {/* Mobile: listing-type chips (scroll sideways) and the filters button, on the same white bar (design v2). */}
       <div className="flex items-center gap-2 border-b border-border bg-card py-2 ps-3 lg:hidden">
@@ -253,6 +280,7 @@ export default function MapPage() {
                 levels={data.levels}
                 points={search.points}
                 polygon={state.poly ?? nearRing}
+                selectedArea={selectedArea.area ? { id: selectedArea.area.id, level: selectedArea.area.level } : null}
                 activeId={hoveredId ?? selectedId}
                 drawing={drawing}
                 fit={fit}
@@ -273,7 +301,7 @@ export default function MapPage() {
               <AreaPath country={data.country} countryBBox={countryBBox} path={search.path} />
             </div>
             <div className="pointer-events-auto flex flex-wrap items-start gap-2">
-              <JumpTo areas={data.jumpAreas} path={search.path} />
+              <JumpTo areas={data.jumpAreas} selectedPath={selectedArea.path} onArea={onArea} />
             </div>
             <div className="pointer-events-auto">
               <MapToolbar
@@ -342,7 +370,9 @@ export default function MapPage() {
             <FilterPanel
               filters={state.filters}
               areas={data.jumpAreas}
+              selectedPath={selectedArea.path}
               onChange={onFilters}
+              onArea={onArea}
               layout="sheet"
               onDone={() => setFiltersOpen(false)}
             />
