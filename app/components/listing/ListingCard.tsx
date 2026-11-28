@@ -1,15 +1,31 @@
+import { Bath, BedDouble, Building2, Home, House, LandPlot, Maximize2, Store, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
-import { useLocale, useT } from "~/i18n/useT";
-import { listingPath } from "~/shared/listingUrl";
-import type { Category, ListingType, RentPeriod } from "~/shared/constants";
-import { formatNumber, formatPrice } from "~/utils/format";
 import type { ListingCard as Card } from "~/components/map/types";
+import { useLocale, useT } from "~/i18n/useT";
+import type { Category, ListingType, RentPeriod } from "~/shared/constants";
+import { listingPath } from "~/shared/listingUrl";
+import { formatNumber, formatPrice } from "~/utils/format";
 
-/** Background token per listing type (SPEC §5.2 colours). */
+/** Solid badge per listing type (SPEC §14 colours): white on sale and rent, dark ink on the amber exchange. */
 export const TYPE_BADGE: Record<ListingType, string> = {
   sale: "bg-sale text-on-primary",
   rent: "bg-rent text-on-primary",
-  exchange: "bg-exchange text-on-primary",
+  exchange: "bg-exchange text-on-accent",
+};
+
+/** Placeholder backdrop when a listing has no photo: a soft vertical gradient in the type's colour. */
+const TYPE_GRADIENT: Record<ListingType, string> = {
+  sale: "bg-linear-to-b from-sale/80 to-primary-hover text-on-primary",
+  rent: "bg-linear-to-b from-rent/80 to-secondary-hover text-on-primary",
+  exchange: "bg-linear-to-b from-exchange/80 to-accent-hover text-on-accent",
+};
+
+const CATEGORY_ICON: Record<Category, LucideIcon> = {
+  apartment: Building2,
+  house: House,
+  villa: Home,
+  land: LandPlot,
+  commercial: Store,
 };
 
 export function PriceText({
@@ -37,82 +53,69 @@ export function PriceText({
   );
 }
 
-function CategoryIcon({ category }: { category: Category }) {
-  const paths: Record<Category, string> = {
-    apartment: "M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 21h5V10a1 1 0 0 0-1-1h-4M8 8h3M8 12h3M8 16h3",
-    house: "M3 11l9-7 9 7M5 10v11h14V10M10 21v-6h4v6",
-    villa: "M2 12l6-5 6 5M4 11v10h8V11M12 9l5-4 5 4M14 21h8V9",
-    land: "M3 20h18M5 16l4-6 4 4 3-3 3 5",
-    commercial: "M3 9l1.5-5h15L21 9M3 9h18v2a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0V9M5 13v8h14v-8",
-  };
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d={paths[category]} />
-    </svg>
-  );
-}
-
 interface ListingCardProps {
   item: Card;
   currencyDecimals: number;
   active?: boolean;
+  /** Small side-by-side card (the mobile mini card for a clicked pin). */
   compact?: boolean;
   onHover?: (id: number | null) => void;
 }
 
 /**
- * Result card (SPEC §5.4): photo, price, type, category, area, beds, baths, m².
- * The whole card links to the detail page (`/:lang/property/{id}-{slug}`); the
- * title is the real link, stretched over the card.
+ * Result card (SPEC §5.4, design v2): image on top (4:3), solid type badge,
+ * price large in the primary colour, title, area, and key facts as icons.
+ * The whole card links to the detail page (the title is the real link,
+ * stretched over the card). Highlighted when its pin is hovered/selected.
  */
 export function ListingCard({ item, currencyDecimals, active, compact, onHover }: ListingCardProps) {
   const t = useT();
   const locale = useLocale();
-  const specs = [
-    item.bedrooms !== null && item.category !== "land" ? t("listing.beds", { count: item.bedrooms }) : null,
-    item.bathrooms !== null && item.category !== "land" ? t("listing.baths", { count: item.bathrooms }) : null,
-    item.areaSqm !== null ? t("listing.sqm", { area: formatNumber(item.areaSqm, locale) }) : null,
-  ].filter((s): s is string => s !== null);
+  const CategoryIcon = CATEGORY_ICON[item.category];
+  const noRooms = item.category === "land";
+  const facts: Array<{ icon: LucideIcon; value: string; label: string }> = [];
+  if (!noRooms && item.bedrooms !== null) facts.push({ icon: BedDouble, value: formatNumber(item.bedrooms, locale), label: t("listing.beds", { count: item.bedrooms }) });
+  if (!noRooms && item.bathrooms !== null) facts.push({ icon: Bath, value: formatNumber(item.bathrooms, locale), label: t("listing.baths", { count: item.bathrooms }) });
+  if (item.areaSqm !== null) facts.push({ icon: Maximize2, value: t("listing.sqm", { area: formatNumber(item.areaSqm, locale) }), label: t("listing.sqm", { area: formatNumber(item.areaSqm, locale) }) });
+
+  const image = (
+    <div className={`relative shrink-0 overflow-hidden ${compact ? "size-24 rounded-lg" : "aspect-[4/3] w-full"} ${item.thumbnailUrl ? "bg-card" : TYPE_GRADIENT[item.listingType]}`}>
+      {item.thumbnailUrl ? (
+        <img src={item.thumbnailUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" />
+      ) : (
+        <span className="flex size-full items-center justify-center" title={t("listing.noPhoto")}>
+          <CategoryIcon aria-hidden="true" className={compact ? "size-8" : "size-14"} strokeWidth={1.5} />
+        </span>
+      )}
+      {!compact && (
+        <span className={`absolute end-2 top-2 rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm ${TYPE_BADGE[item.listingType]}`}>
+          {t(`listing.types.${item.listingType}`)}
+        </span>
+      )}
+      {item.isFeatured && (
+        <span className="absolute start-2 top-2 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-on-accent shadow-sm">{t("listing.featured")}</span>
+      )}
+    </div>
+  );
 
   return (
     <article
       data-listing-id={item.id}
       onMouseEnter={() => onHover?.(item.id)}
       onMouseLeave={() => onHover?.(null)}
-      className={`group relative flex gap-3 rounded-xl border bg-surface p-2.5 transition-colors ${
-        active ? "border-primary-text" : "border-border hover:border-muted/60"
-      }`}
+      className={`group relative flex overflow-hidden rounded-xl border bg-card shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover focus-within:shadow-card-hover ${
+        compact ? "gap-3 p-2.5" : "flex-col"
+      } ${active ? "border-primary-text ring-1 ring-primary-text" : "border-border"}`}
     >
-      <div className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card text-muted ${compact ? "size-20" : "h-24 w-28"}`}>
-        {item.thumbnailUrl ? (
-          <img src={item.thumbnailUrl} alt="" loading="lazy" className="size-full object-cover" />
-        ) : (
-          <span title={t("listing.noPhoto")}>
-            <CategoryIcon category={item.category} />
-          </span>
-        )}
-        {item.isFeatured && (
-          <span className="absolute start-1 top-1 rounded bg-foreground px-1.5 py-0.5 text-[10px] font-semibold text-background">
-            {t("listing.featured")}
-          </span>
-        )}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      {image}
+      <div className={`flex min-w-0 flex-1 flex-col gap-1 ${compact ? "" : "p-3"}`}>
         <div className="flex items-start justify-between gap-2">
-          <PriceText
-            price={item.price}
-            currency={item.currency}
-            decimals={currencyDecimals}
-            rentPeriod={item.rentPeriod}
-            className="text-base font-bold"
-          />
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${TYPE_BADGE[item.listingType]}`}>
-            {t(`listing.types.${item.listingType}`)}
-          </span>
+          <PriceText price={item.price} currency={item.currency} decimals={currencyDecimals} rentPeriod={item.rentPeriod} className="text-lg font-bold text-primary-text" />
+          {compact && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${TYPE_BADGE[item.listingType]}`}>{t(`listing.types.${item.listingType}`)}</span>}
         </div>
         <Link
           to={listingPath(locale, item.id, item.slug)}
-          className="line-clamp-2 text-start text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-xl group-hover:text-primary-text focus-visible:text-primary-text focus-visible:after:ring-2 focus-visible:after:ring-primary-text"
+          className="line-clamp-2 text-start text-sm font-semibold outline-none transition-colors duration-150 after:absolute after:inset-0 after:rounded-xl group-hover:text-primary-text focus-visible:text-primary-text focus-visible:after:ring-2 focus-visible:after:ring-primary-text"
         >
           {item.title}
         </Link>
@@ -120,7 +123,17 @@ export function ListingCard({ item, currencyDecimals, active, compact, onHover }
           {t(`listing.categories.${item.category}`)}
           {item.areaName ? ` · ${item.areaName}` : ""}
         </p>
-        {specs.length > 0 && <p className="truncate text-xs text-muted">{specs.join(" · ")}</p>}
+        {facts.length > 0 && (
+          <ul className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+            {facts.map((f) => (
+              <li key={f.label} className="flex items-center gap-1" title={f.label}>
+                <f.icon aria-hidden="true" className="size-3.5 shrink-0" />
+                <span className="sr-only">{f.label}</span>
+                <bdi aria-hidden="true">{f.value}</bdi>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </article>
   );

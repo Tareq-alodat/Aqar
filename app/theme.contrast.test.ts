@@ -34,13 +34,15 @@ export function contrast(a: string, b: string): number {
 
 const BACKGROUNDS = ["background", "surface", "card"];
 const TEXT_ON_BACKGROUNDS = ["foreground", "muted", "primary-text", "error-text"];
-const ON_PRIMARY = ["primary", "primary-hover", "sale", "rent", "exchange", "success", "error"];
+const ON_PRIMARY = ["primary", "primary-hover", "sale", "rent", "success", "error"];
+/** Amber surfaces (accent, its hover, the exchange colour, warning) take dark ink. */
+const ON_ACCENT = ["accent", "accent-hover", "exchange", "warning"];
 
 describe.each(["light", "dark"] as const)("%s theme tokens", (theme) => {
   const t = tokens(theme);
 
   it("has every token the components use", () => {
-    for (const name of [...BACKGROUNDS, ...TEXT_ON_BACKGROUNDS, ...ON_PRIMARY, "border", "on-primary", "accent", "on-accent", "warning", "secondary", "on-secondary"]) {
+    for (const name of [...BACKGROUNDS, ...TEXT_ON_BACKGROUNDS, ...ON_PRIMARY, ...ON_ACCENT, "border", "on-primary", "on-accent", "secondary", "secondary-hover", "on-secondary", "header", "on-header", "map-water", "map-green"]) {
       expect(t[name], name).toMatch(/^#[0-9a-fA-F]{6}$/);
     }
   });
@@ -49,14 +51,23 @@ describe.each(["light", "dark"] as const)("%s theme tokens", (theme) => {
     for (const bg of BACKGROUNDS) expect(contrast(t[fg]!, t[bg]!), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("white labels reach 4.5:1 on primary, listing-type and status colours", () => {
+  it("white labels reach 4.5:1 on primary, sale/rent pins and status colours", () => {
     for (const bg of ON_PRIMARY) expect(contrast(t["on-primary"]!, t[bg]!), `on-primary on ${bg}`).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("dark text reaches 4.5:1 on accent and warning; on-secondary on secondary", () => {
-    expect(contrast(t["on-accent"]!, t.accent!)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(t["on-accent"]!, t.warning!)).toBeGreaterThanOrEqual(4.5);
+  it("dark ink reaches 4.5:1 on amber: accent, its hover, exchange pins and warning", () => {
+    for (const bg of ON_ACCENT) expect(contrast(t["on-accent"]!, t[bg]!), `on-accent on ${bg}`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("on-secondary reaches 4.5:1 on secondary and its hover", () => {
     expect(contrast(t["on-secondary"]!, t.secondary!)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t["on-secondary"]!, t["secondary-hover"]!)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("header: white text and icons reach 4.5:1 on the header; the amber button is readable there", () => {
+    expect(contrast(t["on-header"]!, t.header!)).toBeGreaterThanOrEqual(4.5);
+    // The amber button needs 3:1 against the header to stand out as a control (WCAG 1.4.11).
+    expect(contrast(t.accent!, t.header!)).toBeGreaterThanOrEqual(3);
   });
 
   it("secondary works as text on page backgrounds", () => {

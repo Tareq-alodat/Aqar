@@ -206,3 +206,19 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - **Revenue** (§19): commission per country, overridable per agreement; due when a deal completes; supervisor share from confirmed collections only; payments recorded with proof by the supervisor and confirmed by the super_admin; super_admin approval for waivers, downward price corrections, refunds and deal cancellations; cancellation refund = collected commission − 10 % administrative fee (configurable).
 - **Build order** (§18): 7 back office & supervisor model, 8 profile, 9 enquiries & viewings, 10 offers, 11 deals/commission/collections, 12 currency display & financing calculator, 13 SEO, 14 hardening, 15 launch readiness, 16 deployment; then [P2]/[P3]. References to the old milestone numbers in the SPEC are updated.
 - **CLAUDE.md:** rule 1 (lister phone to the super_admin/supervisor in scope; buyers' details), rule 2 (who sees the exact pin; sharing at a confirmed viewing), rule 4 (`returned`; status history), rule 5 (display conversion), new rule 10 (roles and scope; super_admin approvals).
+
+## Design v2 + brand update (2026-11-28)
+
+- **Brand:** platform "AQAR" / "عقار" (titles, manifest); operating company "شركة الذكاء العقاري – Aqar Intelligence" in the new footer and on the terms page (i18n `brand.company`). New logo/mark/favicon files; old preview image removed; icons regenerated (manifest name "AQAR", theme colour #154E75; `<meta name="theme-color">` follows the header).
+- **Header:** navy `header` token (#154E75 / dark #0F2A3D), white controls, translucent country chip, amber "أضف إعلانك / Add listing"; `aqar-logo-dark.svg` in both languages, mark below 400 px; alt "AQAR – شركة الذكاء العقاري". Filter bar on `card` with a bottom border.
+- **Palette** replaced (names kept; new `accent-hover`, `header`, `on-header`, `map-water`, `map-green`). AA tints where needed: dark `primary-text` #E8A0AE, dark `on-secondary` #121519. Contrast test updated (white on header, ink on amber/exchange).
+- **Map:** callout pins with tail, white 2px outline, soft shadow, larger when hovered, amber ring for featured; exchange pins amber with dark ink. Clusters in primary with white count, ring and halo, darker on hover. Area hover and drawn area: primary 2px, 8 % fill. Basemap water/green tinted (light and dark). Layer colours are re-applied after a theme switch (they used to keep the previous theme's colours).
+- **Cards:** image on top (4:3; type-colour gradient with a category icon when there is no photo), large primary price, solid type badge, facts with `lucide-react` icons (ISC), lift on hover; two-column results grid; 4-column similar listings.
+- **Seed:** colourful per-category SVG placeholders (`server/db/seedPlaceholders.ts`).
+- **Motion:** 150–200 ms transitions; global `prefers-reduced-motion` rule.
+- Docs: SPEC §14 and §5.2, CLAUDE.md conventions.
+- Tests: 420 unit (incl. contrast guard, basemap tint, pin stretch zones, placeholders) and 152 database/HTTP. Browser check (throwaway database): map, listing, login, register, 404 × ar/en × light/dark × desktop/mobile — axe-core: no violations; pins, cluster hover, card ↔ pin, theme switch and water tint checked on screenshots.
+
+### Known gaps
+- The mockup's mobile filter-chip row under the header was not added (mobile keeps the filters button).
+- Pins are drawn without a visible size animation (the hovered pin is redrawn larger).

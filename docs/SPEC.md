@@ -191,9 +191,9 @@ Up to 20 per listing; **at least 1 photo is required to submit, except for land*
 - **Country switcher** in header flies the map to the country's default center and resets currency.
 - **Jump to location:** governorate/city dropdowns (from `admin_areas`) fly the map to that area's bounds. No external geocoding API in phase 1.
 - **Drill-down:** area outlines and labels appear by level as the user zooms in (each level's `map_min_zoom`, §2.3) — cities first, then neighbourhoods. The full address path of the area in view (country › governorate › city › area) is shown and updates while drilling down: it is the path of the deepest area containing the map centre among the levels visible at the current zoom; each part zooms back out to that area. Clicking an area zooms to it.
-- **Basemap & credit:** OpenFreeMap `dark` (default theme) and `positron` (light) — both muted so the pins stand out; switching theme swaps the basemap. "© OpenStreetMap contributors" (linked to the OSM copyright page) is always visible next to OpenFreeMap's own credit, never collapsed.
-- **Pins:** price label in short form (`85K`, `1.2M`, `450/mo`), colour by listing type — sale `#7A3542`, rent `#3E586E`, exchange `#6C6251` (§14), white labels and a light outline. Featured listings get a ring in the accent colour.
-- **Clustering:** MapLibre GeoJSON source with `cluster: true`; cluster bubbles show count; click zooms in.
+- **Basemap & credit:** OpenFreeMap `positron` (light, default theme) and `dark` — both muted so the pins stand out, with water and green areas softly tinted (§14); switching theme swaps the basemap. "© OpenStreetMap contributors" (linked to the OSM copyright page) is always visible next to OpenFreeMap's own credit, never collapsed.
+- **Pins:** price label in short form (`85K`, `1.2M`, `450/mo`) on a callout with a pointer tail, colour by listing type — sale `#A32A44`, rent `#1D6A9E` (white labels), exchange `#F2A93B` (dark ink) (§14) — white 2px outline and soft shadow; the hovered pin grows slightly; featured listings get an amber ring.
+- **Clustering:** MapLibre GeoJSON source with `cluster: true`; cluster bubbles in the primary colour with a white count and halo, sized by count, darker on hover; click zooms in.
 - Result count always visible ("124 عقار في هذه المنطقة").
 
 ### 5.3 Filters
@@ -356,38 +356,46 @@ Offers moved into phase 1 (§21). Larger later-phase items are in §27 (and fina
 
 ## 14. UI / design
 
+- **Brand:** the platform is **AQAR** (Arabic: **عقار**); the operating company is **شركة الذكاء العقاري – Aqar Intelligence**. Page titles and the web manifest use "AQAR" (Arabic pages: "عقار"); the footer and legal/terms pages name the company (i18n `brand.company`). The repository name stays.
 - **Light theme default**, dark mode via the header toggle (cookie `theme`); mobile-first, 360–1440 px.
-- **Palette** (tokens in `app/app.css`; components use the Tailwind tokens, never hex values):
+- **Palette (design v2)** (tokens in `app/app.css`; components use the Tailwind tokens, never hex values):
 
   | Token | Light | Dark |
   |---|---|---|
   | `background` | `#F7F4EF` | `#121519` |
   | `surface` | `#FBF9F6` | `#181D23` |
   | `card` | `#FFFFFF` | `#1E252D` |
-  | `border` (dividers, cards) | `#E4DDD2` | `#2C3640` |
+  | `border` (dividers, cards) | `#E6DFD4` | `#2C3640` |
   | `foreground` (text) | `#22262B` | `#F1ECE4` |
-  | `muted` (secondary text, form-control borders) | `#646A72` | `#9AA3AD` |
-  | `primary` (buttons, fills) | `#7A3542` | `#A04A5A` |
-  | `primary-hover` | `#4C1E25` | `#8A3F4A` |
-  | `on-primary` (text on primary, type and status colours) | `#FFFFFF` | `#FFFFFF` |
-  | `secondary` | `#3E586E` | `#9DB8CF` |
-  | `secondary-hover` | `#2B4153` | `#B6CADB` ¹ |
+  | `muted` (secondary text, form-control borders) | `#5F6670` | `#9AA3AD` |
+  | `primary` (buttons, fills, clusters) | `#A32A44` | `#C2415A` |
+  | `primary-hover` | `#7E1F33` | `#A32A44` |
+  | `on-primary` (text on primary, sale/rent and status colours) | `#FFFFFF` | `#FFFFFF` |
+  | `secondary` | `#1D6A9E` | `#6FB3E0` |
+  | `secondary-hover` | `#154E75` | `#8EC5EA` ¹ |
   | `on-secondary` | `#FFFFFF` | `#121519` ¹ |
-  | `accent` (decoration, featured ring; not for text on light) | `#A8977C` | `#C4B396` |
-  | `on-accent` (text on accent and warning) | `#22262B` | `#22262B` |
-  | `primary-text` (brand colour as text, links, focus rings) | `#7A3542` | `#E0949F` ¹ |
+  | `accent` (amber: "Add listing" button, featured ring/badge) | `#F2A93B` | `#F2A93B` |
+  | `accent-hover` | `#C98516` | `#C98516` |
+  | `on-accent` (ink on accent, exchange and warning) | `#22262B` | `#22262B` |
+  | `header` (top bar) | `#154E75` | `#0F2A3D` |
+  | `on-header` (text and icons on the header) | `#FFFFFF` | `#FFFFFF` |
+  | `primary-text` (brand colour as text, links, focus rings) | `#A32A44` | `#E8A0AE` ¹ |
   | `error-text` (error messages) | `#B3261E` | `#F2827A` ¹ |
+  | `map-water` / `map-green` (basemap tints) | `#CFE3F0` / `#DCEBD6` | `#17293A` / `#1C2A21` ¹ |
 
   Status (both themes): success `#2F7D5B`, error `#B3261E`, warning `#E0A43A` (dark text on it).
-  Listing types (pins and badges, both themes, white labels): sale `#7A3542`, rent `#3E586E`, exchange `#6C6251`.
-  ¹ Not in the brand palette: added so dark mode meets WCAG AA. Dark `primary` (2.7:1) and `error` (2.4:1) are too dark for text on the dark backgrounds, so text uses a lighter tint of the same hue.
-- **Contrast:** WCAG AA. Text ≥ 4.5:1 on `background`/`surface`/`card`; form-control borders and focus indicators ≥ 3:1, so inputs use `muted` borders (`border` is for decorative dividers only). `app/theme.contrast.test.ts` checks the token pairs.
+  Listing types (pins and badges, both themes): sale `#A32A44` and rent `#1D6A9E` with white labels, exchange `#F2A93B` with dark ink.
+  ¹ Not given in the brand palette: chosen to meet WCAG AA in dark mode (dark `primary` is ≈3.1–3.7:1 as text on the dark backgrounds, and white on dark `secondary` is 2.3:1) or as the darker equivalents of the light tints.
+- **Contrast:** WCAG AA. Text ≥ 4.5:1 on `background`/`surface`/`card` and on the header; form-control borders and focus indicators ≥ 3:1, so inputs use `muted` borders (`border` is for decorative dividers only). `app/theme.contrast.test.ts` checks the token pairs in both themes (incl. white on the header and ink on amber).
+- **Header:** the `header` colour with white text and icons, the country as a translucent white chip, and an amber **"أضف إعلانك / Add listing"** button (`accent`, ink text, `accent-hover`). Below it on the map page, the filter bar on a white surface (`card`; dark: card colour) with a subtle bottom border, framing the map.
+- **Logo** (`public/brand/`): "AQAR" large with "شركة الذكاء العقاري" underneath. The header (coloured) shows `aqar-logo-dark.svg` in both languages and themes; `aqar-logo.svg` is for light backgrounds; only the mark (`aqar-mark-dark.svg` on the header, `aqar-mark.svg` on light backgrounds) below 400 px wide. Alt text "AQAR – شركة الذكاء العقاري". Don't recolour or stretch the files.
+- **Icons:** `aqar-favicon.svg` is the source for `favicon.ico` (16/32/48), `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` and `site.webmanifest` (name "AQAR", theme colour `#154E75`), all generated by `npm run icons` (`scripts/generate-icons.ts`, sharp) and committed. `<meta name="theme-color">` follows the header colour per theme. UI icons: `lucide-react` (ISC).
 - **Fonts:** IBM Plex Sans Arabic (Arabic) and IBM Plex Sans (Latin), weights 400/500/600/700, self-hosted via `@fontsource` (OFL). Numbers use Western digits by default (setting for Arabic-Indic later).
-- **Logo** (`public/brand/`): the header shows `aqar-logo.svg` in light mode and `aqar-logo-dark.svg` in dark mode, and only the mark (`aqar-mark.svg` / `aqar-mark-dark.svg`) below 400 px wide; alt text "عقار – AQAR". Don't recolour or stretch the files.
-- **Icons:** `aqar-favicon.svg` is the source for `favicon.ico` (16/32/48), `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` and `site.webmanifest` (brand colours), all generated by `npm run icons` (`scripts/generate-icons.ts`, sharp) and committed.
-- **Map:** basemap follows the theme (OpenFreeMap `positron` in light mode, `dark` in dark mode). Pins have a light outline so they stay readable on both basemaps.
-- Loading skeletons, empty states, toasts, smooth transitions.
-
+- **Map:** basemap follows the theme (OpenFreeMap `positron` in light mode, `dark` in dark mode) with water tinted `map-water` and parks/green areas `map-green`. **Pins:** callouts with a pointer tail, in the listing-type colour, white 2px outline and a soft shadow; the hovered/selected pin is slightly larger; featured listings get an amber ring. **Clusters:** `primary` with a white count, a white ring and a soft halo, growing with the count, darker on hover. **Selected/hovered area and drawn search area:** `primary` 2px outline, 8 % fill.
+- **Listing cards:** white (`card`), `rounded-xl`, soft shadow, lift and a stronger shadow on hover; image on top (4:3; without a photo, a gradient in the type's colour with a category icon); price large and bold in the primary colour; solid type badge; key facts as icons with numbers (beds, baths, m²); highlighted with their pin (card ↔ pin). Two-column grid in the results panel.
+- **Footer** (all pages except the full-screen map): the operating company and links.
+- **Motion:** 150–200 ms transitions on hover/focus, smooth bottom-sheet and panel transitions; everything respects `prefers-reduced-motion` (global CSS rule; MapLibre skips animations itself).
+- Loading skeletons, empty states, toasts.
 ---
 
 ## 15. Folder structure

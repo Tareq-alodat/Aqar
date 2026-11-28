@@ -1,4 +1,5 @@
 import { useFetcher, useRouteLoaderData } from "react-router";
+import { headerControl } from "~/components/layout/headerStyles";
 import { useT } from "~/i18n/useT";
 import type { loader as rootLoader } from "~/root";
 import { DEFAULT_THEME, themeSchema } from "~/shared/schemas/theme";
@@ -19,7 +20,7 @@ export function ThemeToggle() {
         type="submit"
         aria-label={label}
         title={label}
-        className="flex size-9 items-center justify-center rounded-lg text-foreground hover:bg-card"
+        className={`flex size-9 items-center justify-center ${headerControl}`}
       >
         {current === "dark" ? <SunIcon /> : <MoonIcon />}
       </button>

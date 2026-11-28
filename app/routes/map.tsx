@@ -153,9 +153,9 @@ export default function MapPage() {
   const activeFilters = countFilters(state.filters);
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col">
       {/* Filter bar above both panes (desktop). */}
-      <div className="hidden border-b border-border bg-surface px-4 py-3 lg:block">
+      <div className="hidden border-b border-border bg-card px-4 py-3 lg:block">
         <FilterPanel filters={state.filters} areas={data.jumpAreas} onChange={onFilters} layout="bar" />
       </div>
 
