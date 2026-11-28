@@ -148,8 +148,8 @@ export default function ListingPage() {
                   {t("detail.location.viewOnMap")}
                 </Link>
               </div>
-              {listing.location.precision === "approximate" && <p className="text-sm text-muted">{t("detail.location.approximate")}</p>}
-              <LazyDetailMap lng={listing.location.lng} lat={listing.location.lat} precision={listing.location.precision} styleUrl={styles[theme]} />
+              <p className="text-sm text-muted">{t("detail.location.approximate")}</p>
+              <LazyDetailMap lng={listing.location.lng} lat={listing.location.lat} styleUrl={styles[theme]} />
             </section>
           )}
         </article>

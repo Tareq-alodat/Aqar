@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { Knex } from "knex";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type AqarServer } from "./createServer";
@@ -7,6 +8,7 @@ import { DEV_PASSWORD, seed } from "./db/seeds/01_dev_data";
 import { createTestDb } from "./db/test/testDb";
 import { requireSecrets } from "./env";
 import { decrypt } from "./services/cryptoService";
+import { createLimiters } from "./services/rateLimitService";
 
 /**
  * The listing detail page, server-rendered through the real dev setup
@@ -32,6 +34,8 @@ beforeAll(async () => {
     phoneSecrets: () => requireSecrets(),
     hmr: false,
     logRequests: false,
+    // Many logins in one file: lift the per-IP login limit (tested in the auth tests).
+    limiters: { ...createLimiters(), authIp: new RateLimiterMemory({ keyPrefix: "auth_ip_test", points: 1000, duration: 60 }) },
   });
 });
 
@@ -40,10 +44,15 @@ afterAll(async () => {
   await db?.destroy();
 });
 
+const sessions = new Map<string, string>();
 async function login(email: string): Promise<string> {
+  const cached = sessions.get(email);
+  if (cached) return cached;
   const res = await request(server.app).post("/api/v1/auth/login").set("Origin", BASE).send({ email, password: DEV_PASSWORD });
   expect(res.status).toBe(200);
-  return ((res.headers["set-cookie"] as unknown as string[]) ?? []).map((c) => c.split(";")[0]).join("; ");
+  const cookie = ((res.headers["set-cookie"] as unknown as string[]) ?? []).map((c) => c.split(";")[0]).join("; ");
+  sessions.set(email, cookie);
+  return cookie;
 }
 
 interface Row {
@@ -69,21 +78,20 @@ const find = async (where: Record<string, unknown>): Promise<Row> =>
       db.raw("ST_Y(point::geometry) AS py"),
     );
 
-function expectNoLeak(html: string, r: Row, approximate: boolean) {
+/** The detail page (public view or owner preview) never shows the phone, the true pin or non-public address fields. */
+function expectNoLeak(html: string, r: Row) {
   const e164 = decrypt(r.owner_phone_encrypted, requireSecrets().encryptionKey);
   const national = e164.replace(/^\+962/, "");
   for (const form of [e164, e164.slice(1), `0${national}`, national]) expect(html).not.toContain(form);
-  if (approximate) {
-    expect(html).not.toContain(Number(r.px).toFixed(5));
-    expect(html).not.toContain(Number(r.py).toFixed(5));
-    if (r.address.street) expect(html).not.toContain(r.address.street);
-  }
+  expect(html).not.toContain(Number(r.px).toFixed(5));
+  expect(html).not.toContain(Number(r.py).toFixed(5));
+  if (r.address.street) expect(html).not.toContain(r.address.street);
   for (const key of ["owner_phone", "phone_hash", "email", "apartment_number", "value_normalized"]) expect(html).not.toContain(key);
 }
 
 describe("listing detail page", () => {
   it("renders an approximate listing in Arabic without leaking private data", async () => {
-    const r = await find({ status: "published", location_precision: "approximate", category: "apartment" });
+    const r = await find({ status: "published", category: "apartment" });
     const res = await request(server.app).get(`/ar/property/${r.id}-${r.slug}`);
     expect(res.status).toBe(200);
     expect(res.text).toContain('dir="rtl"');
@@ -91,7 +99,7 @@ describe("listing detail page", () => {
     expect(res.text).not.toContain('content="noindex"');
     expect(res.headers["cache-control"]).toBeUndefined();
     expect(String(res.headers["set-cookie"])).toMatch(/aqar_vid=[A-Za-z0-9_-]{22};.*HttpOnly/);
-    expectNoLeak(res.text, r, true);
+    expectNoLeak(res.text, r);
 
     const identifiers = (await db("property_identifiers").select("value", "value_normalized")) as Array<{ value: string; value_normalized: string }>;
     for (const id of await db("property_identifiers").pluck("property_id")) {
@@ -102,13 +110,12 @@ describe("listing detail page", () => {
     }
   });
 
-  it("renders an exact listing in English with its public address but no admin-only fields", async () => {
-    const r = await find({ status: "published", location_precision: "exact", category: "apartment" });
+  it("renders listings in English with no exact_only or admin_only address fields", async () => {
+    const r = await find({ status: "published", category: "apartment" });
     const res = await request(server.app).get(`/en/property/${r.id}-${r.slug}`);
     expect(res.status).toBe(200);
     expect(res.text).toContain('dir="ltr"');
-    expect(res.text).toContain(r.address.street);
-    expectNoLeak(res.text, r, false);
+    expectNoLeak(res.text, r);
   });
 
   it("redirects a missing or wrong slug to the canonical URL; 404 otherwise", async () => {
@@ -135,7 +142,7 @@ describe("listing detail page", () => {
       expect(res.headers["cache-control"]).toBe("private, no-store");
       expect(res.headers["x-robots-tag"]).toBe("noindex");
       expect(res.text).toContain('<meta name="robots" content="noindex"/>');
-      expectNoLeak(res.text, r, false);
+      expectNoLeak(res.text, r);
     }
   });
 
@@ -176,5 +183,80 @@ describe("listing detail page", () => {
     const res = await request(server.app).get("/ar/jo/map");
     expect(res.status).toBe(200);
     expect(res.text).toMatch(/href="\/ar\/property\/\d+-[a-z0-9-]+"/);
+  });
+});
+
+describe("submit wizard pages", () => {
+  const draftFor = async (cookie: string) => {
+    const res = await request(server.app)
+      .post("/api/v1/my/listings")
+      .set("Origin", BASE)
+      .set("Cookie", cookie)
+      .send({ category: "apartment", listingType: "sale", rentPeriod: null });
+    expect(res.status).toBe(201);
+    return res.body.id as number;
+  };
+
+  it("/listings/new: visitors go to login; listers get the form; admins are told they cannot list", async () => {
+    const anon = await request(server.app).get("/ar/listings/new");
+    expect(anon.status).toBe(302);
+    expect(anon.headers.location).toBe(`/ar/login?next=${encodeURIComponent("/ar/listings/new")}`);
+
+    const page = await request(server.app).get("/en/listings/new").set("Cookie", await login("owner2@aqar.test"));
+    expect(page.status).toBe(200);
+    expect(page.headers["cache-control"]).toBe("private, no-store");
+    expect(page.text).toContain('name="category"');
+    expect(page.text).toContain('<meta name="robots" content="noindex"/>');
+
+    const adminPage = await request(server.app).get("/en/listings/new").set("Cookie", await login("admin@aqar.test"));
+    expect(adminPage.text).toContain("Only owner and agent accounts can add listings.");
+  });
+
+  it("the step-1 form creates a draft and continues at the location step", async () => {
+    const cookie = await login("owner2@aqar.test");
+    // A browser's Host matches its Origin; React Router refuses document POSTs where they differ.
+    const res = await request(server.app)
+      .post("/ar/listings/new")
+      .set("Host", new URL(BASE).host)
+      .set("Origin", BASE)
+      .set("Cookie", cookie)
+      .type("form")
+      .send({ category: "house", listingType: "rent" });
+    expect(res.status).toBe(302);
+    const m = /^\/ar\/listings\/(\d+)\/edit\?step=location$/.exec(res.headers.location ?? "");
+    expect(m).not.toBeNull();
+    // Without JavaScript the rent period defaults to monthly.
+    expect((await db("properties").where({ id: Number(m![1]) }).first("rent_period")).rent_period).toBe("monthly");
+  });
+
+  it("the wizard is owner-only, private, and shows the phone masked — never the number", async () => {
+    const cookie = await login("owner2@aqar.test");
+    const id = await draftFor(cookie);
+    const page = await request(server.app).get(`/en/listings/${id}/edit?step=review`).set("Cookie", cookie);
+    expect(page.status).toBe(200);
+    expect(page.headers["cache-control"]).toBe("private, no-store");
+    expect(page.headers["x-robots-tag"]).toBe("noindex");
+
+    const user = await db("users").where({ email: "owner2@aqar.test" }).first("phone_encrypted");
+    const e164 = decrypt(user.phone_encrypted, requireSecrets().encryptionKey);
+    const national = e164.replace(/^\+962/, "");
+    expect(page.text).toContain(`+962 ${"•".repeat(national.length - 2)}${national.slice(-2)}`);
+    for (const form of [e164, e164.slice(1), `0${national}`, national, national.slice(0, 6)]) expect(page.text).not.toContain(form);
+
+    expect((await request(server.app).get(`/en/listings/${id}/edit`).set("Cookie", await login("owner3@aqar.test"))).status).toBe(404);
+    expect((await request(server.app).get(`/en/listings/${id}/edit`)).status).toBe(302);
+    // Drafts have no public page.
+    expect((await request(server.app).get(`/en/property/${id}`)).status).toBe(404);
+  });
+
+  it("the commission terms page shows the country's rate and the draft notice", async () => {
+    const en = await request(server.app).get("/en/terms/commission");
+    expect(en.status).toBe(200);
+    expect(en.text).toContain("Draft — pending legal review.");
+    expect(en.text).toContain("1%");
+    expect(en.text).toContain('<meta name="robots" content="noindex"/>');
+    const ar = await request(server.app).get("/ar/terms/commission");
+    expect(ar.text).toContain('dir="rtl"');
+    expect(ar.text).toContain("شروط العمولة");
   });
 });

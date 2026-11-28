@@ -133,3 +133,65 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 ### Known gaps
 - axe cannot measure text drawn inside the map canvas (pins, area labels); pin contrast is checked on the token values and screenshots.
 - The 404 page (root error boundary) has no header or logo (unchanged).
+
+## Milestone 6 — Submit wizard (2026-11-28)
+
+- **Pages:**
+  - `/:lang/listings/new`: step 1 creates the draft; it also lists the lister's drafts to continue or delete, and today's remaining submissions. Works without JavaScript.
+  - `/:lang/listings/:id/edit?step=type|location|details|photos|review`: the wizard. Owner-only (others get 404), `Cache-Control: private, no-store`, `noindex`.
+  - `/:lang/terms/commission`: placeholder terms in Arabic and English, rate from `countries.commission_rate`, marked "draft — pending legal review".
+  - Entry points: "Add listing" in the header (a "+" icon on narrow screens) and "Add" in the mobile bottom navigation. Visitors log in first; admins are told they can't list.
+- **Owner API** `/api/v1/my/listings` (Zod everywhere, always `private, no-store`): create, get, save one step (`PATCH`), delete a draft; upload, reorder and delete photos; submit.
+- **Location step:**
+  - Governorate/city jump, then click to place and drag to move the pin. A click from far out zooms in.
+  - The server looks up the area path on save; a pin more than 5 km outside every area is refused (`out_of_area`), and the fallback flags it for review.
+  - **Every listing is shown publicly as an approximate area (business decision).** There is no exact/approximate choice. The public point is computed once per pin move and stored. The lister sees their exact pin and the ~300 m public-preview circle.
+  - Owners and admins may see and drag the true pin in the editing flow only (CLAUDE.md rule 2 exception).
+  - The country's typed address fields and identifiers come from its settings, each labelled with its visibility. `exact_only` fields are now never public: they are shared at the viewing, in a later milestone. Invalid fields are reported and not saved, while the rest of the step is saved.
+- **Details step:** price checked against the currency's decimals; features adapt to the category (land hides rooms and floors); amenities; Arabic and English title and description.
+- **Photos:**
+  - Resized in the browser first (≤ 2000 px; the canvas re-encode drops EXIF), then uploaded with `multer` (in memory, ≤ 10 MB, one file per request).
+  - The server checks the format from the content with sharp: JPEG, PNG and WebP only, so SVG, GIF, TIFF and renamed files are refused. A 50 MP pixel limit guards against decompression bombs.
+  - Re-encoded to WebP ≤ 2000 px plus a 400 px thumbnail, with all metadata (including GPS) removed. At most 2 images are processed at a time.
+  - ≤ 20 per listing; reorder by drag-and-drop or the earlier/later buttons; the first is the cover.
+  - Stored through the new `storageService` (`LocalDiskStorage`, `UPLOAD_DIR/listings/{id}/{random}.webp`; keys are generated, checked and never overwritten). Deleting a photo or a draft deletes its files.
+  - **At least one photo is required, except for land** (optional, with a warning).
+- **Drafts and autosave:** a step saves 1.2 s after the last change (choices and the pin at once). Saves run one at a time, failed saves are retried, and pending changes are saved before changing step or submitting. At most 10 drafts per user.
+- **Review and submit:**
+  - Missing items link back to their step. A summary, offers visibility, and the phone shown **masked** (`+962 •••••••67`) with "use a different number" — a new number goes only into the submit request and is never sent back.
+  - The required **commission-terms** checkbox, version `2026-11-draft`.
+  - Submit runs in one transaction: it locks the lister, re-validates everything, stores the phone encrypted (or copies the profile phone's ciphertext), and records `commission_payer_type` (from the submitter's role), the terms version and the acceptance time, the slug (category-type-area, no personal data) and the first price-history row. The status becomes `pending`.
+- **Limits (business decision):** **no limit on active listings** (the 5-listing owner limit is removed). Instead, `SUBMISSIONS_PER_DAY` (default 10) submissions per user per rolling 24 h, counted in the database so restarts don't reset it; 429 with `Retry-After`. Photo uploads: 30/min per user.
+- **Migration** `20261128000300`:
+  - Existing exact listings get an approximate public point (computed once), and a CHECK keeps `location_precision = 'approximate'`.
+  - Commission fields on `properties`; `countries.commission_rate` (default 0.01); an index on `(owner_id, status)`.
+- **Docs:**
+  - SPEC: §0, §2.3, §3, §4.1, §4.3, §4.4 (photo rule), §7, §10, §12, §13, §16, §17; milestone 11 now says the server must refuse to start in production while the terms version is a draft.
+  - CLAUDE.md rule 2 (editing-flow exception; only `public` address fields are ever public); `.env.example` (`SUBMISSIONS_PER_DAY`).
+- Dependencies: `sharp` moved to runtime dependencies; `multer` (MIT) added. Neither has an install script.
+- **Tests:** 413 unit and 152 database/HTTP.
+  - Unit tests:
+    - The step schemas and the completeness rules, including photos except land.
+    - Decimals and masked phones.
+    - Image processing: EXIF/GPS removed after orientation; GIF/TIFF/SVG/non-images refused; size and pixel limits.
+    - Storage keys: no path traversal, no overwrite.
+  - Database/HTTP tests:
+    - Owner-only access and 404s; the draft limit; no active-listing limit.
+    - The submission rate and its window.
+    - Pin and area, with the public point stored once per pin move; out-of-area pins.
+    - Address and identifier validation; price decimals.
+    - Photos: WebP without EXIF, reorder, delete, 20 max, the per-user upload limit; files removed with the draft.
+    - Submit errors (incomplete, terms, outdated terms, phone) and the full submit, with no phone echoed.
+    - The pages: login redirect; private headers; masked phone with no full number in the HTML; the no-JavaScript form; the terms page.
+  - Existing privacy tests now assert that every listing is approximate and that no `exact_only` field is public.
+- **Browser check** in Edge (headless), on a separate throwaway database:
+  - The full flow (log in → type → pin → address → details → 2 photos → reorder → review → refused without terms → submit) in English light desktop and Arabic dark mobile.
+  - axe-core (contrast, labels, names, ARIA) on every step and on the terms page: no violations.
+  - Found and fixed: duplicate ids in the details step, and the terms version reading backwards in Arabic (now isolated as LTR).
+
+### Known gaps
+- Editing rejected or published listings (resubmission; back to pending on price, pin or photo changes) comes with milestone 8, as agreed.
+- The terms text is a placeholder pending legal review. The startup check that refuses a draft version in production is milestone 11.
+- An animated WebP or APNG upload keeps only its first frame (sharp decodes one frame).
+- The narrow-mobile header is crowded (logo, add, language, theme, name, log out); a profile menu comes with milestone 8.
+- Pre-existing: the `/en/login?next=…` hydration warning (unchanged).

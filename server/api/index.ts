@@ -3,10 +3,12 @@ import type { Knex } from "knex";
 import { authenticate } from "../middleware/authenticate";
 import { rateLimit } from "../middleware/rateLimit";
 import type { Limiters } from "../services/rateLimitService";
+import type { SubmissionDeps } from "../services/submissionService";
 import type { ViewConfig } from "../services/viewService";
 import { authRouter, type AuthApiDeps } from "./auth";
 import { healthRouter, type HealthDeps } from "./health";
 import { listingRouter } from "./listing";
+import { myListingsRouter } from "./myListings";
 import { searchRouter } from "./search";
 
 export interface ApiDeps extends HealthDeps {
@@ -17,6 +19,8 @@ export interface ApiDeps extends HealthDeps {
   db?: Knex;
   /** View counting (listing detail); needed with `db`. */
   views?: ViewConfig;
+  /** Submit wizard (storage, phone keys); omitted only in tests of other routers. */
+  submission?: SubmissionDeps;
 }
 
 /**
@@ -37,6 +41,7 @@ export function createApiRouter(deps: ApiDeps): Router {
   if (deps.auth) api.use("/auth", authRouter(deps.auth));
   if (deps.db) api.use(searchRouter({ db: deps.db, limiters: deps.limiters }));
   if (deps.db && deps.views) api.use(listingRouter({ db: deps.db, views: deps.views, limiters: deps.limiters }));
+  if (deps.submission) api.use(myListingsRouter({ ...deps.submission, limiters: deps.limiters }));
 
   api.use((_req, res) => {
     res.status(404).json({ error: "not_found" });

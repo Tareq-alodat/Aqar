@@ -146,7 +146,8 @@
   "nav": {
     "label": "Main",
     "map": "Map",
-    "account": "Account"
+    "account": "Account",
+    "add": "Add"
   },
   "auth": {
     "loginLink": "Log in",
@@ -250,7 +251,7 @@
     "location": {
       "title": "Location",
       "viewOnMap": "View on map",
-      "approximate": "The owner shows an approximate location: the property is within the circle.",
+      "approximate": "Approximate location: the property is within the circle. The exact address is shared at the viewing.",
       "mapLabel": "Property location"
     },
     "contact": {
@@ -281,5 +282,193 @@
     "genericTitle": "Something went wrong",
     "genericBody": "An unexpected error occurred. Please try again later.",
     "backHome": "Back to the map"
+  },
+  "wizard": {
+    "title": "Add a listing",
+    "editTitle": "Your listing draft",
+    "steps": {
+      "type": "Type",
+      "location": "Location",
+      "details": "Details",
+      "photos": "Photos",
+      "review": "Review"
+    },
+    "stepOf": "Step {n} of {total}",
+    "stepsLabel": "Listing steps",
+    "next": "Next",
+    "back": "Back",
+    "save": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Couldn't save. Check your connection; we'll try again."
+    },
+    "forbidden": "Only owner and agent accounts can add listings.",
+    "notEditable": "This listing has been submitted and can't be edited here.",
+    "deleteDraft": "Delete draft",
+    "deleteConfirm": "Delete this draft and its photos? This can't be undone.",
+    "drafts": {
+      "heading": "Your drafts",
+      "continue": "Continue",
+      "untitled": "Untitled draft",
+      "updated": "Updated {date}"
+    },
+    "limits": {
+      "drafts": "{count} of {max} drafts used.",
+      "draftLimit": "You have {max} drafts. Submit or delete one to start another.",
+      "submissionsLeft": {
+        "zero": "You can't submit more listings today.",
+        "one": "You can submit 1 more listing today.",
+        "other": "You can submit {count} more listings today."
+      },
+      "submissionLimit": "You've reached today's limit of {max} submissions. You can submit again within 24 hours."
+    },
+    "type": {
+      "heading": "What are you listing?",
+      "category": "Property type",
+      "listingType": "Listing type",
+      "rentPeriod": "Rent period",
+      "rentPeriods": {
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
+      "start": "Continue"
+    },
+    "location": {
+      "heading": "Where is the property?",
+      "hint": "Choose the governorate and city, then click the map to place the pin on the property. Drag the pin to adjust it.",
+      "mapLabel": "Map for placing the property pin",
+      "loadingMap": "Loading map…",
+      "noPin": "No pin placed yet.",
+      "area": "Detected area",
+      "outOfArea": "This location is outside the areas we cover. Place the pin inside Jordan.",
+      "needsReview": "This pin is just outside our area boundaries; our team will check the location.",
+      "yourPin": "Your exact pin — only you and our team see it.",
+      "publicPreview": "What the public sees: an approximate area of about 300 m around the property. The exact location and address are shared at the viewing.",
+      "address": "Address",
+      "identifiers": "Property registration details",
+      "identifierNote": "Never shown publicly. Our team uses it to verify the property.",
+      "partsRequired": "Fill in all required parts to save these details.",
+      "optional": "Optional",
+      "required": "Required",
+      "visibility": {
+        "public": "Shown publicly",
+        "exact_only": "Not shown publicly — shared at the viewing",
+        "admin_only": "Never shown publicly"
+      },
+      "fieldErrors": {
+        "invalid": "Check this value.",
+        "required": "Required.",
+        "not_allowed": "Not used for this property type.",
+        "unknown": "Not used in this country."
+      }
+    },
+    "details": {
+      "heading": "Price and details",
+      "price": "Price",
+      "rentPrice": {
+        "monthly": "Monthly rent",
+        "yearly": "Yearly rent"
+      },
+      "priceHint": "In {currency}, up to {decimals} decimal places.",
+      "priceDecimals": "Use at most {decimals} decimal places.",
+      "exchangePrice": "Value (optional for exchange)",
+      "features": "Features",
+      "notSet": "Not set",
+      "amenities": "Amenities",
+      "text": "Title and description",
+      "textHint": "Fill in at least one language; the other falls back to it.",
+      "languages": {
+        "ar": "العربية",
+        "en": "English"
+      },
+      "title": "Title",
+      "description": "Description"
+    },
+    "photos": {
+      "heading": "Photos",
+      "hint": "JPG, PNG or WebP, up to 10 MB each, at most {max}. The first photo is the cover. Photos are resized before upload, and location data in them is removed.",
+      "add": "Add photos",
+      "uploading": "Uploading {name}…",
+      "count": "{count} of {max} photos",
+      "cover": "Cover",
+      "moveEarlier": "Move earlier",
+      "moveLater": "Move later",
+      "delete": "Delete photo",
+      "photo": "Photo {n}",
+      "required": "Add at least one photo.",
+      "landOptional": "Photos are optional for land, but listings with photos get more interest.",
+      "errors": {
+        "unsupported": "{name}: only JPG, PNG and WebP photos are accepted.",
+        "too_large": "{name}: larger than 10 MB.",
+        "too_many": "A listing can have at most {max} photos.",
+        "invalid": "{name}: couldn't be read as a photo.",
+        "rate_limited": "Too many uploads. Wait a minute and try again.",
+        "generic": "{name}: upload failed. Try again."
+      }
+    },
+    "review": {
+      "heading": "Review and submit",
+      "missing": "Still needed before you can submit:",
+      "missingFields": {
+        "point": "Place the pin on the map",
+        "title": "A title in Arabic or English",
+        "price": "The price",
+        "images": "At least one photo"
+      },
+      "fix": "Fix",
+      "summary": "Summary",
+      "phone": "Phone number for this listing",
+      "phoneNote": "Your number is never shown publicly. Our team uses it to connect you with interested buyers.",
+      "useProfilePhone": "Use {masked}",
+      "useOtherPhone": "Use a different number",
+      "newPhone": "Phone number",
+      "noProfilePhone": "Enter the phone number we should connect interested buyers to.",
+      "offers": "Who can see offers on this listing",
+      "offersLater": "Offers are coming later; this sets who will see them.",
+      "offerOptions": {
+        "public": "Everyone (amounts and names)",
+        "amounts_only": "Amounts only",
+        "private": "Only me"
+      },
+      "termsBefore": "I accept the",
+      "termsLink": "commission terms",
+      "termsAfter": "(version {version}).",
+      "termsDraft": "Draft — pending legal review.",
+      "submit": "Submit for review",
+      "submitting": "Submitting…",
+      "submitted": {
+        "heading": "Submitted for review",
+        "body": "Our team will review your listing before it's published.",
+        "preview": "Preview your listing",
+        "another": "Add another listing"
+      },
+      "errors": {
+        "terms_required": "Accept the commission terms to submit.",
+        "phone_required": "Enter a phone number.",
+        "phone_invalid": "Enter a valid phone number, for example 079 123 4567.",
+        "incomplete": "Some required information is missing (see the list above).",
+        "submission_rate_limited": "You've reached today's limit of {max} submissions. Try again within 24 hours.",
+        "terms_outdated": "The commission terms have changed. Reload the page to accept the current version.",
+        "generic": "Couldn't submit. Try again."
+      }
+    }
+  },
+  "terms": {
+    "commission": {
+      "title": "Commission terms",
+      "draftBanner": "Draft — pending legal review. This text will be replaced by the reviewed terms before launch.",
+      "version": "Version {version}",
+      "p1": "AQAR charges a commission when a deal is concluded for a property listed on AQAR.",
+      "p2": "The commission is {rate} of the final sale price, or of the annual rent for rentals (monthly rent × 12).",
+      "p3": "The lister pays: the agent if an agent submitted the listing, otherwise the owner who listed it.",
+      "p4": "When the property is sold or rented through AQAR, the lister records the final price; AQAR then issues an invoice. Payment is by bank transfer or CliQ.",
+      "p5": "Exchange deals carry no commission at launch.",
+      "p6": "You accept these terms when you submit a listing. The version you accepted is stored with the listing.",
+      "back": "Back"
+    }
+  },
+  "headerAdd": {
+    "add": "Add listing",
+    "addShort": "Add"
   }
 }

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalSt
 import { Link, useLocation } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { useLocale, useT } from "~/i18n/useT";
-import type { AmenityTag, Category, Furnished, LocationPrecision } from "~/shared/constants";
+import type { AmenityTag, Category, Furnished } from "~/shared/constants";
 import { formatPhone, telHref, whatsappChatHref, whatsappShareHref } from "~/shared/contactLinks";
 import { DEFAULT_COUNTRY } from "~/shared/countries";
 import type { BBox } from "~/shared/geo";
@@ -269,12 +269,10 @@ export function OwnerCard({
 export function LazyDetailMap({
   lng,
   lat,
-  precision,
   styleUrl,
 }: {
   lng: number;
   lat: number;
-  precision: LocationPrecision;
   styleUrl: string;
 }) {
   const t = useT();
@@ -307,7 +305,7 @@ export function LazyDetailMap({
     <div ref={ref} className="relative h-72 overflow-hidden rounded-2xl bg-card">
       {show ? (
         <Suspense fallback={<p className="p-4 text-sm text-muted">{t("map.loadingMap")}</p>}>
-          <DetailMap lng={lng} lat={lat} precision={precision} styleUrl={styleUrl} locale={locale} dir={dirFor(locale)} controlLabels={controlLabels} />
+          <DetailMap lng={lng} lat={lat} styleUrl={styleUrl} locale={locale} dir={dirFor(locale)} controlLabels={controlLabels} />
         </Suspense>
       ) : (
         <p className="p-4 text-sm text-muted">{t("map.loadingMap")}</p>

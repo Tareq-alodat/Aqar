@@ -14,6 +14,7 @@ const { app } = await createServer({
   db: getDb(),
   authSecrets,
   phoneSecrets: requireSecrets,
+  submissionsPerDay: env.SUBMISSIONS_PER_DAY,
 });
 
 app.listen(env.PORT, () => {

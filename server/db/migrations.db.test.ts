@@ -58,6 +58,7 @@ describe("CHECK constraints match app/shared/constants.ts", () => {
     ["properties", "furnished", C.FURNISHED_OPTIONS],
     ["properties", "location_precision", C.LOCATION_PRECISIONS],
     ["properties", "offers_visibility", C.OFFERS_VISIBILITIES],
+    ["properties", "commission_payer_type", C.COMMISSION_PAYER_TYPES],
     ["users", "role", C.ROLES],
     ["users", "status", C.USER_STATUSES],
     ["address_fields", "kind", C.ADDRESS_FIELD_KINDS],

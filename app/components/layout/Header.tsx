@@ -1,5 +1,7 @@
 import { Link, useLocation, useParams } from "react-router";
 import { ThemeToggle } from "~/components/ui/ThemeToggle";
+import { useAuth } from "~/hooks/useAuth";
+import { LISTER_ROLES } from "~/shared/constants";
 import { UserMenu } from "./UserMenu";
 import { useLocale, useT } from "~/i18n/useT";
 import { DEFAULT_COUNTRY } from "~/shared/countries";
@@ -13,6 +15,9 @@ export function Header() {
   const params = useParams();
   const country = activeCountrySchema.safeParse(params.country);
   const otherLocale = locale === "ar" ? "en" : "ar";
+  const user = useAuth();
+  // Visitors are sent to log in first (the page requires a session); admins do not list properties.
+  const canAdd = !user || (LISTER_ROLES as readonly string[]).includes(user.role);
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-border bg-surface px-4">
@@ -40,7 +45,19 @@ export function Header() {
           </span>
         )}
       </div>
-      <nav className="flex items-center gap-2">
+      <nav className="flex items-center gap-1 sm:gap-2">
+        {canAdd && (
+          <Link
+            to={`/${locale}/listings/new`}
+            aria-label={t("headerAdd.add")}
+            className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-on-primary hover:bg-primary-hover"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span className="hidden sm:inline">{t("headerAdd.add")}</span>
+          </Link>
+        )}
         <Link
           to={switchLocalePath(location.pathname, otherLocale) + location.search}
           lang={otherLocale}

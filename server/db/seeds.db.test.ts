@@ -52,33 +52,32 @@ describe("dev seed (SPEC §17)", () => {
     expect(flagged).toEqual([{ status: "pending", admin_area_id: null }]);
   });
 
-  it("keeps every owner within the 5 active listing limit", async () => {
-    const rows = await db("properties as p")
-      .join("users as u", "u.id", "p.owner_id")
-      .where("u.role", "owner")
-      .whereIn("p.status", ["pending", "published", "reserved"])
-      .groupBy("p.owner_id")
-      .select("p.owner_id")
-      .count({ n: "*" });
-    for (const r of rows) expect(Number(r.n)).toBeLessThanOrEqual(5);
+  it("records accepted commission terms on every submitted listing, dated outside today's submission window", async () => {
+    const rows = await db("properties")
+      .whereNot({ status: "draft" })
+      .select("commission_payer_type", "commission_terms_version", db.raw("commission_terms_accepted_at < now() - interval '1 day' AS old"));
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      expect(["agent", "owner"]).toContain(r.commission_payer_type);
+      expect(r.commission_terms_version).toBeTruthy();
+      expect(r.old).toBe(true);
+    }
   });
 
-  it("covers the six seed neighbourhoods and both precisions", async () => {
+  it("covers the six seed neighbourhoods; every listing is approximate", async () => {
     const names = await db("properties as p").join("admin_areas as a", "a.id", "p.admin_area_id").distinct("a.name_ar").pluck("a.name_ar");
     for (const n of ["عبدون", "خلدا", "الصويفية", "الجبيهة", "دابوق", "تلاع العلي"]) expect(names).toContain(n);
-    expect(await count(db("properties").where({ location_precision: "approximate" }))).toBeGreaterThan(0);
+    expect(await count(db("properties").whereNot({ location_precision: "approximate" }))).toBe(0);
   });
 
-  it("stores approximate display points 150–300 m from the true point, exact ones equal", async () => {
+  it("stores every display point 150–300 m from the true point", async () => {
     const r = await db.raw<{ rows: Array<{ location_precision: string; d: number }> }>(
       "SELECT location_precision, ST_Distance(point, display_point) AS d FROM properties",
     );
     for (const row of r.rows) {
-      if (row.location_precision === "exact") expect(row.d).toBe(0);
-      else {
-        expect(row.d).toBeGreaterThanOrEqual(149);
-        expect(row.d).toBeLessThanOrEqual(301);
-      }
+      expect(row.location_precision).toBe("approximate");
+      expect(row.d).toBeGreaterThanOrEqual(149);
+      expect(row.d).toBeLessThanOrEqual(301);
     }
   });
 

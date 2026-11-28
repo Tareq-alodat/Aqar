@@ -1,7 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Knex } from "knex";
-import { AMENITY_TAGS, type Category, type ListingStatus, type ListingType, type LocationPrecision } from "../../../app/shared/constants";
+import { AMENITY_TAGS, type Category, type ListingStatus, type ListingType } from "../../../app/shared/constants";
+import { COMMISSION_TERMS_VERSION } from "../../../app/shared/terms";
 import { env, requireSecrets } from "../../env";
 import { protectPhone } from "../../services/cryptoService";
 import { getIdentifierScheme, normalizeIdentifier, type IdentifierInput } from "../../services/identifierService";
@@ -68,7 +69,6 @@ interface ListingPlan {
   category: Category;
   type: ListingType;
   status: ListingStatus;
-  precision: LocationPrecision;
   point?: LngLat;
 }
 
@@ -181,16 +181,16 @@ export async function seed(knex: Knex): Promise<void> {
     // The first five get land-registry identifiers below, so their categories are fixed.
     const category = IDENTIFIER_CATEGORIES[i] ?? pick(categories);
     const type = i < IDENTIFIER_CATEGORIES.length ? "sale" : category === "land" ? pick<ListingType>(["sale", "sale", "exchange"]) : pick(types);
-    plan.push({ owner, area: location(i), category, type, status: "published", precision: i % 3 === 0 ? "approximate" : "exact" });
+    plan.push({ owner, area: location(i), category, type, status: "published" });
   }
   for (let i = 0; i < 3; i++) {
-    plan.push({ owner: owners[i]!, area: seedAreas[i]!, category: "apartment", type: "sale", status: "pending", precision: "exact" });
+    plan.push({ owner: owners[i]!, area: seedAreas[i]!, category: "apartment", type: "sale", status: "pending" });
   }
   // Pending listing whose pin is outside every boundary (~1 km across the border north of Ramtha, no area centroid within
   // 5 km) → location review with no area.
   plan[42]!.point = { lng: 36.0105, lat: 32.67 };
   for (let i = 0; i < 2; i++) {
-    plan.push({ owner: agents[i]!, area: seedAreas[3 + i]!, category: "apartment", type: "sale", status: "sold", precision: "exact" });
+    plan.push({ owner: agents[i]!, area: seedAreas[3 + i]!, category: "apartment", type: "sale", status: "sold" });
   }
 
   // ── Insert listings ──────────────────────────────────────────────────────
@@ -199,7 +199,8 @@ export async function seed(knex: Knex): Promise<void> {
     const point = p.point ?? (await randomPointIn(knex, p.area.id, 1000 + i));
     const match = await findAdminAreaForPoint(knex, "JO", point);
     const area = match ? areas.find((a) => a.id === match.areaId) : undefined;
-    const display = computeDisplayPoint(point, p.precision, random);
+    // Every listing is public as an approximate area (milestone 6 decision).
+    const display = computeDisplayPoint(point, random);
     const [catAr, catEn] = CATEGORY_NAMES[p.category];
     const [typeAr, typeEn] = TYPE_NAMES[p.type];
     const placeAr = area?.name_ar ?? p.area.name_ar;
@@ -238,7 +239,7 @@ export async function seed(knex: Knex): Promise<void> {
         furnished: isLand ? null : pick(["yes", "no", "no", "partial"]),
         point: knex.raw("ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography", [point.lng, point.lat]),
         display_point: knex.raw("ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography", [display.lng, display.lat]),
-        location_precision: p.precision,
+        location_precision: "approximate",
         address: JSON.stringify(
           isLand
             ? {}
@@ -257,6 +258,11 @@ export async function seed(knex: Knex): Promise<void> {
         view_count: p.status === "pending" ? 0 : Math.round(between(5, 900)),
         slug: `${p.category}-${p.type}-${placeEn}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
         published_at: publishedAt,
+        // Submitted listings accepted the commission terms (milestone 6); dated in the past so the
+        // seed does not use up today's submission limit.
+        commission_payer_type: agents.includes(p.owner) ? "agent" : "owner",
+        commission_terms_version: COMMISSION_TERMS_VERSION,
+        commission_terms_accepted_at: publishedAt ?? knex.raw("now() - interval '2 days'"),
       })
       .returning("id");
     ids.push(row.id);

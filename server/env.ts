@@ -18,6 +18,8 @@ const envSchema = z.object({
   // Separate database for `npm run test:db`; never the dev or production database.
   DATABASE_URL_TEST: optional(z.string().min(1)),
   UPLOAD_DIR: z.string().min(1).default("./uploads"),
+  /** Listing submissions allowed per user per rolling 24 h (SPEC §7). */
+  SUBMISSIONS_PER_DAY: z.coerce.number().int().min(1).max(1000).default(10),
   // Optional at startup so the app can boot without them; services that need them call requireSecrets().
   ENCRYPTION_KEY: optional(key32),
   PHONE_HASH_KEY: optional(key32),

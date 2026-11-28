@@ -110,10 +110,9 @@ function phoneForms(encrypted: string): string[] {
 
 function expectNoLeak(body: string, r: Row) {
   for (const form of phoneForms(r.owner_phone_encrypted)) expect(body).not.toContain(form);
-  if (r.location_precision === "approximate") {
-    expect(body).not.toContain(Number(r.px).toFixed(5));
-    expect(body).not.toContain(Number(r.py).toFixed(5));
-  }
+  // Every listing is approximate: the true pin never appears.
+  expect(body).not.toContain(Number(r.px).toFixed(5));
+  expect(body).not.toContain(Number(r.py).toFixed(5));
   for (const key of ["owner_phone", "phone_encrypted", "phone_hash", "email", "\"point\"", "value_normalized", "identifiers", "owner_id"]) {
     expect(body).not.toContain(key);
   }
@@ -155,19 +154,16 @@ describe("GET /api/v1/listings/:id — privacy", () => {
     }
   });
 
-  it("shows exact_only address fields only for exact pins, admin_only never", async () => {
-    const exact = await one({ "p.status": "published", "p.location_precision": "exact", "p.category": "apartment" });
-    const approx = await one({ "p.status": "published", "p.location_precision": "approximate", "p.category": "apartment" });
-    for (const r of [exact, approx]) expect(r.address.apartment_number).toBeTruthy();
-
-    const keys = async (id: number) =>
-      ((await request(app).get(`/api/v1/listings/${id}`)).body.listing.address as Array<{ key: string }>).map((a) => a.key);
-    expect(await keys(exact.id)).toEqual(expect.arrayContaining(["street", "building_number"]));
-    expect(await keys(exact.id)).not.toContain("apartment_number");
-    expect(await keys(approx.id)).toEqual([]);
-
-    const approxText = (await request(app).get(`/api/v1/listings/${approx.id}`)).text;
-    expect(approxText).not.toContain(approx.address.street!);
+  it("never shows exact_only or admin_only address fields (every listing is approximate)", async () => {
+    const apartments = await rows(db("properties as p").where({ "p.status": "published", "p.category": "apartment" }));
+    expect(apartments.length).toBeGreaterThan(0);
+    for (const r of apartments) {
+      expect(r.address.street && r.address.apartment_number).toBeTruthy();
+      const res = await request(app).get(`/api/v1/listings/${r.id}`);
+      expect(res.body.listing.address).toEqual([]);
+      expect(res.text).not.toContain(r.address.street!);
+      expect(res.body.listing.location).toEqual({ lng: expect.any(Number), lat: expect.any(Number) });
+    }
   });
 
   it("refuses bad ids", async () => {

@@ -8,13 +8,15 @@ import morgan from "morgan";
 import type { ServerBuild } from "react-router";
 import type { AuthSecrets, Secrets } from "./env";
 import { createApiRouter } from "./api";
+import { LocalDiskStorage } from "./services/storageService";
+import { DEFAULT_SUBMISSIONS_PER_DAY } from "../app/shared/constants";
 import { createGetLoadContext } from "./loadContext";
 import { authenticate } from "./middleware/authenticate";
 import { originCheck } from "./middleware/originCheck";
 import { createAuthCookies } from "./services/authCookies";
 import { createAuthService } from "./services/authService";
 import { checkDatabase } from "./services/healthService";
-import { createLimiters } from "./services/rateLimitService";
+import { createLimiters, type Limiters } from "./services/rateLimitService";
 
 export interface ServerOptions {
   isProduction: boolean;
@@ -24,6 +26,10 @@ export interface ServerOptions {
   db: Knex;
   authSecrets: AuthSecrets;
   phoneSecrets: () => Secrets;
+  /** Rate limiters; tests pass their own (e.g. to lift the login limit). Defaults to SPEC §13 limits. */
+  limiters?: Limiters;
+  /** Listing submissions per user per rolling 24 h (default 10). */
+  submissionsPerDay?: number;
   /** Vite's HMR websocket in development (tests turn it off). */
   hmr?: boolean;
   /** Request log lines (off in tests). */
@@ -50,10 +56,17 @@ const BUILD_PATH = path.resolve("build/server/index.js");
 export async function createServer(o: ServerOptions): Promise<AqarServer> {
   const publicOrigin = new URL(o.publicBaseUrl).origin;
   const cookies = createAuthCookies({ secure: publicOrigin.startsWith("https:") });
-  const limiters = createLimiters();
+  const limiters = o.limiters ?? createLimiters();
   const auth = createAuthService({ db: o.db, secrets: o.authSecrets, limiters, phoneSecrets: o.phoneSecrets });
   const views = { secret: o.authSecrets.refreshTokenSecret, secure: publicOrigin.startsWith("https:") };
-  const services = { auth, cookies, db: o.db, views, publicOrigin };
+  // Listing photos on the VPS disk under UPLOAD_DIR, served at /uploads (SPEC §0).
+  const submission = {
+    db: o.db,
+    storage: new LocalDiskStorage(o.uploadDir),
+    phoneSecrets: o.phoneSecrets,
+    submissionsPerDay: o.submissionsPerDay ?? DEFAULT_SUBMISSIONS_PER_DAY,
+  };
+  const services = { auth, cookies, db: o.db, views, publicOrigin, submission };
   // Compute the dummy password hash now rather than on the first failed login.
   auth.warmUp().catch(() => console.error("[auth] could not prepare the dummy password hash"));
 
@@ -72,7 +85,7 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
 
   app.use(
     "/api/v1",
-    createApiRouter({ isProduction: o.isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db: o.db, views }),
+    createApiRouter({ isProduction: o.isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db: o.db, views, submission }),
   );
 
   // Local image storage is development-only here; Caddy serves /uploads in production (SPEC §0).

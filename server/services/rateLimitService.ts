@@ -11,6 +11,8 @@ export const LIMITS = {
   mapPoints: { points: 60, duration: 60 },
   /** POST /api/v1/listings/:id/view (the page's view beacon), per IP — its own limit (milestone 5). */
   views: { points: 30, duration: 60 },
+  /** Photo uploads (POST /api/v1/my/listings/:id/images), per user — image processing is the expensive part (milestone 6). */
+  uploads: { points: 30, duration: 60 },
   /** Login and register attempts (API and page forms share it), per IP. */
   authIp: { points: 5, duration: 60 },
   /** Failed logins per email, against guessing spread over many IPs. */
@@ -25,6 +27,7 @@ export function createLimiters(): Limiters {
     api: new RateLimiterMemory({ keyPrefix: "api", ...LIMITS.api }),
     mapPoints: new RateLimiterMemory({ keyPrefix: "map_points", ...LIMITS.mapPoints }),
     views: new RateLimiterMemory({ keyPrefix: "views", ...LIMITS.views }),
+    uploads: new RateLimiterMemory({ keyPrefix: "uploads", ...LIMITS.uploads }),
     authIp: new RateLimiterMemory({ keyPrefix: "auth_ip", ...LIMITS.authIp }),
     loginEmail: new RateLimiterMemory({ keyPrefix: "login_email", ...LIMITS.loginEmail }),
   };
