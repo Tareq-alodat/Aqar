@@ -17,6 +17,11 @@ export interface AreaSummary {
   bbox: BBox;
 }
 
+/** An area suggested by the location autocomplete, with its ancestors (nearest first). */
+export interface AreaSuggestion extends AreaSummary {
+  parents: Array<{ nameAr: string; nameEn: string }>;
+}
+
 export interface PointFeature {
   type: "Feature";
   id: number;

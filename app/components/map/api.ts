@@ -1,8 +1,8 @@
 import type { BBox } from "~/shared/geo";
 import type { Locale } from "~/shared/locales";
 import type { LngLatPair } from "~/shared/polyline";
-import { encodePolygon, toSearchParams, type SearchFilters, type Sort } from "~/shared/schemas/mapSearch";
-import type { AreaSummary, ListingsPage, MapPoints } from "./types";
+import { toSearchParams, type LngLat, type RadiusKm, type SearchFilters, type Sort } from "~/shared/schemas/mapSearch";
+import type { AreaSuggestion, AreaSummary, ListingsPage, MapPoints } from "./types";
 
 /** Browser client for /api/v1 map endpoints. */
 
@@ -25,42 +25,58 @@ async function getJson<T>(url: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
-const query = (country: string, filters: SearchFilters, extra: Record<string, string>) => {
-  const p = toSearchParams({ filters });
+/**
+ * The area a request covers (SPEC §5.6): the map view, a drawn polygon,
+ * "near me" (rounded location + radius) or the whole country (text search).
+ */
+export type RequestArea = { bbox: BBox } | { poly: LngLatPair[] } | { near: LngLat; radius: RadiusKm } | { country: true };
+
+/** Filters, text and area as query parameters (`toSearchParams` rounds `near` to 3 decimals). */
+function query(country: string, filters: SearchFilters, q: string | undefined, area: RequestArea, extra: Record<string, string> = {}) {
+  const p = toSearchParams({
+    filters,
+    q,
+    ...("poly" in area ? { poly: area.poly } : {}),
+    ...("near" in area ? { near: area.near, radius: area.radius } : {}),
+  });
   p.set("country", country);
+  if ("bbox" in area) p.set("bbox", area.bbox.map((n) => n.toFixed(5)).join(","));
   for (const [k, v] of Object.entries(extra)) p.set(k, v);
   return p.toString();
-};
-
-export type PointsResponse = MapPoints & { truncated: boolean };
-
-export function fetchPointsInBBox(country: string, bbox: BBox, filters: SearchFilters, signal: AbortSignal) {
-  return getJson<PointsResponse>(`/api/v1/map/points?${query(country, filters, { bbox: bbox.map((n) => n.toFixed(5)).join(",") })}`, { signal });
 }
 
-export function fetchPointsInPolygon(country: string, ring: LngLatPair[], filters: SearchFilters, signal: AbortSignal) {
-  const asStrings = Object.fromEntries(toSearchParams({ filters }).entries());
-  return getJson<PointsResponse>("/api/v1/map/points", {
-    method: "POST",
-    signal,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ country, polygon: { type: "Polygon", coordinates: [ring] }, filters: asStrings }),
-  });
+export type PointsResponse = MapPoints & { truncated: boolean; bbox?: BBox | null };
+
+export function fetchPoints(country: string, area: RequestArea, filters: SearchFilters, q: string | undefined, signal: AbortSignal) {
+  if ("poly" in area) {
+    // Draw to search: the polygon goes in the body (it can be long).
+    const asStrings = Object.fromEntries(toSearchParams({ filters, q }).entries());
+    return getJson<PointsResponse>("/api/v1/map/points", {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country, polygon: { type: "Polygon", coordinates: [area.poly] }, filters: asStrings }),
+    });
+  }
+  return getJson<PointsResponse>(`/api/v1/map/points?${query(country, filters, q, area)}`, { signal });
 }
 
 export function fetchListings(
   country: string,
-  area: { bbox: BBox } | { poly: LngLatPair[] },
+  area: RequestArea,
   filters: SearchFilters,
+  q: string | undefined,
   sort: Sort,
   page: number,
   locale: Locale,
   signal: AbortSignal,
 ) {
-  const extra: Record<string, string> = { lang: locale, sort, page: String(page) };
-  if ("bbox" in area) extra.bbox = area.bbox.map((n) => n.toFixed(5)).join(",");
-  else extra.poly = encodePolygon(area.poly);
-  return getJson<ListingsPage>(`/api/v1/listings?${query(country, filters, extra)}`, { signal });
+  return getJson<ListingsPage>(`/api/v1/listings?${query(country, filters, q, area, { lang: locale, sort, page: String(page) })}`, { signal });
+}
+
+/** Location autocomplete (SPEC §5.6). */
+export function fetchSuggestions(country: string, q: string, signal: AbortSignal) {
+  return getJson<{ items: AreaSuggestion[] }>(`/api/v1/areas/suggest?${new URLSearchParams({ country, q })}`, { signal });
 }
 
 export function fetchPathAt(country: string, lng: number, lat: number, zoom: number, signal: AbortSignal) {

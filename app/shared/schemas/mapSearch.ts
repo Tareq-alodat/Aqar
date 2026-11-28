@@ -8,13 +8,15 @@ import { decodePolyline, encodePolyline, type LngLatPair } from "../polyline";
  * Map search state (SPEC §5.2–5.4). One definition for the URL (`useMapUrlState`),
  * the page loader and `/api/v1/map/*` + `/api/v1/listings`:
  * `?lat=31.95&lng=35.91&z=12&type=sale&cat=apartment&minPrice=50000&beds=2,3&poly=<encoded>`.
+ * Text search (§5.6, milestone 4b) adds `q`, `near=lng,lat&radius=` and `in=view`.
  * URLs are parsed leniently (bad values are dropped); the API is strict (400).
  */
 
 export const AMENITIES = ["pool", "parking", "garden", "elevator", "furnished"] as const;
 export type Amenity = (typeof AMENITIES)[number];
 
-export const SORTS = ["newest", "price_asc", "price_desc", "views", "ppsqm_asc"] as const;
+/** `relevance` applies to text searches only (and is their default). */
+export const SORTS = ["newest", "price_asc", "price_desc", "views", "ppsqm_asc", "relevance"] as const;
 export type Sort = (typeof SORTS)[number];
 export const DEFAULT_SORT: Sort = "newest";
 
@@ -26,6 +28,19 @@ export const PAGE_SIZE = 20;
 export const POINTS_CAP = 3000;
 export const POLYGON_MAX_POINTS = 100;
 const MAX_PAGE = 500;
+
+/** Free-text search (§5.6). */
+export const Q_MAX_LENGTH = 100;
+/** "Near me" radius choices in km; the location is rounded to 3 decimals (~100 m) in the URL and API. */
+export const RADII_KM = [1, 2, 5, 10] as const;
+export type RadiusKm = (typeof RADII_KM)[number];
+export const DEFAULT_RADIUS_KM: RadiusKm = 2;
+export const NEAR_DECIMALS = 3;
+
+export interface LngLat {
+  lng: number;
+  lat: number;
+}
 
 export interface SearchFilters {
   type?: ListingType;
@@ -55,7 +70,46 @@ export interface MapSearchState {
   page: number;
   /** Draw-to-search polygon (closed ring); replaces bbox filtering. */
   poly?: LngLatPair[];
+  /** Free text (trimmed, ≤ Q_MAX_LENGTH). Without an area it searches the whole country. */
+  q?: string;
+  /** "Near me": rounded location; searches within `radius` km. Never together with `poly`. */
+  near?: LngLat;
+  radius: RadiusKm;
+  /** `in=view`: limit a text search to the map view ("Search this area"). */
+  inView: boolean;
 }
+
+/**
+ * Which area a search covers: a drawn polygon, a radius around a point, the
+ * whole country (text search) or the map view.
+ */
+export type SearchScope = "polygon" | "near" | "country" | "view";
+
+export function searchScope(state: Pick<MapSearchState, "poly" | "near" | "q" | "inView">): SearchScope {
+  if (state.poly) return "polygon";
+  if (state.near) return "near";
+  if (state.q && !state.inView) return "country";
+  return "view";
+}
+
+export const defaultSortFor = (state: Pick<MapSearchState, "q">): Sort => (state.q ? "relevance" : DEFAULT_SORT);
+
+/** Collapses whitespace and drops control characters; empty → undefined. */
+export function cleanQuery(raw: string): string | undefined {
+  // eslint-disable-next-line no-control-regex
+  const q = raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  return q === "" ? undefined : q;
+}
+
+const roundTo = (n: number, places: number) => Number(n.toFixed(places));
+export const roundNear = (p: LngLat): LngLat => ({ lng: roundTo(p.lng, NEAR_DECIMALS), lat: roundTo(p.lat, NEAR_DECIMALS) });
+
+const nearSchema = z
+  .string()
+  .max(40)
+  .transform((s) => s.split(",").map((x) => (x.trim() === "" ? Number.NaN : Number(x))))
+  .pipe(z.tuple([z.number().finite().min(-180).max(180), z.number().finite().min(-90).max(90)]))
+  .transform(([lng, lat]) => roundNear({ lng, lat }));
 
 const money = z.coerce.number().finite().min(0).max(1e11);
 const sqm = z.coerce.number().finite().min(0).max(1e7);
@@ -153,11 +207,21 @@ export function parseMapSearch(params: Params): ParseResult {
     else invalid.push("view");
   }
 
-  let sort: Sort = DEFAULT_SORT;
+  let q: string | undefined;
+  const rawQ = getParam(params, "q");
+  if (rawQ !== undefined) {
+    // Whitespace only means no query; longer than Q_MAX_LENGTH (after collapsing spaces) is invalid.
+    const cleaned = rawQ.length <= Q_MAX_LENGTH * 4 ? cleanQuery(rawQ) : undefined;
+    if (rawQ.length > Q_MAX_LENGTH * 4 || (cleaned !== undefined && cleaned.length > Q_MAX_LENGTH)) invalid.push("q");
+    else q = cleaned;
+  }
+
+  let sort: Sort = defaultSortFor({ q });
   const rawSort = getParam(params, "sort");
   if (rawSort !== undefined) {
     const parsed = z.enum(SORTS).safeParse(rawSort);
-    if (parsed.success) sort = parsed.data;
+    // Relevance needs a text query; without one the default order applies.
+    if (parsed.success) sort = parsed.data === "relevance" && !q ? DEFAULT_SORT : parsed.data;
     else invalid.push("sort");
   }
 
@@ -177,7 +241,31 @@ export function parseMapSearch(params: Params): ParseResult {
     else invalid.push("poly");
   }
 
-  return { state: { view, filters, sort, page, poly }, invalid };
+  let near: LngLat | undefined;
+  const rawNear = getParam(params, "near");
+  if (rawNear !== undefined) {
+    const parsed = nearSchema.safeParse(rawNear);
+    // A drawn area and "near me" are mutually exclusive: the polygon wins.
+    if (parsed.success && !poly) near = parsed.data;
+    else invalid.push("near");
+  }
+
+  let radius: RadiusKm = DEFAULT_RADIUS_KM;
+  const rawRadius = getParam(params, "radius");
+  if (rawRadius !== undefined) {
+    const n = /^\d{1,2}$/.test(rawRadius) ? Number(rawRadius) : Number.NaN;
+    if ((RADII_KM as readonly number[]).includes(n)) radius = n as RadiusKm;
+    else invalid.push("radius");
+  }
+
+  let inView = false;
+  const rawIn = getParam(params, "in");
+  if (rawIn !== undefined) {
+    if (rawIn === "view") inView = true;
+    else invalid.push("in");
+  }
+
+  return { state: { view, filters, sort, page, poly, q, near, radius, inView }, invalid };
 }
 
 const round = (n: number, places: number) => Number(n.toFixed(places));
@@ -196,9 +284,16 @@ export function toSearchParams(state: Partial<MapSearchState>): URLSearchParams 
     if (v === undefined || (Array.isArray(v) && v.length === 0)) continue;
     out.set(key, Array.isArray(v) ? v.join(",") : String(v));
   }
-  if (state.sort && state.sort !== DEFAULT_SORT) out.set("sort", state.sort);
+  if (state.q) out.set("q", state.q);
+  if (state.sort && state.sort !== defaultSortFor(state) && (state.sort !== "relevance" || state.q)) out.set("sort", state.sort);
   if (state.page && state.page > 1) out.set("page", String(state.page));
   if (state.poly) out.set("poly", encodePolygon(state.poly));
+  if (state.near && !state.poly) {
+    const p = roundNear(state.near);
+    out.set("near", `${p.lng},${p.lat}`);
+    if (state.radius && state.radius !== DEFAULT_RADIUS_KM) out.set("radius", String(state.radius));
+  }
+  if (state.inView && state.q && !state.poly && !state.near) out.set("in", "view");
   return out;
 }
 

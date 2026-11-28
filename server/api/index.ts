@@ -25,9 +25,10 @@ export interface ApiDeps extends HealthDeps {
 
 /**
  * Endpoints with their own limit, not counted in the general one:
- * /map/points (60/min) and the listing view beacon (30/min).
+ * /map/points (60/min), /areas/suggest (120/min) and the listing view beacon (30/min).
  */
-const hasOwnLimit = (req: Request) => req.path === "/map/points" || /^\/listings\/[^/]+\/view$/.test(req.path);
+const hasOwnLimit = (req: Request) =>
+  req.path === "/map/points" || req.path === "/areas/suggest" || /^\/listings\/[^/]+\/view$/.test(req.path);
 
 /** REST API mounted at /api/v1. */
 export function createApiRouter(deps: ApiDeps): Router {

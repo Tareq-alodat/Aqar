@@ -25,7 +25,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 | Dev environment | VS Code + Claude Code, PostgreSQL/PostGIS via Docker, `.env` for secrets |
 | Software & services | **All software is free / open source; only hosting is paid.** No paid third-party services or APIs. |
 | Hosting | **One Linux VPS** (provider TBD, e.g. GoDaddy VPS) running **Node 24 LTS** (app), **PostgreSQL 16 + PostGIS** (database) and **Caddy** (reverse proxy, automatic HTTPS). Port read from `process.env.PORT`. `engines.node` is `>=24 <25` (Node 24 LTS). |
-| Production database | PostgreSQL 16 + PostGIS **on the same VPS**, connected via `DATABASE_URL` (listening on localhost only). Docker PostGIS (`docker-compose.yml`) is for local development. |
+| Production database | PostgreSQL 16 + PostGIS **on the same VPS**, connected via `DATABASE_URL` (listening on localhost only), with the **`postgresql-contrib`** package installed (the `pg_trgm` extension used by text search, §5.6). Docker PostGIS (`docker-compose.yml`) is for local development. |
 | Image storage | Always behind the storage interface. **`LocalDiskStorage` in development and production** — on the VPS, files live on its disk under `UPLOAD_DIR` and are served at `/uploads`. |
 | Backups | **Nightly** `pg_dump` of the database and a copy of `UPLOAD_DIR`, kept off the VPS (destination TBD with the provider). |
 | Revenue model | **Commission on completed deals**, paid by the lister (agent or owner): 1 % by default, per country, overridable per agreement, stored per deal; the deal's supervisor earns a share of collected commission (§19). Collected manually in phase 1 (bank transfer / CliQ, proof required, confirmed by super_admin); online payment [P2]. Waivers, downward price corrections, refunds and cancellations need super_admin approval. Brokerage licensing and the terms text need legal review per country before charging. |
@@ -216,8 +216,14 @@ GIST on `properties.display_point`; btree on `(country_code, status, listing_typ
 - **Matching and ranking:** PostgreSQL full-text search (`to_tsvector('arabic', …)` for Arabic text, `'english'` for English, `'simple'` for area names) in a stored `tsvector` column on `properties` with a GIN index, plus `pg_trgm` (GIN `gin_trgm_ops` on the normalized title and area names) for typo tolerance (`word_similarity`). A listing matches on full-text **or** trigram similarity above a threshold; results are ranked by `ts_rank` and similarity. Only `status = 'published'`.
 - **Location autocomplete** over `admin_areas` (Arabic and English names, normalized, `pg_trgm` index): suggestions show the area path (e.g. "عبدون، عمان"); choosing one flies the map to the area's bounds (like jump-to, §5.2) rather than filtering by text.
 - **Near me:** a button that asks for the browser's location **only when pressed** (never on page load), then searches within a radius (default 2 km; choices 1/2/5/10 km) of that point with `ST_DWithin` on `display_point`. The location is not stored or logged on the server; in the URL it is rounded to 3 decimals (~100 m).
-- **Search state:** new URL/API parameters `q` (free text, ≤ 100 characters) and `near=lng,lat&radius=` in the shared schema (`app/shared/schemas/mapSearch.ts`); they combine with the filters (§5.3). When `q` is set, results are not limited to the map view and the map fits to the results; "Search this area" returns to view-based search (to confirm at the start of the milestone).
-- **API:** `q` / `near` on `GET /api/v1/listings` and `/api/v1/map/points`; `GET /api/v1/areas/suggest?country=JO&q=` → up to 8 areas with path and bounds. Same rate limits as the other search calls.
+- **Search state:** new URL/API parameters `q` (free text, ≤ 100 characters), `near=lng,lat&radius=` and `in=view` in the shared schema (`app/shared/schemas/mapSearch.ts`); they combine with the filters (§5.3). Scope (milestone 4b decision):
+  - `q` alone searches **the whole country** and the map fits to the results (the points response carries the `bbox` of all matches); moving the map does not change the results.
+  - **"Search this area"** keeps `q` and limits it to the map view (`in=view`, so the link restores it; "Search all of {country}" goes back).
+  - A drawn polygon or "near me" limits `q` to that area. **Near me and a drawn polygon are mutually exclusive**: setting one clears the other (a URL with both keeps the polygon; the API answers 400).
+  - Choosing an autocomplete suggestion flies the map there; with a country-wide `q` it switches to `in=view`.
+  - Text searches sort by **relevance** (`sort=relevance`, "Best match": `ts_rank` + word similarity) unless another sort is chosen.
+- **Matching details:** every word of the query must match (full-text in any of the three configs, or trigram word similarity ≥ 0.6 for typos); stop words ("في", "in") are skipped. Index columns `properties.search_tsv` / `search_norm` are kept by triggers (titles, descriptions, area path; refreshed when an area on the path is renamed or moved); `admin_areas.search_norm` is a generated column. **Contact details** written into listing text (§8.1) are removed before indexing (`aqar_strip_contacts`), so they are never searchable.
+- **API:** `q` / `near` on `GET /api/v1/listings` and `/api/v1/map/points`; `GET /api/v1/areas/suggest?country=JO&q=` → up to 8 areas with path and bounds. Points and listings keep their limits (§13); **`/areas/suggest` has its own limit, 120/min per IP**, not counted in the general one, so typing does not use it up. Request logs redact `near`, `lat` and `lng`.
 - **Constraint:** PostgreSQL only (built-in full-text search + `pg_trgm`); no Elasticsearch or other search server, and no paid search API.
 
 ---
@@ -259,6 +265,16 @@ Drafts autosave (`status = draft`; at most 10 drafts per user). No limit on acti
 - **Buyers' contact details** (enquiries, viewings, offers) are visible to the supervisor in scope and the super_admin only — encrypted at rest like phones, never shown to listers.
 - `contact_numbers (id, phone_number, whatsapp bool, label, scope ENUM[global, country, admin_area, property], country_code, admin_area_id FK, property_id FK, is_active, created_by FK, created_at)` — fallback numbers, managed by the super_admin.
 
+### 8.1 Contact details in listing text
+
+All contact goes through the supervisor, so **listers must not put their own contact details in listing text** (titles and descriptions, Arabic and English).
+
+- **Detection** (shared detector `app/shared/contactDetails.ts`, unit-tested): phone numbers in any form (Western or Arabic-Indic/Persian digits; spaces, dashes, dots or brackets between digits; `+962` / `00962` / `07…` prefixes; 9+ digits, or `+` and 8+), email addresses, links/URLs (with or without `http://`/`www.`, e.g. `wa.me/…`, `t.me/…`, `name.com`), `@handles`, and WhatsApp/Telegram/Instagram/Facebook mentions (Arabic spellings with `ال`/`بال`/`و`… prefixes, and Latin), incl. a handle after a colon.
+- **On submit and on every edit** (milestone 7): the listing is **flagged to its supervisor** in the moderation queue with the detected text highlighted; the supervisor removes it (edit) or **returns the listing for changes** before publishing. Each detection is recorded in the audit trail (`audit_log`, §9: action `contact_details_detected`, the kinds and positions found — not the values).
+- **Safety net (from milestone 4b):** in all public output (pages, API, search results: card titles, listing title and description, meta tags), detected contact details are **masked** as `•••`, even if a listing was published with them. The owner's own editing flow shows the text as written.
+- **Search index:** detected contact details are never indexed (`aqar_strip_contacts`, §5.6).
+- [P2] Contact details written inside photos (OCR).
+
 ---
 
 ## 9. Back office (`/ar/backoffice`) — super_admin and supervisors
@@ -267,7 +283,7 @@ One back office for both roles; **supervisors see only their scope**, the super_
 
 - **Supervisors (super_admin):** create supervisor accounts (never self-registered), set work mobile, scopes (area tree, several countries allowed), activate/deactivate; a supervisor's open work is reassigned when deactivated.
 - **Agent registrations** (§3): queue per scope; approve / reject (reason) / request more information; documents viewer (private). Suspend/reactivate users — super_admin only.
-- **Moderation queue:** pending listings assigned to me (super_admin: all, plus the unassigned queue); thumbnail, title, price, submitter, area, submitted at, waiting time, location-review flag; detail view with the **true pin** and identifiers (duplicate / same-building warnings, verify action, §2.4); **approve, reject (reason), return for changes (reason)**, edit any field; bulk approve. Reassign (super_admin).
+- **Moderation queue:** pending listings assigned to me (super_admin: all, plus the unassigned queue); thumbnail, title, price, submitter, area, submitted at, waiting time, location-review flag, **contact-details flag** (detected text highlighted, §8.1); detail view with the **true pin** and identifiers (duplicate / same-building warnings, verify action, §2.4); **approve, reject (reason), return for changes (reason)**, edit any field; bulk approve. Reassign (super_admin).
 - **Lister contact:** "show phone" on a listing in scope (audited, §8).
 - **Enquiries & viewings** (§22), **offers** (§21), **deals** (§23): queues and detail screens per scope.
 - **Commissions & collections** (§19): due / overdue / partially paid / paid / waived; record payments with proof (supervisor); confirm payments, approve waivers, downward corrections, refunds and cancellations (super_admin); printable invoice; supervisor earnings.
@@ -334,6 +350,7 @@ Offers moved into phase 1 (§21). Larger later-phase items are in §27 (and fina
 - **Online commission payment** (§19); collecting commission in another currency (§24).
 - **Installable web app (PWA)** with push notifications; native iOS/Android apps are [P3] (§27).
 - **SMS OTP** (verification/login codes) as a later option; SMS is always paid.
+- **Contact details in photos:** OCR of listing photos for phone numbers and handles, flagged like text (§8.1).
 
 ---
 
@@ -346,7 +363,7 @@ Offers moved into phase 1 (§21). Larger later-phase items are in §27 (and fina
 - Role middleware on every protected API route (`requireAuth`, `requireRole`); equivalent checks in loaders/actions (`requireUser`, `requireRole` in `app/utils/auth.server.ts`). Pages receive only `{ id, name, role }` of the signed-in user.
 - **Scope checks:** every supervisor query is filtered server-side to their scope (`supervisor_scopes`, descendants included); an out-of-scope id is a 404. Scope filtering lives in services, never only in the UI.
 - Zod validation on every endpoint, loader input, and action.
-- Rate limits (in memory, one process): 100 req/min general (`/api/v1`, including listings and area calls), 5 req/min auth (login + register, API and page forms combined), 60 req/min on `/api/v1/map/points` per IP (its own limit, not counted in the general one; milestone 4 decision); plus 10 failed logins per email per 15 min; photo uploads 30/min per user; listing submissions `SUBMISSIONS_PER_DAY` per user per rolling 24 h (default 10, counted in the database so restarts do not reset it). 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
+- Rate limits (in memory, one process): 100 req/min general (`/api/v1`, including listings and area calls), 5 req/min auth (login + register, API and page forms combined), 60 req/min on `/api/v1/map/points` per IP (its own limit, not counted in the general one; milestone 4 decision); 120 req/min on `/api/v1/areas/suggest` per IP (location autocomplete; its own limit, milestone 4b); plus 10 failed logins per email per 15 min; photo uploads 30/min per user; listing submissions `SUBMISSIONS_PER_DAY` per user per rolling 24 h (default 10, counted in the database so restarts do not reset it). 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
 - Parameterized SQL only. Uploads: MIME sniffing (not extension), images only, 10 MB max, re-encoded by sharp (strips EXIF incl. GPS).
 - AES-256-GCM for phones and buyers' contact details (owner, user, supervisor-recorded caller and enquiry phones); private files (agent documents, payment proofs, deal evidence, financing documents [P2]) are never served from public `/uploads`; key only from env; never logged.
 - Back-office actions, real-phone and contact views, exact-location shares and failed logins go to the append-only `audit_log` (§9).
@@ -466,7 +483,7 @@ EMAIL_PROVIDER_API_KEY=
 
 ## 18. Phase 1 build order (one milestone per Claude Code session)
 
-Done: 1–6. The order from milestone 7 on follows the business model v2: the supervisor model, assignment and contact come with the back office (7); offers, enquiries/viewings, deals, commission and collections are phase 1 milestones (9–11).
+Done: 1–6 and 4b. The order from milestone 7 on follows the business model v2: the supervisor model, assignment and contact come with the back office (7); offers, enquiries/viewings, deals, commission and collections are phase 1 milestones (9–11).
 
 1. **Scaffold:** RR v7 + Express + TS + Tailwind, Docker PostGIS, Knex, `.env.example`, ar/en routing with RTL/LTR, theme toggle, layout shell.
 2. **Database:** all phase 1 migrations (+ P2 tables that phase 1 writes to, e.g. `price_history`), address field catalog and country settings, property identifiers, boundary import script, seeds.
@@ -477,7 +494,7 @@ Done: 1–6. The order from milestone 7 on follows the business model v2: the su
 
 **4b. Text search** (scheduled right after milestone 6): search bar with bilingual free-text search, Arabic normalization, typo tolerance, location autocomplete, "near me" (§5.6). PostgreSQL only.
 
-7. **Back office & supervisor model:** roles `super_admin` (replaces `admin`), `supervisor` (and the reserved `financier` value); supervisor accounts, work mobiles and scopes; scope filtering; **agent registration approval** with status history; **listing assignment** on submission (deepest scope match, super_admin queue fallback, reassignment); moderation (approve / reject / **return for changes**); **public contact = supervisor's work mobile** with the `contact_numbers` fallback; lister-phone view (audited); `status_history` and `audit_log`; overdue reminders (§26); address settings, contact numbers, users, boundary viewer, basic counts (§3, §4.2, §8, §9).
+7. **Back office & supervisor model:** roles `super_admin` (replaces `admin`), `supervisor` (and the reserved `financier` value); supervisor accounts, work mobiles and scopes; scope filtering; **agent registration approval** with status history; **listing assignment** on submission (deepest scope match, super_admin queue fallback, reassignment); moderation (approve / reject / **return for changes**); **public contact = supervisor's work mobile** with the `contact_numbers` fallback; lister-phone view (audited); **contact details in listing text** flagged in the moderation queue on submit and every edit, with the detection audited (§8.1); `status_history` and `audit_log`; overdue reminders (§26); address settings, contact numbers, users, boundary viewer, basic counts (§3, §4.2, §8, §9).
 8. **Profile:** My Listings (returned/rejected reasons, edit and resubmit, re-review on price/pin/photo edits, archive with reason), Saved, Settings (incl. display currency), registration status; agent company page; agent dashboard; owner statistics (§11).
 9. **Enquiries & viewings:** enquiry form and supervisor-logged calls, enquiry pipeline, viewing appointments (request, propose, confirm, reschedule, cancel, outcome), exact-location sharing on confirmation (audited) (§22).
 10. **Offers:** submission with the per-country minimum, supervisor review, forwarding, accept / reject / counter, reservation, public summary (§21).
@@ -486,7 +503,7 @@ Done: 1–6. The order from milestone 7 on follows the business model v2: the su
 13. **SEO:** area pages, meta/JSON-LD, hreflang, sitemap, robots.
 14. **Hardening:** tests for contact privacy (real phone, buyers' details, true point never in public responses or rendered HTML; scope isolation between supervisors), Playwright happy paths, performance check with 10k seeded listings.
 15. **Launch readiness:** the server refuses to start in production while the active terms version is a draft (§20); email sending (free-tier provider), password reset, email verification (required before submitting listings), new-device login notice, personal-data export and account deletion (§20).
-16. **Deployment:** the VPS setup from §0 — Node 24 LTS app, PostgreSQL 16 + PostGIS on localhost, Caddy with automatic HTTPS (behind Cloudflare: Caddy trusts Cloudflare's IP ranges and forwards the real client IP, so rate limits see visitors, not Cloudflare), `/uploads` served by Caddy, private files outside it, nightly `pg_dump` + file backups off the VPS.
+16. **Deployment:** the VPS setup from §0 — Node 24 LTS app, PostgreSQL 16 + PostGIS on localhost (with `postgresql-contrib` for `pg_trgm`), Caddy with automatic HTTPS (behind Cloudflare: Caddy trusts Cloudflare's IP ranges and forwards the real client IP, so rate limits see visitors, not Cloudflare), `/uploads` served by Caddy, private files outside it, nightly `pg_dump` + file backups off the VPS.
 
 **After launch** (§25, §27): [P2] financing providers, disputes, market intelligence, the other §12 items; [P3] property catalog, configurable workflow/SLA/permission engines, native mobile apps.
 

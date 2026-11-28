@@ -4,7 +4,6 @@ import { createRequestHandler } from "@react-router/express";
 import compression from "compression";
 import express, { type Express } from "express";
 import type { Knex } from "knex";
-import morgan from "morgan";
 import type { ServerBuild } from "react-router";
 import type { AuthSecrets, Secrets } from "./env";
 import { createApiRouter } from "./api";
@@ -13,6 +12,7 @@ import { DEFAULT_SUBMISSIONS_PER_DAY } from "../app/shared/constants";
 import { createGetLoadContext } from "./loadContext";
 import { authenticate } from "./middleware/authenticate";
 import { originCheck } from "./middleware/originCheck";
+import { requestLogger } from "./middleware/requestLog";
 import { createAuthCookies } from "./services/authCookies";
 import { createAuthService } from "./services/authService";
 import { checkDatabase } from "./services/healthService";
@@ -79,7 +79,8 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
   // Caddy runs on the same host in production: trust it for the client IP (rate limits).
   if (o.isProduction) app.set("trust proxy", "loopback");
   app.use(compression());
-  if (o.logRequests ?? true) app.use(morgan(o.isProduction ? "tiny" : "dev"));
+  // Request log lines never contain the visitor's location ("near me", map centre).
+  if (o.logRequests ?? true) app.use(requestLogger(o.isProduction));
   // CSRF: state-changing requests (API and page forms) must come from our own origin.
   app.use(originCheck(allowedOrigins));
 

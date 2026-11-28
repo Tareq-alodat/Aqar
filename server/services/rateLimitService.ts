@@ -5,10 +5,12 @@ import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
  * reset on restart, which is acceptable for these limits.
  */
 export const LIMITS = {
-  /** Every /api/v1 request except /map/points, per IP. */
+  /** Every /api/v1 request except those with their own limit below, per IP. */
   api: { points: 100, duration: 60 },
   /** /api/v1/map/points (GET and POST), per IP — its own limit, not counted in `api` (milestone 4 decision). */
   mapPoints: { points: 60, duration: 60 },
+  /** GET /api/v1/areas/suggest (location autocomplete while typing), per IP — its own limit (milestone 4b). */
+  areasSuggest: { points: 120, duration: 60 },
   /** POST /api/v1/listings/:id/view (the page's view beacon), per IP — its own limit (milestone 5). */
   views: { points: 30, duration: 60 },
   /** Photo uploads (POST /api/v1/my/listings/:id/images), per user — image processing is the expensive part (milestone 6). */
@@ -26,6 +28,7 @@ export function createLimiters(): Limiters {
   return {
     api: new RateLimiterMemory({ keyPrefix: "api", ...LIMITS.api }),
     mapPoints: new RateLimiterMemory({ keyPrefix: "map_points", ...LIMITS.mapPoints }),
+    areasSuggest: new RateLimiterMemory({ keyPrefix: "areas_suggest", ...LIMITS.areasSuggest }),
     views: new RateLimiterMemory({ keyPrefix: "views", ...LIMITS.views }),
     uploads: new RateLimiterMemory({ keyPrefix: "uploads", ...LIMITS.uploads }),
     authIp: new RateLimiterMemory({ keyPrefix: "auth_ip", ...LIMITS.authIp }),

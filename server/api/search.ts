@@ -4,13 +4,15 @@ import { z } from "zod";
 import { DEFAULT_LOCALE } from "../../app/shared/locales";
 import {
   bboxSchema,
+  cleanQuery,
   countryCodeSchema,
   parseMapSearch,
   polygonSchema,
+  Q_MAX_LENGTH,
 } from "../../app/shared/schemas/mapSearch";
 import { localeSchema } from "../../app/shared/schemas/routeParams";
 import { rateLimit } from "../middleware/rateLimit";
-import { getAreaTree, getOutlines, getPathAt } from "../services/areaService";
+import { getAreaTree, getOutlines, getPathAt, suggestAreas } from "../services/areaService";
 import type { Limiters } from "../services/rateLimitService";
 import {
   assertValidPolygon,
@@ -39,7 +41,11 @@ function badRequest(res: Response, fields?: string[]) {
   res.status(400).json(fields ? { error: "invalid_input", fields } : { error: "invalid_input" });
 }
 
-/** Country + bbox-or-polygon + filters from a GET query; sends 400 and returns null on bad input. */
+/**
+ * Country + area + filters from a GET query; sends 400 and returns null on bad input.
+ * Area: `poly`, else `near` (+ `radius`), else `bbox`; a text search (`q`) without
+ * any of them covers the whole country (SPEC §5.6).
+ */
 function readSearchQuery(req: Request, res: Response) {
   const q = queryRecord(req);
   if (!q) return badRequest(res), null;
@@ -50,6 +56,8 @@ function readSearchQuery(req: Request, res: Response) {
 
   let area: SearchArea | null = null;
   if (state.poly) area = { kind: "polygon", ring: state.poly };
+  else if (state.near) area = { kind: "near", center: state.near, radiusM: state.radius * 1000 };
+  else if (q.bbox === undefined && state.q) area = { kind: "country" };
   else {
     const bbox = bboxSchema.safeParse(q.bbox);
     if (bbox.success) area = { kind: "bbox", bbox: bbox.data };
@@ -72,6 +80,14 @@ const atQuery = z.object({
   lat: z.coerce.number().min(-90).max(90),
   z: z.coerce.number().min(0).max(22),
 });
+const suggestQuery = z.object({
+  country: countryCodeSchema,
+  q: z
+    .string()
+    .max(Q_MAX_LENGTH * 4)
+    .transform((s) => cleanQuery(s) ?? "")
+    .pipe(z.string().min(1).max(Q_MAX_LENGTH)),
+});
 
 /** /api/v1/map, /api/v1/listings, /api/v1/areas (SPEC §5.4). Public; published listings only. */
 export function searchRouter({ db, limiters }: SearchApiDeps): Router {
@@ -91,12 +107,13 @@ export function searchRouter({ db, limiters }: SearchApiDeps): Router {
   };
 
   const pointsLimit = limiters ? [rateLimit(limiters.mapPoints)] : [];
+  const suggestLimit = limiters ? [rateLimit(limiters.areasSuggest)] : [];
 
   router.get("/map/points", ...pointsLimit, async (req, res, next) => {
     try {
       const input = readSearchQuery(req, res);
       if (!input || !(await withPolygonCheck(input.area, res))) return;
-      res.json(await searchPoints(db, input.country, input.area, input.state.filters));
+      res.json(await searchPoints(db, input.country, input.area, input.state.filters, input.state.q));
     } catch (error) {
       next(error);
     }
@@ -107,10 +124,12 @@ export function searchRouter({ db, limiters }: SearchApiDeps): Router {
       const body = postPointsSchema.safeParse(req.body ?? {});
       if (!body.success) return badRequest(res, body.error.issues.map((i) => String(i.path[0] ?? "body")));
       const { state, invalid } = parseMapSearch(body.data.filters);
+      // A drawn area and "near me" are mutually exclusive (§5.6).
+      if (state.near) invalid.push("near");
       if (invalid.length) return badRequest(res, invalid);
       const area: SearchArea = { kind: "polygon", ring: body.data.polygon.coordinates[0]! as Array<[number, number]> };
       if (!(await withPolygonCheck(area, res))) return;
-      res.json(await searchPoints(db, body.data.country, area, state.filters));
+      res.json(await searchPoints(db, body.data.country, area, state.filters, state.q));
     } catch (error) {
       next(error);
     }
@@ -124,7 +143,7 @@ export function searchRouter({ db, limiters }: SearchApiDeps): Router {
       if (!lang.success) return badRequest(res, ["lang"]);
       if (!(await withPolygonCheck(input.area, res))) return;
       const { filters, sort, page } = input.state;
-      res.json(await searchListings(db, input.country, input.area, filters, sort, page, lang.data));
+      res.json(await searchListings(db, input.country, input.area, filters, sort, page, lang.data, input.state.q));
     } catch (error) {
       next(error);
     }
@@ -157,6 +176,17 @@ export function searchRouter({ db, limiters }: SearchApiDeps): Router {
       const q = atQuery.safeParse(req.query);
       if (!q.success) return badRequest(res, q.error.issues.map((i) => String(i.path[0])));
       res.json({ path: await getPathAt(db, q.data.country, q.data, q.data.z) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Location autocomplete (§5.6): its own rate limit, so typing does not use the general budget.
+  router.get("/areas/suggest", ...suggestLimit, async (req, res, next) => {
+    try {
+      const q = suggestQuery.safeParse(req.query);
+      if (!q.success) return badRequest(res, [...new Set(q.error.issues.map((i) => String(i.path[0])))]);
+      res.set("Cache-Control", "public, max-age=300").json({ items: await suggestAreas(db, q.data.country, q.data.q) });
     } catch (error) {
       next(error);
     }
