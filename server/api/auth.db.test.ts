@@ -9,6 +9,7 @@ import { createAuthCookies } from "../services/authCookies";
 import { createAuthService } from "../services/authService";
 import { createLimiters } from "../services/rateLimitService";
 import { createApiRouter } from "./index";
+import { truncateForDev } from "../db/devTruncate";
 
 const ORIGIN = "http://aqar.test";
 let db: Knex;
@@ -59,11 +60,11 @@ beforeAll(() => {
   db = createTestDb();
 });
 afterAll(async () => {
-  await db.raw("TRUNCATE refresh_tokens, users RESTART IDENTITY CASCADE");
+  await truncateForDev(db, ["refresh_tokens", "users"]);
   await db.destroy();
 });
 beforeEach(async () => {
-  await db.raw("TRUNCATE refresh_tokens, users RESTART IDENTITY CASCADE");
+  await truncateForDev(db, ["refresh_tokens", "users"]);
   now = new Date("2026-12-01T10:00:00Z");
   app = buildApp();
 });
@@ -72,7 +73,7 @@ describe("/api/v1/auth", () => {
   it("registers, returning only the account's own allow-listed fields", async () => {
     const res = await post("/register").send(account);
     expect(res.status).toBe(201);
-    expect(Object.keys(res.body.user).sort()).toEqual(["companyId", "email", "id", "locale", "name", "role"]);
+    expect(Object.keys(res.body.user).sort()).toEqual(["companyId", "email", "id", "locale", "mustChangePassword", "name", "role"]);
     expect(res.body.user).toMatchObject({ email: "api@aqar.test", role: "owner" });
     expect(JSON.stringify(res.body)).not.toMatch(/phone|hash|791234567/);
     expect(cookieHeader(res)).toMatch(/aqar_at=.+; aqar_rt=.+/);

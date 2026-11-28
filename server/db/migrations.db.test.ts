@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as C from "../../app/shared/constants";
 import { PHONE_RULES } from "../../app/shared/phone";
 import { createTestDb } from "./test/testDb";
+import { truncateForDev } from "./devTruncate";
 
 let db: Knex;
 beforeAll(() => {
@@ -28,6 +29,8 @@ describe("migrations", () => {
   it("roll all the way back to PostGIS and up again", async () => {
     const [, pending0] = (await db.migrate.list()) as [unknown[], unknown[]];
     expect(pending0).toHaveLength(0);
+    // Seeded supervisors have no pre-7a role, so the 7a rollback refuses while they exist (tested below).
+    await truncateForDev(db, ["users"]);
     // Down to just after enable_postgis (its own down can't drop extensions other images add).
     for (;;) {
       const [done] = (await db.migrate.list()) as [Array<{ name: string }>, unknown[]];
@@ -38,6 +41,14 @@ describe("migrations", () => {
     expect(await db.schema.hasTable("countries")).toBe(false);
     await db.migrate.latest();
     expect(await db.schema.hasTable("property_identifiers")).toBe(true);
+  });
+
+  it("refuse to roll back the supervisor model while supervisor accounts exist", async () => {
+    await db("users").insert({ email: "rollback-sup@aqar.test", name: "S", password_hash: "x", role: "supervisor" });
+    await expect(db.migrate.down()).rejects.toThrow(/supervisor or financier/);
+    const [, pending] = (await db.migrate.list()) as [unknown[], unknown[]];
+    expect(pending).toHaveLength(0);
+    await truncateForDev(db, ["users"]);
   });
 
   it("insert the reference data", async () => {
@@ -158,6 +169,6 @@ describe("properties constraints", () => {
   });
 
   afterAll(async () => {
-    await db.raw("TRUNCATE contact_numbers, property_identifiers, properties, users RESTART IDENTITY CASCADE");
+    await truncateForDev(db, ["contact_numbers", "property_identifiers", "properties", "users"]);
   });
 });

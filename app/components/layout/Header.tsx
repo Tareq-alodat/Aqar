@@ -1,9 +1,9 @@
-import { Plus } from "lucide-react";
+import { LayoutDashboard, Plus } from "lucide-react";
 import { Link, useLocation, useParams } from "react-router";
 import { ThemeToggle } from "~/components/ui/ThemeToggle";
 import { useAuth } from "~/hooks/useAuth";
 import { useLocale, useT } from "~/i18n/useT";
-import { LISTER_ROLES } from "~/shared/constants";
+import { isStaffRole, LISTER_ROLES } from "~/shared/constants";
 import { DEFAULT_COUNTRY } from "~/shared/countries";
 import { switchLocalePath } from "~/shared/locales";
 import { activeCountrySchema } from "~/shared/schemas/routeParams";
@@ -56,6 +56,17 @@ export function Header() {
           >
             <Plus aria-hidden="true" className="size-4" strokeWidth={3} />
             <span className="hidden sm:inline">{t("headerAdd.add")}</span>
+          </Link>
+        )}
+        {user && isStaffRole(user.role) && (
+          <Link
+            to={`/${locale}/backoffice`}
+            aria-label={t("backoffice.link")}
+            title={t("backoffice.link")}
+            className={`${headerControl} flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium`}
+          >
+            <LayoutDashboard aria-hidden="true" className="size-4" />
+            <span className="hidden md:inline">{t("backoffice.link")}</span>
           </Link>
         )}
         <Link

@@ -17,11 +17,23 @@ export function cookieHeaders(cookies: string[]): Headers {
   return headers;
 }
 
-/** The signed-in user, or a redirect to the login page that comes back here afterwards. */
-export function requireUser(context: AppLoadContext, request: Request): SessionUser {
-  if (context.session) return context.session.user;
+/** The page where a user with a one-time password must choose their own (milestone 7a). */
+export function changePasswordPath(locale: Locale): string {
+  return `/${locale}/account/password`;
+}
+
+/**
+ * The signed-in user, or a redirect to the login page that comes back here
+ * afterwards. A user who must change a one-time password is sent to the
+ * change-password page instead (only that page passes `allowPasswordChange`).
+ */
+export function requireUser(context: AppLoadContext, request: Request, options: { allowPasswordChange?: boolean } = {}): SessionUser {
   const url = new URL(request.url);
   const locale = localeFromPathname(url.pathname);
+  if (context.session) {
+    if (context.session.user.mustChangePassword && !options.allowPasswordChange) throw redirect(changePasswordPath(locale));
+    return context.session.user;
+  }
   throw redirect(`/${locale}/login?next=${encodeURIComponent(url.pathname + url.search)}`);
 }
 

@@ -260,7 +260,7 @@ describe("visibility", () => {
   });
 });
 
-describe("resolveContactNumber (SPEC §8 order)", () => {
+describe("resolveContactNumber fallback chain (SPEC §8 order, no supervisor)", () => {
   const areaId = async (level: string, nameAr: string) =>
     (await db("admin_areas").where({ country_code: "JO", level, name_ar: nameAr }).first("id")).id as number;
 
@@ -268,7 +268,7 @@ describe("resolveContactNumber (SPEC §8 order)", () => {
     const abdoun = await areaId("area", "عبدون");
     const propertyNumber = await db("contact_numbers").where({ scope: "property" }).first("property_id");
     const listing = await db("properties").where({ id: propertyNumber.property_id }).first("id", "admin_area_id", "country_code");
-    const resolve = (id: number, adminAreaId: number | null) => resolveContactNumber(db, { id, adminAreaId, countryCode: "JO" });
+    const resolve = (id: number, adminAreaId: number | null) => resolveContactNumber(db, { id, adminAreaId, countryCode: "JO", assignedSupervisorId: null });
 
     expect((await resolve(listing.id, listing.admin_area_id))?.phone).toBe("+96265000005");
     expect((await resolve(-1, abdoun))?.phone).toBe("+96265000004");
@@ -291,16 +291,25 @@ describe("resolveContactNumber (SPEC §8 order)", () => {
       expect((await resolve(listing.id, abdoun))?.phone).toBe("+96265000004");
       expect((await resolve(-1, null))?.phone).toBe("+96265000001");
       // A number on another country never applies.
-      expect((await resolveContactNumber(db, { id: -1, adminAreaId: null, countryCode: "KW" }))?.phone).toBe("+96265000001");
+      expect((await resolveContactNumber(db, { id: -1, adminAreaId: null, countryCode: "KW", assignedSupervisorId: null }))?.phone).toBe("+96265000001");
     } finally {
       await db("contact_numbers").update({ is_active: true });
     }
   });
 
-  it("is what the API returns", async () => {
+  it("is what the API returns: the assigned supervisor's work mobile, else the fallback", async () => {
     const propertyNumber = await db("contact_numbers").where({ scope: "property" }).first("property_id");
+    const listing = await db("properties").where({ id: propertyNumber.property_id }).first("assigned_supervisor_id");
+    const sup = await db("supervisor_profiles").where({ user_id: listing.assigned_supervisor_id }).first("work_phone_e164", "work_phone_whatsapp");
     const res = await request(app).get(`/api/v1/listings/${propertyNumber.property_id}`);
-    expect(res.body.listing.contact).toEqual({ phone: "+96265000005", whatsapp: true });
+    expect(res.body.listing.contact).toEqual({ phone: sup.work_phone_e164, whatsapp: sup.work_phone_whatsapp });
+    try {
+      await db("properties").where({ id: propertyNumber.property_id }).update({ assigned_supervisor_id: null, assigned_at: null });
+      const queued = await request(app).get(`/api/v1/listings/${propertyNumber.property_id}`);
+      expect(queued.body.listing.contact).toEqual({ phone: "+96265000005", whatsapp: true });
+    } finally {
+      await db("properties").where({ id: propertyNumber.property_id }).update({ assigned_supervisor_id: listing.assigned_supervisor_id, assigned_at: db.fn.now() });
+    }
   });
 });
 

@@ -5,7 +5,9 @@ import { rateLimit } from "../middleware/rateLimit";
 import type { Limiters } from "../services/rateLimitService";
 import type { SubmissionDeps } from "../services/submissionService";
 import type { ViewConfig } from "../services/viewService";
+import { apiPasswordGate } from "../middleware/passwordChangeGate";
 import { authRouter, type AuthApiDeps } from "./auth";
+import { backofficeRouter, type BackofficeDeps } from "./backoffice";
 import { healthRouter, type HealthDeps } from "./health";
 import { listingRouter } from "./listing";
 import { myListingsRouter } from "./myListings";
@@ -21,6 +23,8 @@ export interface ApiDeps extends HealthDeps {
   views?: ViewConfig;
   /** Submit wizard (storage, phone keys); omitted only in tests of other routers. */
   submission?: SubmissionDeps;
+  /** Back office (supervisors, assignment); omitted only in tests of other routers. */
+  backoffice?: BackofficeDeps;
 }
 
 /**
@@ -36,13 +40,14 @@ export function createApiRouter(deps: ApiDeps): Router {
   // Limit first, so a flood costs no database work.
   if (deps.limiters) api.use(rateLimit(deps.limiters.api, { skip: hasOwnLimit }));
   api.use(express.json({ limit: "1mb" }));
-  if (deps.auth) api.use(authenticate(deps.auth.service, deps.auth.cookies));
+  if (deps.auth) api.use(authenticate(deps.auth.service, deps.auth.cookies), apiPasswordGate);
 
   api.use("/health", healthRouter(deps));
   if (deps.auth) api.use("/auth", authRouter(deps.auth));
   if (deps.db) api.use(searchRouter({ db: deps.db, limiters: deps.limiters }));
   if (deps.db && deps.views) api.use(listingRouter({ db: deps.db, views: deps.views, limiters: deps.limiters }));
   if (deps.submission) api.use(myListingsRouter({ ...deps.submission, limiters: deps.limiters }));
+  if (deps.backoffice) api.use("/backoffice", backofficeRouter(deps.backoffice));
 
   api.use((_req, res) => {
     res.status(404).json({ error: "not_found" });

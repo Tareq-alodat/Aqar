@@ -4,7 +4,10 @@
     "tagline": "Find your property on the map"
   },
   "countries": {
-    "jo": "Jordan"
+    "jo": "Jordan",
+    "sa": "Saudi Arabia",
+    "kw": "Kuwait",
+    "ae": "United Arab Emirates"
   },
   "header": {
     "home": "Home",
@@ -507,5 +510,142 @@
     "radiusKm": "{km} km",
     "nearActive": "Within {km} km of you",
     "clearNear": "Stop searching near me"
+  },
+  "account": {
+    "password": {
+      "title": "Change password",
+      "heading": "Change your password",
+      "forced": "You signed in with a one-time password. Choose your own password to continue.",
+      "current": "Current password",
+      "currentForced": "One-time password",
+      "new": "New password",
+      "confirm": "Repeat the new password",
+      "submit": "Change password",
+      "done": "Your password has been changed. Your other sessions have been signed out.",
+      "continue": "Continue",
+      "errors": {
+        "password_mismatch": "The two new passwords do not match.",
+        "password_unchanged": "Choose a password different from the current one."
+      }
+    }
+  },
+  "backoffice": {
+    "title": "Back office",
+    "link": "Back office",
+    "navLabel": "Back office",
+    "nav": {
+      "home": "Overview",
+      "supervisors": "Supervisors"
+    },
+    "home": {
+      "heading": "Overview",
+      "welcome": "Signed in as {name}",
+      "assignedPending": "Pending listings assigned to me",
+      "assignedOpen": "Open listings assigned to me",
+      "allPending": "All pending listings",
+      "queuePending": "Pending listings in the unassigned queue",
+      "supervisors": "Active supervisors"
+    },
+    "supervisors": {
+      "heading": "Supervisors",
+      "intro": "AQAR employees who review and handle listings in their areas. Their work mobile is the public contact on their listings.",
+      "add": "Add supervisor",
+      "empty": "No supervisors yet.",
+      "name": "Name",
+      "email": "Email",
+      "workPhone": "Work mobile",
+      "scope": "Areas",
+      "open": "Open listings",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "mustChange": "Has not changed the one-time password yet",
+      "noScope": "No areas",
+      "moreAreas": {
+        "one": "+{count} more area",
+        "other": "+{count} more areas"
+      },
+      "whatsapp": "WhatsApp",
+      "back": "All supervisors"
+    },
+    "form": {
+      "profileHeading": "Profile",
+      "name": "Full name",
+      "email": "Email",
+      "emailHint": "Used to sign in. Must not belong to an existing account.",
+      "workPhone": "Work mobile (AQAR number)",
+      "workPhoneHint": "Shown publicly on this supervisor's listings, for example 079 000 0101.",
+      "phoneCountry": "Country of the number",
+      "whatsapp": "This number has WhatsApp",
+      "titleAr": "Job title (Arabic)",
+      "titleEn": "Job title (English)",
+      "optional": "Optional",
+      "create": "Create supervisor",
+      "save": "Save profile",
+      "saved": "Profile saved."
+    },
+    "created": {
+      "heading": "Supervisor created",
+      "resetHeading": "New one-time password issued",
+      "otpLabel": "One-time password",
+      "otpNote": "Give this password to the supervisor through a safe channel. It is shown only once and cannot be retrieved later; they must change it when they first sign in.",
+      "open": "Open the supervisor's page"
+    },
+    "scopes": {
+      "heading": "Areas (scope)",
+      "hint": "The supervisor sees and receives listings inside the chosen areas, including everything inside them. Listings that leave their scope move to the next matching supervisor; unassigned listings inside it are picked up.",
+      "selected": {
+        "zero": "No areas selected",
+        "one": "1 area selected",
+        "other": "{count} areas selected"
+      },
+      "save": "Save areas",
+      "saved": "Areas saved. Listings reassigned: {moved}. Picked up from the unassigned queue: {picked}.",
+      "levels": {
+        "governorate": "Governorate",
+        "city": "City",
+        "area": "Area",
+        "district": "District",
+        "block": "Block"
+      },
+      "inside": "Inside ({count})"
+    },
+    "status": {
+      "heading": "Status",
+      "activeNow": "This supervisor is active.",
+      "inactiveNow": "This supervisor is inactive and cannot use the back office.",
+      "reason": "Reason",
+      "reasonHint": "Required. Stored in the audit log.",
+      "deactivate": "Deactivate supervisor",
+      "activate": "Reactivate supervisor",
+      "deactivateNote": {
+        "zero": "They have no open listings. They will be signed out everywhere.",
+        "one": "Their 1 open listing will move to the next matching supervisor or the unassigned queue. They will be signed out everywhere.",
+        "other": "Their {count} open listings will move to the next matching supervisor or the unassigned queue. They will be signed out everywhere."
+      },
+      "deactivated": "Supervisor deactivated. Listings reassigned: {moved}.",
+      "activated": "Supervisor reactivated."
+    },
+    "password": {
+      "heading": "Password",
+      "note": "Issues a new one-time password and signs the supervisor out everywhere. They must change it when they next sign in.",
+      "reset": "Issue a new one-time password"
+    },
+    "errors": {
+      "invalid_input": "Please check the form.",
+      "name_invalid": "Enter a name (2 to 80 characters).",
+      "email_invalid": "Enter a valid email address.",
+      "email_taken": "An account with this email already exists. Supervisors are always new accounts.",
+      "phone_invalid": "Enter a valid mobile number for the chosen country.",
+      "title_invalid": "At most 80 characters.",
+      "reason_required": "Enter a reason (at most 500 characters).",
+      "area_invalid": "One of the chosen areas no longer exists.",
+      "forbidden": "You are not allowed to do this.",
+      "not_found": "Not found.",
+      "not_assignable": "This listing cannot be assigned in its current status.",
+      "invalid_assignee": "This supervisor cannot take the listing (not active, outside their areas, or its owner).",
+      "already_in_state": "Nothing to change.",
+      "password_change_required": "Change your one-time password first."
+    }
   }
 }

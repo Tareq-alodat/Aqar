@@ -8,7 +8,7 @@ export function authErrorText(t: TFunction, code: AuthErrorCode | undefined): st
 }
 
 /** Centered card for the login/register forms. */
-export function AuthCard({ heading, error, children, footer }: { heading: string; error?: string; children: ReactNode; footer: ReactNode }) {
+export function AuthCard({ heading, error, children, footer }: { heading: string; error?: string | undefined; children: ReactNode; footer?: ReactNode }) {
   return (
     <div className="flex flex-1 items-start justify-center px-4 py-10 sm:items-center">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-lg">
@@ -19,7 +19,7 @@ export function AuthCard({ heading, error, children, footer }: { heading: string
           </p>
         )}
         {children}
-        <p className="mt-5 text-center text-sm text-muted">{footer}</p>
+        {footer && <p className="mt-5 text-center text-sm text-muted">{footer}</p>}
       </div>
     </div>
   );

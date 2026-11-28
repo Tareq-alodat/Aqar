@@ -118,7 +118,7 @@ async function completeDraft(cookie: string, category = "apartment", target: exp
 }
 
 describe("access", () => {
-  it("needs a session; admins do not list properties", async () => {
+  it("needs a session; the super_admin does not list properties", async () => {
     expect((await request(app).post("/api/v1/my/listings").send({})).status).toBe(401);
     expect((await api(admin).create()).status).toBe(403);
   });
@@ -362,6 +362,16 @@ describe("submit", () => {
     expect(row.slug).toBe("apartment-sale-abdoun");
     expect(row.location_precision).toBe("approximate");
     expect(await db("price_history").where({ property_id: id }).count({ n: "*" }).first()).toEqual({ n: "1" });
+
+    // Milestone 7a: assigned to the supervisor of Amman city (Abdoun is inside it), recorded in the status history.
+    const ammanSup = await db("users").where({ email: "sup.amman@aqar.test" }).first("id");
+    expect(row.assigned_supervisor_id).toBe(ammanSup.id);
+    expect(row.assigned_at).toBeInstanceOf(Date);
+    const history = await db("status_history").where({ entity_type: "listing", entity_id: id }).select("from_status", "to_status", "actor_user_id");
+    const agentId = (await db("users").where({ email: "agent2@aqar.test" }).first("id")).id;
+    expect(history).toEqual([{ from_status: "draft", to_status: "pending", actor_user_id: agentId }]);
+    const audit = await db("audit_log").where({ entity_type: "listing", entity_id: id }).select("action", "actor_user_id", "after", "reason");
+    expect(audit).toEqual([{ action: "listing_assigned", actor_user_id: null, after: { assigned_supervisor_id: ammanSup.id }, reason: "submitted" }]);
 
     const view = await a.get(id);
     expect(view.body.draft.status).toBe("pending");

@@ -30,12 +30,49 @@ describe("dev seed (SPEC §17)", () => {
     }
   });
 
-  it("creates 1 admin, 2 agents in a verified company and 3 owners", async () => {
-    expect(await db("users").orderBy("role").pluck("role")).toEqual(["admin", "agent", "agent", "owner", "owner", "owner"]);
+  it("creates 1 super_admin, 2 supervisors, 2 agents in a verified company and 3 owners", async () => {
+    expect(await db("users").orderBy("role").pluck("role")).toEqual(["agent", "agent", "owner", "owner", "owner", "super_admin", "supervisor", "supervisor"]);
     expect(await count(db("users").where({ role: "agent" }).whereNotNull("company_id"))).toBe(2);
     expect((await db("companies").first()).is_verified).toBe(true);
-    const admin = await db("users").where({ role: "admin" }).first();
+    const admin = await db("users").where({ role: "super_admin" }).first();
     expect(await verifyPassword(DEV_PASSWORD, admin.password_hash)).toBe(true);
+    expect(await count(db("users").where({ must_change_password: true }))).toBe(0);
+  });
+
+  it("gives the supervisors work mobiles and scopes: Amman city, and the other governorates", async () => {
+    const sups = await db("supervisor_profiles as sp").join("users as u", "u.id", "sp.user_id").orderBy("u.email").select("u.id", "u.email", "sp.work_phone_e164", "sp.is_active");
+    expect(sups.map((s) => s.email)).toEqual(["sup.amman@aqar.test", "sup.regions@aqar.test"]);
+    for (const s of sups) {
+      expect(s.work_phone_e164).toMatch(/^\+9627\d{8}$/);
+      expect(s.is_active).toBe(true);
+    }
+    const scope = (id: number) => db("supervisor_scopes as s").join("admin_areas as a", "a.id", "s.admin_area_id").where("s.supervisor_id", id).select("a.level", "a.name_ar", "a.id", "a.parent_id");
+    const amman = await scope(sups[0].id);
+    expect(amman.map((a) => [a.level, a.name_ar])).toEqual([["city", "عمان"]]);
+    const regions = await scope(sups[1].id);
+    const governorates = await db("admin_areas").where({ country_code: "JO", level: "governorate" }).pluck("id");
+    expect(regions.every((a) => a.level === "governorate")).toBe(true);
+    expect(regions).toHaveLength(governorates.length - 1);
+    expect(regions.map((a) => a.id)).not.toContain(amman[0].parent_id);
+  });
+
+  it("assigns every seeded listing to the supervisor of its area, else the super_admin's queue", async () => {
+    const rows = await db("properties as p")
+      .leftJoin("admin_areas as a", "a.id", "p.admin_area_id")
+      .select("p.id", "p.admin_area_id", "p.assigned_supervisor_id", "p.assigned_at");
+    const [ammanSup] = await db("users").where({ email: "sup.amman@aqar.test" }).pluck("id");
+    let amman = 0;
+    for (const r of rows) {
+      if (r.admin_area_id === null) {
+        expect(r.assigned_supervisor_id).toBeNull();
+        continue;
+      }
+      expect(r.assigned_supervisor_id === null).toBe(r.assigned_at === null);
+      if (r.assigned_supervisor_id === ammanSup) amman++;
+    }
+    // The six seed neighbourhoods are in Amman city.
+    expect(amman).toBeGreaterThanOrEqual(30);
+    expect(await count(db("properties").whereNotNull("admin_area_id").whereNull("assigned_supervisor_id"))).toBeLessThan(rows.length);
   });
 
   it("creates 40 published, 3 pending and 2 sold listings", async () => {

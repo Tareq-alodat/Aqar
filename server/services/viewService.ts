@@ -1,6 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { stringifySetCookie } from "cookie";
 import type { Knex } from "knex";
+import { isStaffRole } from "../../app/shared/constants";
 import { isPublicStatus, type Viewer } from "./listingService";
 
 /**
@@ -59,7 +60,8 @@ export async function recordView(
   return db.transaction(async (trx) => {
     const p = await trx("properties").where({ id: input.propertyId }).first("owner_id", "status");
     if (!p || !isPublicStatus(p.status)) return false;
-    if (input.viewer && (input.viewer.userId === p.owner_id || input.viewer.role === "admin")) return false;
+    // The owner's and back-office staff's own views are not counted.
+    if (input.viewer && (input.viewer.userId === p.owner_id || isStaffRole(input.viewer.role))) return false;
 
     const inserted = await trx.raw<{ rowCount: number }>(
       `INSERT INTO property_views (property_id, visitor_hash, view_date, viewed_at)
