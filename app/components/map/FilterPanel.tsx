@@ -16,7 +16,8 @@ interface FilterPanelProps {
 const AGE_OPTIONS = [1, 5, 10, 20, 30];
 const BATH_OPTIONS = [1, 2, 3, 4];
 
-const chip = (on: boolean) =>
+/** Filter chip (shared with the mobile type row on the map page). */
+export const chip = (on: boolean) =>
   `rounded-full border px-3 py-1.5 text-sm transition-colors ${on ? "border-primary bg-primary text-on-primary hover:bg-primary-hover" : "border-muted/60 bg-background hover:border-foreground"}`;
 // Form fields: border in `muted` so the control boundary reaches 3:1 (WCAG 1.4.11).
 const field = "rounded-lg border border-muted bg-background px-2.5 py-1.5 text-sm placeholder:text-muted";

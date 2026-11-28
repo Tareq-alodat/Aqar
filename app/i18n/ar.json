@@ -113,7 +113,8 @@
       "many": "حتى {count} سنة",
       "other": "حتى {count} سنة"
     },
-    "onlyIn": "فقط في"
+    "onlyIn": "فقط في",
+    "allTypes": "الكل"
   },
   "listing": {
     "types": {

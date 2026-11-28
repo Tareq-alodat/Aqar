@@ -215,10 +215,10 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 - **Map:** callout pins with tail, white 2px outline, soft shadow, larger when hovered, amber ring for featured; exchange pins amber with dark ink. Clusters in primary with white count, ring and halo, darker on hover. Area hover and drawn area: primary 2px, 8 % fill. Basemap water/green tinted (light and dark). Layer colours are re-applied after a theme switch (they used to keep the previous theme's colours).
 - **Cards:** image on top (4:3; type-colour gradient with a category icon when there is no photo), large primary price, solid type badge, facts with `lucide-react` icons (ISC), lift on hover; two-column results grid; 4-column similar listings.
 - **Seed:** colourful per-category SVG placeholders (`server/db/seedPlaceholders.ts`).
+- **Mobile filter row:** under the header on the map page, the listing-type chips (All / For sale / For rent / Exchange, scrolling sideways) and the filters button with a count badge (moved out of the map overlay).
 - **Motion:** 150–200 ms transitions; global `prefers-reduced-motion` rule.
 - Docs: SPEC §14 and §5.2, CLAUDE.md conventions.
 - Tests: 420 unit (incl. contrast guard, basemap tint, pin stretch zones, placeholders) and 152 database/HTTP. Browser check (throwaway database): map, listing, login, register, 404 × ar/en × light/dark × desktop/mobile — axe-core: no violations; pins, cluster hover, card ↔ pin, theme switch and water tint checked on screenshots.
 
 ### Known gaps
-- The mockup's mobile filter-chip row under the header was not added (mobile keeps the filters button).
 - Pins are drawn without a visible size animation (the hovered pin is redrawn larger).
