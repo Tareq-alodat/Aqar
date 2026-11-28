@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Knex } from "knex";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { truncateForDev } from "../db/devTruncate";
 import { createTestDb } from "../db/test/testDb";
 import { createAuthService, type AuthService, type AuthSuccess, type PasswordFns } from "./authService";
 import { decrypt } from "./cryptoService";
@@ -59,11 +60,11 @@ beforeAll(() => {
   db = createTestDb();
 });
 afterAll(async () => {
-  await db.raw("TRUNCATE refresh_tokens, users RESTART IDENTITY CASCADE");
+  await truncateForDev(db, ["refresh_tokens", "users"]);
   await db.destroy();
 });
 beforeEach(async () => {
-  await db.raw("TRUNCATE refresh_tokens, users RESTART IDENTITY CASCADE");
+  await truncateForDev(db, ["refresh_tokens", "users"]);
   now = new Date("2026-12-01T10:00:00Z");
   auth = makeService();
 });
@@ -179,10 +180,29 @@ describe("sessions", () => {
     expect(resolved).toEqual({ session: null, clearCookies: true });
   });
 
-  it("applies a role change on the next request", async () => {
+  it("ends the sessions on a role change (database trigger), and the new role applies at the next login", async () => {
     const r = await registerUser("s@aqar.test");
-    await db("users").where({ id: r.session.user.id }).update({ role: "admin" });
-    expect((await auth.resolve({ access: r.issued.accessToken }, meta())).session?.user.role).toBe("admin");
+    await db("users").where({ id: r.session.user.id }).update({ role: "agent" });
+    expect(await auth.resolve(cookiesOf(r), meta())).toEqual({ session: null, clearCookies: true });
+    const again = await auth.login({ email: "s@aqar.test", password: "correct-password" }, meta());
+    expect(again.ok && again.session.user.role).toBe("agent");
+  });
+
+  it("keeps the sessions when an update leaves role and status unchanged", async () => {
+    const r = await registerUser("s@aqar.test");
+    await db("users").where({ id: r.session.user.id }).update({ role: "owner", status: "active", name: "Renamed" });
+    expect((await auth.resolve({ access: r.issued.accessToken }, meta())).session?.user.name).toBe("Renamed");
+  });
+
+  it("ends the sessions when a suspended account is reactivated too", async () => {
+    const r = await registerUser("s@aqar.test");
+    const second = await auth.login({ email: "s@aqar.test", password: "correct-password" }, meta());
+    if (!second.ok) throw new Error("login failed");
+    await db("users").where({ id: r.session.user.id }).update({ status: "suspended" });
+    await db("users").where({ id: r.session.user.id }).update({ status: "active" });
+    expect((await auth.resolve(cookiesOf(r), meta())).session).toBeNull();
+    expect((await auth.resolve(cookiesOf(second), meta())).session).toBeNull();
+    expect(await db("refresh_tokens").whereNull("revoked_at").count({ n: "*" }).first()).toEqual({ n: "0" });
   });
 
   it("rotates the refresh token once the access token has expired", async () => {
@@ -252,9 +272,9 @@ describe("sessions", () => {
     expect((await auth.resolve({ refresh }, meta())).session).toBeNull();
   });
 
-  it("gives admins 1 day idle and 7 days absolute", async () => {
+  it("gives the super_admin 1 day idle and 7 days absolute", async () => {
     const r = await registerUser("admin@aqar.test");
-    await db("users").where({ id: r.session.user.id }).update({ role: "admin" });
+    await db("users").where({ id: r.session.user.id }).update({ role: "super_admin" });
     const login = await auth.login({ email: "admin@aqar.test", password: "correct-password" }, meta());
     if (!login.ok) throw new Error("login failed");
     expect(login.issued.refreshExpiresAt.getTime()).toBe(now.getTime() + DAY);
@@ -275,10 +295,10 @@ describe("sessions", () => {
     expect((await auth.resolve({ refresh }, meta())).session).toBeNull();
   });
 
-  it("applies the admin cap to a session that started before a promotion", async () => {
+  it("ends a session that started before a promotion to staff", async () => {
     const r = await registerUser("promoted@aqar.test");
     advance(8 * DAY);
-    await db("users").where({ id: r.session.user.id }).update({ role: "admin" });
+    await db("users").where({ id: r.session.user.id }).update({ role: "super_admin" });
     expect((await auth.resolve({ refresh: r.issued.refreshToken }, meta())).session).toBeNull();
   });
 

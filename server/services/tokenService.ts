@@ -19,9 +19,11 @@ const AUDIENCE = "aqar";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Sliding idle expiry and absolute family cap per role (decided for milestone 3). */
+/** Sliding idle expiry and absolute family cap per role (SPEC §13): staff and financiers 1 day / 7 days. */
 export const SESSION_POLICY: Record<Role, { idleMs: number; absoluteMs: number }> = {
-  admin: { idleMs: 1 * DAY_MS, absoluteMs: 7 * DAY_MS },
+  super_admin: { idleMs: 1 * DAY_MS, absoluteMs: 7 * DAY_MS },
+  supervisor: { idleMs: 1 * DAY_MS, absoluteMs: 7 * DAY_MS },
+  financier: { idleMs: 1 * DAY_MS, absoluteMs: 7 * DAY_MS },
   agent: { idleMs: 30 * DAY_MS, absoluteMs: 90 * DAY_MS },
   owner: { idleMs: 30 * DAY_MS, absoluteMs: 90 * DAY_MS },
 };

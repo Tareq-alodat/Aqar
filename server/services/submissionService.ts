@@ -33,6 +33,8 @@ import {
 import { COMMISSION_TERMS_VERSION } from "../../app/shared/terms";
 import type { Secrets } from "../env";
 import { getCountryAddressFields, getCountrySubmissionInfo, type CountrySubmissionInfo } from "./countryService";
+import { assignOnSubmit } from "./assignmentService";
+import { recordStatusChange } from "./auditService";
 import { decrypt, protectPhone } from "./cryptoService";
 import { getIdentifierScheme, IdentifierError, normalizeIdentifier, type IdentifierInput, type IdentifierScheme } from "./identifierService";
 import { processImage } from "./imageService";
@@ -629,7 +631,8 @@ function slugFor(category: Category, type: ListingType, areaSlug: string | undef
 }
 
 /**
- * Submits a draft → `pending` (SPEC §7, §19). In one transaction: the
+ * Submits a draft → `pending` (SPEC §7, §19), recorded in the status history
+ * and assigned to the area's supervisor (§4.2, §26). In one transaction: the
  * lister's row is locked (submission rate), the draft is re-validated in full, the
  * phone is stored encrypted, the payer type and the accepted terms are recorded.
  */
@@ -697,6 +700,9 @@ export async function submitDraft(deps: SubmissionDeps, user: Lister, id: number
         commission_terms_accepted_at: now,
         slug: slugFor(row.category, row.listing_type, areaSlug),
       });
+    // Every status change is recorded (SPEC §26), and the listing goes to its area's supervisor (§4.2).
+    await recordStatusChange(trx, { entityType: "listing", entityId: id, from: "draft", to: "pending", actorUserId: user.id });
+    await assignOnSubmit(trx, id);
     // Price history is written from phase 1 on (SPEC §12).
     const priced = await trx("properties").where({ id }).first("price", "currency");
     await trx("price_history").insert({ property_id: id, price: priced.price, currency: priced.currency, changed_by: user.id, changed_at: now });

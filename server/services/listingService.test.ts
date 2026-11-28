@@ -8,7 +8,7 @@ describe("publicOwnerName", () => {
     expect(publicOwnerName("Khaled\tAl-Nabulsi", "owner")).toBe("Khaled");
     expect(publicOwnerName("Mona", "owner")).toBe("Mona");
     // Admins listing a property are individuals too.
-    expect(publicOwnerName("مدير النظام", "admin")).toBe("مدير");
+    expect(publicOwnerName("مدير النظام", "super_admin")).toBe("مدير");
   });
 
   it("keeps the full name of agents", () => {

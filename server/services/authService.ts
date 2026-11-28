@@ -5,6 +5,7 @@ import type { Locale } from "../../app/shared/locales";
 import type { AuthErrorCode, LoginInput, RegisterInput } from "../../app/shared/schemas/auth";
 import type { Theme } from "../../app/shared/schemas/theme";
 import type { AuthSecrets, Secrets } from "../env";
+import { recordAudit } from "./auditService";
 import { protectPhone } from "./cryptoService";
 import * as passwordService from "./passwordService";
 import { check, take, type Limiters } from "./rateLimitService";
@@ -35,6 +36,8 @@ export interface SessionUser {
   role: Role;
   locale: Locale;
   companyId: number | null;
+  /** Signed in with a one-time password: only the change-password page and endpoint are allowed (milestone 7a). */
+  mustChangePassword: boolean;
 }
 
 export interface Session {
@@ -82,7 +85,7 @@ export interface AuthDeps {
 
 export type AuthService = ReturnType<typeof createAuthService>;
 
-const USER_COLUMNS = ["u.id", "u.name", "u.email", "u.role", "u.status", "u.locale", "u.company_id"] as const;
+const USER_COLUMNS = ["u.id", "u.name", "u.email", "u.role", "u.status", "u.locale", "u.company_id", "u.must_change_password"] as const;
 
 interface UserRow {
   id: number;
@@ -92,11 +95,22 @@ interface UserRow {
   status: "active" | "suspended";
   locale: Locale;
   company_id: number | null;
+  must_change_password: boolean;
 }
 
 function toSessionUser(row: UserRow): SessionUser {
-  return { id: row.id, name: row.name, email: row.email, role: row.role, locale: row.locale, companyId: row.company_id };
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    locale: row.locale,
+    companyId: row.company_id,
+    mustChangePassword: row.must_change_password,
+  };
 }
+
+export type ChangePasswordResult = { ok: true } | { ok: false; error: "invalid_credentials" | "rate_limited"; retryAfterS?: number };
 
 function isEmailTaken(error: unknown): boolean {
   const e = error as { code?: string; constraint?: string } | null;
@@ -348,11 +362,46 @@ export function createAuthService(deps: AuthDeps) {
     for (const familyId of families) await revokeFamily(db, familyId, now);
   }
 
+  /**
+   * Changes the signed-in user's password (current password required). Clears
+   * `must_change_password`, ends the user's other sessions and keeps this one.
+   * Wrong current passwords count towards the per-email login limit.
+   */
+  async function changePassword(session: Session, input: { currentPassword: string; newPassword: string }, meta: RequestMeta): Promise<ChangePasswordResult> {
+    const email = session.user.email.toLowerCase();
+    const perEmail = await check(limiters.loginEmail, email);
+    if (!perEmail.ok) return { ok: false, error: "rate_limited", retryAfterS: perEmail.retryAfterS };
+    const row = await db("users").where({ id: session.user.id }).first("password_hash");
+    if (!row || !(await passwords.verify(input.currentPassword, row.password_hash))) {
+      await take(limiters.loginEmail, email);
+      return { ok: false, error: "invalid_credentials" };
+    }
+    const hash = await passwords.hash(input.newPassword);
+    const now = clock();
+    await db.transaction(async (trx) => {
+      await trx("users").where({ id: session.user.id }).update({ password_hash: hash, must_change_password: false });
+      await trx("refresh_tokens")
+        .where({ user_id: session.user.id })
+        .whereNot({ family_id: session.familyId })
+        .whereNull("revoked_at")
+        .update({ revoked_at: now });
+      await recordAudit(trx, {
+        actorUserId: session.user.id,
+        action: "password_changed",
+        entityType: "user",
+        entityId: session.user.id,
+        ipHash: hashIp(meta.ip, secrets.refreshTokenSecret),
+      });
+    });
+    return { ok: true };
+  }
+
   return {
     register,
     login,
     resolve,
     logout,
+    changePassword,
     /** Explicit refresh (POST /api/v1/auth/refresh). */
     async refresh(refreshToken: string | undefined, meta: RequestMeta): Promise<ResolveResult> {
       if (!looksLikeRefreshToken(refreshToken)) return { session: null, clearCookies: Boolean(refreshToken) };

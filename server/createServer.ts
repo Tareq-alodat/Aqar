@@ -12,6 +12,7 @@ import { DEFAULT_SUBMISSIONS_PER_DAY } from "../app/shared/constants";
 import { createGetLoadContext } from "./loadContext";
 import { authenticate } from "./middleware/authenticate";
 import { originCheck } from "./middleware/originCheck";
+import { pageActionGate } from "./middleware/passwordChangeGate";
 import { requestLogger } from "./middleware/requestLog";
 import { createAuthCookies } from "./services/authCookies";
 import { createAuthService } from "./services/authService";
@@ -66,7 +67,9 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
     phoneSecrets: o.phoneSecrets,
     submissionsPerDay: o.submissionsPerDay ?? DEFAULT_SUBMISSIONS_PER_DAY,
   };
-  const services = { auth, cookies, db: o.db, views, publicOrigin, submission };
+  // Back office: audit entries carry an IP hash keyed like the refresh-token IP hashes.
+  const backoffice = { db: o.db, ipHashSecret: o.authSecrets.refreshTokenSecret };
+  const services = { auth, cookies, db: o.db, views, publicOrigin, submission, backoffice };
   // Compute the dummy password hash now rather than on the first failed login.
   auth.warmUp().catch(() => console.error("[auth] could not prepare the dummy password hash"));
 
@@ -86,7 +89,7 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
 
   app.use(
     "/api/v1",
-    createApiRouter({ isProduction: o.isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db: o.db, views, submission }),
+    createApiRouter({ isProduction: o.isProduction, checkDatabase, auth: { service: auth, cookies }, limiters, db: o.db, views, submission, backoffice }),
   );
 
   // Local image storage is development-only here; Caddy serves /uploads in production (SPEC §0).
@@ -100,7 +103,7 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
     app.use("/assets", express.static("build/client/assets", { immutable: true, maxAge: "1y" }));
     app.use(express.static("build/client", { maxAge: "1h" }));
     const build = (await import(pathToFileURL(BUILD_PATH).href)) as ServerBuild;
-    app.use(pageAuth, createRequestHandler({ build, getLoadContext }));
+    app.use(pageAuth, pageActionGate, createRequestHandler({ build, getLoadContext }));
     return { app, close: async () => {} };
   }
 
@@ -111,7 +114,7 @@ export async function createServer(o: ServerOptions): Promise<AqarServer> {
     build: () => viteDevServer.ssrLoadModule("virtual:react-router/server-build") as Promise<ServerBuild>,
     getLoadContext,
   });
-  app.use(pageAuth, async (req, res, next) => {
+  app.use(pageAuth, pageActionGate, async (req, res, next) => {
     try {
       await handler(req, res, next);
     } catch (error) {

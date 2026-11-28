@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type { Knex } from "knex";
 import type { AppLoadContext } from "react-router";
 import { requestMeta } from "./middleware/authenticate";
+import type { BackofficeDeps } from "./api/backoffice";
 import type { AuthCookies } from "./services/authCookies";
 import type { AuthService, RequestMeta, Session } from "./services/authService";
 import type { SubmissionDeps } from "./services/submissionService";
@@ -17,6 +18,8 @@ export interface AppServices {
   views: ViewConfig;
   /** Submit wizard: database, photo storage and phone keys (masking the lister's phone). */
   submission: SubmissionDeps;
+  /** Back office (SPEC §9): database and the key for audit IP hashes. */
+  backoffice: BackofficeDeps;
   /** Origin of PUBLIC_BASE_URL (e.g. https://aqar.example), for absolute URLs such as canonical links. */
   publicOrigin: string;
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { DEFAULT_COUNTRY, toCountryCode } from "../../app/shared/countries";
 import { DEFAULT_LOCALE } from "../../app/shared/locales";
 import { AUTH_ERROR_STATUS, fieldErrors, loginSchema, registerSchema } from "../../app/shared/schemas/auth";
+import { changePasswordSchema, issueCodes } from "../../app/shared/schemas/backoffice";
 import { activeCountrySchema, localeSchema } from "../../app/shared/schemas/routeParams";
 import { DEFAULT_THEME, themeSchema } from "../../app/shared/schemas/theme";
 import { appendCookies, requestMeta, setSessionCookies } from "../middleware/authenticate";
@@ -17,7 +18,15 @@ export interface AuthApiDeps {
 
 /** The caller's own account (explicit fields; never phone, hashes or tokens). */
 function selfView(user: SessionUser) {
-  return { id: user.id, name: user.name, email: user.email, role: user.role, locale: user.locale, companyId: user.companyId };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    locale: user.locale,
+    companyId: user.companyId,
+    mustChangePassword: user.mustChangePassword,
+  };
 }
 
 function sendFailure(res: Response, failure: AuthFailure) {
@@ -105,6 +114,26 @@ export function authRouter({ service, cookies }: AuthApiDeps): Router {
       // Replace any cookies `authenticate` may have set on this request.
       res.removeHeader("Set-Cookie");
       appendCookies(res, cookies.clear());
+      res.status(204).end();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /** Change the signed-in user's password (also the way out of `must_change_password`). */
+  router.post("/password", requireAuth, async (req, res, next) => {
+    try {
+      const input = changePasswordSchema.safeParse(req.body ?? {});
+      if (!input.success) {
+        res.status(400).json({ error: "invalid_input", fields: issueCodes(input.error) });
+        return;
+      }
+      const result = await service.changePassword(res.locals.session!, input.data, requestMeta(req));
+      if (!result.ok) {
+        if (result.retryAfterS) res.set("Retry-After", String(result.retryAfterS));
+        res.status(AUTH_ERROR_STATUS[result.error]).json({ error: result.error });
+        return;
+      }
       res.status(204).end();
     } catch (error) {
       next(error);

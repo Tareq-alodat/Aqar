@@ -17,6 +17,7 @@ import type { Locale } from "../../app/shared/locales";
 import { publicAddress } from "../../app/shared/schemas/address";
 import { getCountryAddressFields } from "./countryService";
 import { resolveContactNumber, type ContactNumber } from "./contactService";
+import { getStaffAccess, isAreaInScope } from "./scopeService";
 import { selectCards, toCard, type CardRow, type ListingCard } from "./searchService";
 
 /**
@@ -99,6 +100,7 @@ interface DetailRow {
   owner_id: number;
   country_code: string;
   admin_area_id: number | null;
+  assigned_supervisor_id: number | null;
   slug: string | null;
   status: ListingStatus;
   title_ar: string | null;
@@ -140,6 +142,14 @@ interface DetailRow {
 }
 
 const num = (v: string | number | null) => (v === null ? null : Number(v));
+/** Unpublished listings: the owner, the super_admin, or a supervisor (active profile) with the listing in scope. */
+async function canPreview(db: Knex, viewer: Viewer, row: { owner_id: number; admin_area_id: number | null }): Promise<boolean> {
+  if (viewer.userId === row.owner_id) return true;
+  const actor = { id: viewer.userId, role: viewer.role };
+  if ((await getStaffAccess(db, actor)) !== "ok") return false;
+  return viewer.role === "super_admin" || (await isAreaInScope(db, viewer.userId, row.admin_area_id));
+}
+
 export const isPublicStatus = (s: ListingStatus) => (PUBLIC_DETAIL_STATUSES as readonly string[]).includes(s);
 const hasContact = (s: ListingStatus) => s === "published" || s === "reserved";
 
@@ -167,8 +177,9 @@ async function areaPath(db: Knex, areaId: number | null, locale: Locale): Promis
 
 /**
  * The listing as `viewer` may see it, or null (→ 404).
- * Public: published, reserved, sold, rented. Owner and admins also get a
- * "preview" of their own unpublished listings. Contact only while published
+ * Public: published, reserved, sold, rented. The owner, the super_admin and
+ * the supervisor whose scope contains the listing also get a "preview" of
+ * unpublished listings. Contact only while published
  * or reserved (sold/rented listings show no number).
  */
 export async function getListingDetail(
@@ -187,6 +198,7 @@ export async function getListingDetail(
       "p.owner_id",
       "p.country_code",
       "p.admin_area_id",
+      "p.assigned_supervisor_id",
       "p.slug",
       "p.status",
       "p.title_ar",
@@ -228,10 +240,9 @@ export async function getListingDetail(
     )) as DetailRow | undefined;
   if (!row) return null;
 
-  const canPreview = viewer !== null && (viewer.userId === row.owner_id || viewer.role === "admin");
   let access: DetailAccess;
   if (isPublicStatus(row.status)) access = "public";
-  else if (canPreview) access = "preview";
+  else if (viewer && (await canPreview(db, viewer, row))) access = "preview";
   else return null;
 
   const pick = (ar: string | null, en: string | null) => (locale === "ar" ? (ar ?? en) : (en ?? ar));
@@ -240,7 +251,12 @@ export async function getListingDetail(
     areaPath(db, row.admin_area_id, locale),
     db("property_images").where({ property_id: row.id }).orderBy("order_index").select("url", "thumbnail_url", "width", "height"),
     hasContact(row.status)
-      ? resolveContactNumber(db, { id: row.id, adminAreaId: row.admin_area_id, countryCode: row.country_code })
+      ? resolveContactNumber(db, {
+          id: row.id,
+          adminAreaId: row.admin_area_id,
+          countryCode: row.country_code,
+          assignedSupervisorId: row.assigned_supervisor_id,
+        })
       : Promise.resolve(null),
   ]);
   const visible = publicAddress(fields, row.address ?? {});

@@ -9,7 +9,9 @@ import { placeholderSvg } from "../seedPlaceholders";
 import { getIdentifierScheme, normalizeIdentifier, type IdentifierInput } from "../../services/identifierService";
 import { computeDisplayPoint, findAdminAreaForPoint, type LngLat } from "../../services/locationService";
 import { hashPassword } from "../../services/passwordService";
+import { findAssignee } from "../../services/scopeService";
 import { importBoundaries } from "../boundaries/importBoundaries";
+import { truncateForDev } from "../devTruncate";
 
 /**
  * Development data (SPEC §17). Refuses to run in production. Re-running
@@ -97,10 +99,23 @@ export async function seed(knex: Knex): Promise<void> {
   const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)]!;
   const between = (min: number, max: number) => min + random() * (max - min);
 
-  await knex.raw(
-    `TRUNCATE property_views, price_history, saved_properties, property_images, property_identifiers,
-              contact_numbers, properties, refresh_tokens, users, companies RESTART IDENTITY CASCADE`,
-  );
+  // The audit log and status history are append-only; dev cleanup goes through truncateForDev.
+  await truncateForDev(knex, [
+    "audit_log",
+    "status_history",
+    "supervisor_scopes",
+    "supervisor_profiles",
+    "property_views",
+    "price_history",
+    "saved_properties",
+    "property_images",
+    "property_identifiers",
+    "contact_numbers",
+    "properties",
+    "refresh_tokens",
+    "users",
+    "companies",
+  ]);
 
   const report = await importBoundaries(knex, "JO");
   console.log(`Boundaries: ${JSON.stringify(report.byLevel)}, ${report.warnings.length} warnings`);
@@ -121,14 +136,16 @@ export async function seed(knex: Knex): Promise<void> {
   let phoneSeq = 0;
   // Local Jordanian format (07XXXXXXXX), normalized to +9627XXXXXXXX on save.
   const phone = () => `07${String(90_000_000 + ++phoneSeq * 7_919).slice(0, 8)}`;
-  const user = async (email: string, name: string, role: "admin" | "agent" | "owner", companyId: number | null = null) => {
+  const user = async (email: string, name: string, role: "super_admin" | "supervisor" | "agent" | "owner", companyId: number | null = null) => {
     const p = protectPhone(phone(), "JO", secrets);
     const [row] = await knex("users")
       .insert({ email, name, role, company_id: companyId, password_hash: passwordHash, phone_encrypted: p.encrypted, phone_hash: p.hash })
       .returning("id");
     return row.id as number;
   };
-  const admin = await user("admin@aqar.test", "مدير النظام", "admin");
+  const admin = await user("admin@aqar.test", "مدير النظام", "super_admin");
+  const supervisorAmman = await user("sup.amman@aqar.test", "هند المصري", "supervisor");
+  const supervisorRegions = await user("sup.regions@aqar.test", "عمر الزعبي", "supervisor");
   const agents = [
     await user("agent1@aqar.test", "سامي الخطيب", "agent", company.id),
     await user("agent2@aqar.test", "ليلى حداد", "agent", company.id),
@@ -159,13 +176,26 @@ export async function seed(knex: Knex): Promise<void> {
   const amman = findArea("city", "عمان");
   const abdoun = seedAreas[0]!;
 
+  // ── Supervisors (SPEC §3, §17): AQAR work mobiles and scopes ─────────────
+  // One for Amman city; one for the other governorates (the rest of Amman governorate → super_admin queue).
+  await knex("supervisor_profiles").insert([
+    { user_id: supervisorAmman, work_phone_e164: "+962790000101", work_phone_whatsapp: true, title_ar: "مشرفة عمّان", title_en: "Amman supervisor" },
+    { user_id: supervisorRegions, work_phone_e164: "+962790000102", work_phone_whatsapp: false, title_ar: "مشرف المحافظات", title_en: "Governorates supervisor" },
+  ]);
+  const governorates = areas.filter((a) => a.level === "governorate");
+  const ammanGovernorateId = (await knex("admin_areas").where({ id: amman.id }).first("parent_id")).parent_id as number;
+  await knex("supervisor_scopes").insert([
+    { supervisor_id: supervisorAmman, admin_area_id: amman.id, created_by: admin },
+    ...governorates.filter((g) => g.id !== ammanGovernorateId).map((g) => ({ supervisor_id: supervisorRegions, admin_area_id: g.id, created_by: admin })),
+  ]);
+
   // ── Listing plan: 40 published, 3 pending, 2 sold ───────────────────────
   const plan: ListingPlan[] = [];
   const categories: Category[] = ["apartment", "apartment", "apartment", "villa", "house", "land", "commercial"];
   const types: ListingType[] = ["sale", "sale", "rent", "rent", "sale", "exchange"];
   const location = (i: number) => (i < 30 ? seedAreas[i % seedAreas.length]! : i < 36 ? otherCities[i % 3]! : amman);
   for (let i = 0; i < 40; i++) {
-    // Owners have 4 published + 1 pending each (5 active, the limit); agents have the rest.
+    // Owners have 4 published + 1 pending each; agents have the rest.
     const owner = i < 12 ? owners[i % 3]! : agents[i % 2]!;
     // The first five get land-registry identifiers below, so their categories are fixed.
     const category = IDENTIFIER_CATEGORIES[i] ?? pick(categories);
@@ -275,6 +305,13 @@ export async function seed(knex: Knex): Promise<void> {
     }
   }
 
+  // ── Assignment (SPEC §4.2): every submitted listing goes to its area's supervisor ─
+  for (const id of ids) {
+    const row = await knex("properties").where({ id }).first("admin_area_id", "owner_id");
+    const to = await findAssignee(knex, { adminAreaId: row.admin_area_id, ownerId: row.owner_id });
+    if (to !== null) await knex("properties").where({ id }).update({ assigned_supervisor_id: to, assigned_at: knex.raw("now() - interval '2 days'") });
+  }
+
   // ── Property identifiers (SPEC §2.4) ─────────────────────────────────────
   const scheme = await getIdentifierScheme(knex, "jo_land_parcel");
   if (!scheme) throw new Error("jo_land_parcel scheme missing (run migrations)");
@@ -312,7 +349,7 @@ export async function seed(knex: Knex): Promise<void> {
   // ── Favorites ────────────────────────────────────────────────────────────
   await knex("saved_properties").insert(ids.slice(12, 16).map((property_id) => ({ user_id: owners[0], property_id })));
 
-  console.log(`Seeded ${ids.length} listings, ${owners.length + agents.length + 1} users. Dev password for all accounts: ${DEV_PASSWORD}`);
+  console.log(`Seeded ${ids.length} listings, ${owners.length + agents.length + 3} users. Dev password for all accounts: ${DEV_PASSWORD}`);
 }
 
 /** Deterministic random point inside an area (ST_GeneratePoints with a fixed seed). */

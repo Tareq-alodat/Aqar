@@ -31,8 +31,14 @@ export type LocationPrecision = (typeof LOCATION_PRECISIONS)[number];
 export const OFFERS_VISIBILITIES = ["public", "amounts_only", "private"] as const;
 export type OffersVisibility = (typeof OFFERS_VISIBILITIES)[number];
 
-export const ROLES = ["admin", "agent", "owner"] as const;
+/** SPEC §3. `super_admin` replaced `admin` (milestone 7a); `financier` is reserved for [P2]. */
+export const ROLES = ["super_admin", "supervisor", "agent", "owner", "financier"] as const;
 export type Role = (typeof ROLES)[number];
+
+/** Roles that use the back office (SPEC §9). Supervisors also need an active profile. */
+export const STAFF_ROLES = ["super_admin", "supervisor"] as const satisfies readonly Role[];
+export type StaffRole = (typeof STAFF_ROLES)[number];
+export const isStaffRole = (role: Role): role is StaffRole => (STAFF_ROLES as readonly string[]).includes(role);
 
 export const USER_STATUSES = ["active", "suspended"] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
@@ -80,6 +86,13 @@ export const PUBLIC_DETAIL_STATUSES = ["published", "reserved", "sold", "rented"
 /** Who pays the commission on a concluded deal (SPEC §19): set from the submitter's role at submission. */
 export const COMMISSION_PAYER_TYPES = ["agent", "owner"] as const;
 export type CommissionPayerType = (typeof COMMISSION_PAYER_TYPES)[number];
+
+/**
+ * Listings that count as a supervisor's open work (assignment tie-break, SPEC §4.2;
+ * reassigned when a supervisor is deactivated or loses the area). `returned` joins
+ * this list when the status is added (milestone 7b).
+ */
+export const OPEN_LISTING_STATUSES = ["pending", "published", "reserved"] as const satisfies readonly ListingStatus[];
 
 /** Roles that may create listings through the submit wizard (SPEC §3, §7). */
 export const LISTER_ROLES = ["owner", "agent"] as const satisfies readonly Role[];

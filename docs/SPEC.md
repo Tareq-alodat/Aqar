@@ -368,6 +368,9 @@ Offers moved into phase 1 (§21). Larger later-phase items are in §27 (and fina
 - AES-256-GCM for phones and buyers' contact details (owner, user, supervisor-recorded caller and enquiry phones); private files (agent documents, payment proofs, deal evidence, financing documents [P2]) are never served from public `/uploads`; key only from env; never logged.
 - Back-office actions, real-phone and contact views, exact-location shares and failed logins go to the append-only `audit_log` (§9).
 - Seed credentials are **development only**; seed script refuses to run when `NODE_ENV=production`.
+- **One-time passwords (milestone 7a):** supervisor accounts are created (and their passwords reset) by the super_admin with a server-generated one-time password, shown once in that response and never stored in plain text, logged or audited (the audit entry is `password_issued`). It sets `users.must_change_password`: until the user picks their own password, pages redirect to `/:lang/account/password`, other page form submissions and every API route except `/auth/password`, `/auth/me`, `/auth/refresh`, `/auth/logout` and `/health` return 403 `password_change_required`. A reset revokes the user's sessions.
+- **Session revocation (milestone 7a):** any change to a user's role or status, or to a supervisor profile's `is_active`, revokes all of that user's refresh-token families in the same transaction (database triggers, so every code path is covered).
+- **Append-only tables:** `audit_log` and `status_history` triggers reject UPDATE, DELETE and TRUNCATE; there is no bypass in the schema. The dev seed and database tests clean them with `session_replication_role = replica` (superuser only, `server/db/devTruncate.ts`); the **production application role must not be a superuser** (milestone 16).
 
 ---
 
@@ -483,7 +486,7 @@ EMAIL_PROVIDER_API_KEY=
 
 ## 18. Phase 1 build order (one milestone per Claude Code session)
 
-Done: 1–6 and 4b. The order from milestone 7 on follows the business model v2: the supervisor model, assignment and contact come with the back office (7); offers, enquiries/viewings, deals, commission and collections are phase 1 milestones (9–11).
+Done: 1–6, 4b and 7a (supervisor model; 7b–7e follow, see `docs/CHANGELOG.md`). The order from milestone 7 on follows the business model v2: the supervisor model, assignment and contact come with the back office (7); offers, enquiries/viewings, deals, commission and collections are phase 1 milestones (9–11).
 
 1. **Scaffold:** RR v7 + Express + TS + Tailwind, Docker PostGIS, Knex, `.env.example`, ar/en routing with RTL/LTR, theme toggle, layout shell.
 2. **Database:** all phase 1 migrations (+ P2 tables that phase 1 writes to, e.g. `price_history`), address field catalog and country settings, property identifiers, boundary import script, seeds.
@@ -503,7 +506,7 @@ Done: 1–6 and 4b. The order from milestone 7 on follows the business model v2:
 13. **SEO:** area pages, meta/JSON-LD, hreflang, sitemap, robots.
 14. **Hardening:** tests for contact privacy (real phone, buyers' details, true point never in public responses or rendered HTML; scope isolation between supervisors), Playwright happy paths, performance check with 10k seeded listings.
 15. **Launch readiness:** the server refuses to start in production while the active terms version is a draft (§20); email sending (free-tier provider), password reset, email verification (required before submitting listings), new-device login notice, personal-data export and account deletion (§20).
-16. **Deployment:** the VPS setup from §0 — Node 24 LTS app, PostgreSQL 16 + PostGIS on localhost (with `postgresql-contrib` for `pg_trgm`), Caddy with automatic HTTPS (behind Cloudflare: Caddy trusts Cloudflare's IP ranges and forwards the real client IP, so rate limits see visitors, not Cloudflare), `/uploads` served by Caddy, private files outside it, nightly `pg_dump` + file backups off the VPS.
+16. **Deployment:** the VPS setup from §0 — Node 24 LTS app, PostgreSQL 16 + PostGIS on localhost (with `postgresql-contrib` for `pg_trgm`), Caddy with automatic HTTPS (behind Cloudflare: Caddy trusts Cloudflare's IP ranges and forwards the real client IP, so rate limits see visitors, not Cloudflare), `/uploads` served by Caddy, private files outside it, nightly `pg_dump` + file backups off the VPS; the app connects as a non-superuser role (owner of its tables), so the append-only audit triggers cannot be skipped.
 
 **After launch** (§25, §27): [P2] financing providers, disputes, market intelligence, the other §12 items; [P3] property catalog, configurable workflow/SLA/permission engines, native mobile apps.
 

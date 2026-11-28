@@ -1,12 +1,13 @@
 import type { Knex } from "knex";
 
 /**
- * Proxy contact number for a listing (SPEC §8). Public by design; the owner's
- * real phone is never used here. Resolution order, active numbers only:
- * 1. the listing's own number (`scope = 'property'`)
- * 2. the listing's area, then each ancestor (area → city → governorate)
- * 3. the country's number
- * 4. the global default
+ * Public contact number for a listing (SPEC §8). Public by design. Only AQAR
+ * numbers are ever used: the lister's own phone (`owner_phone_*`) and users'
+ * profile phones (`users.phone_*`) are never read here. Resolution order:
+ * 1. the assigned supervisor's work mobile — while their profile and account are active;
+ * 2. the `contact_numbers` fallback, active numbers only:
+ *    the listing's own number (`scope = 'property'`) → the listing's area,
+ *    then each ancestor (area → city → governorate) → the country → the global default.
  */
 
 export interface ContactNumber {
@@ -17,8 +18,16 @@ export interface ContactNumber {
 
 export async function resolveContactNumber(
   db: Knex,
-  listing: { id: number; adminAreaId: number | null; countryCode: string },
+  listing: { id: number; adminAreaId: number | null; countryCode: string; assignedSupervisorId: number | null },
 ): Promise<ContactNumber | null> {
+  if (listing.assignedSupervisorId !== null) {
+    const sup = await db("supervisor_profiles as sp")
+      .join("users as u", "u.id", "sp.user_id")
+      .where({ "sp.user_id": listing.assignedSupervisorId, "sp.is_active": true, "u.status": "active", "u.role": "supervisor" })
+      .first("sp.work_phone_e164", "sp.work_phone_whatsapp");
+    if (sup) return { phone: sup.work_phone_e164, whatsapp: sup.work_phone_whatsapp };
+  }
+
   const r = await db.raw<{ rows: Array<{ phone_number: string; whatsapp: boolean }> }>(
     `WITH RECURSIVE chain AS (
        SELECT id, parent_id, 0 AS depth FROM admin_areas WHERE id = ?
