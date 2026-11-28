@@ -7,7 +7,11 @@ import type { AreaSummary } from "./types";
 interface FilterPanelProps {
   filters: SearchFilters;
   areas: AreaSummary[];
+  /** The selected-area filter's path (root first), shown even when it is not a governorate or city. */
+  selectedPath: AreaSummary[] | null;
   onChange(filters: SearchFilters): void;
+  /** Area choice: sets `area=` and fits the map (same handler as the jump dropdowns). */
+  onArea(path: AreaSummary[] | null): void;
   /** "bar": compact row with a "More filters" toggle (desktop); "sheet": everything stacked (mobile). */
   layout: "bar" | "sheet";
   onDone?(): void;
@@ -55,7 +59,7 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** Filters of SPEC §5.3. Every change goes straight to the URL (and so to the search). */
-export function FilterPanel({ filters, areas, onChange, layout, onDone }: FilterPanelProps) {
+export function FilterPanel({ filters, areas, selectedPath, onChange, onArea, layout, onDone }: FilterPanelProps) {
   const t = useT();
   const locale = useLocale();
   const [more, setMore] = useState(false);
@@ -67,6 +71,15 @@ export function FilterPanel({ filters, areas, onChange, layout, onDone }: Filter
   const name = (a: AreaSummary) => (locale === "ar" ? a.nameAr : a.nameEn);
   const governorates = areas.filter((a) => a.level === areas[0]?.level);
   const cities = areas.filter((a) => a.level !== governorates[0]?.level);
+  const chooseArea = (id: string) => {
+    const a = areas.find((x) => String(x.id) === id);
+    if (!a) return onArea(null);
+    const parent = areas.find((x) => x.id === a.parentId);
+    onArea(parent ? [parent, a] : [a]);
+  };
+  // A deeper area (e.g. a neighbourhood picked in the search box) is listed too, so the select shows it.
+  const selected = selectedPath?.at(-1);
+  const deeperArea = selected && filters.area === selected.id && !areas.some((a) => a.id === selected.id) ? selected : undefined;
 
   const basic = (
     <>
@@ -170,10 +183,11 @@ export function FilterPanel({ filters, areas, onChange, layout, onDone }: Filter
         <select
           aria-label={t("filters.onlyIn")}
           value={filters.area ?? ""}
-          onChange={(e) => set({ area: e.target.value ? Number(e.target.value) : undefined })}
+          onChange={(e) => chooseArea(e.target.value)}
           className={`${field} max-w-56`}
         >
           <option value="">{t("filters.any")}</option>
+          {deeperArea && <option value={deeperArea.id}>{name(deeperArea)}</option>}
           <optgroup label={t("map.governorate")}>
             {governorates.map((a) => (
               <option key={a.id} value={a.id}>
