@@ -79,3 +79,14 @@ export function normalizePhone(input: string, countryCode: string): string {
   }
   return phone;
 }
+
+/**
+ * Masked form of an E.164 number for showing a lister their own phone
+ * without sending it to the page (CLAUDE.md rule 1; milestone 6 decision):
+ * the country prefix and the last two digits, e.g. "+962 •••••••67".
+ */
+export function maskPhone(e164: string, prefix: string): string {
+  const national = e164.startsWith(prefix) ? e164.slice(prefix.length) : e164.replace(/^\+/, "");
+  const shown = national.slice(-2);
+  return `${e164.startsWith(prefix) ? prefix : "+"} ${"•".repeat(Math.max(0, national.length - 2))}${shown}`;
+}

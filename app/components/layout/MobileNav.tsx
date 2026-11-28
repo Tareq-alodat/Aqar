@@ -4,8 +4,8 @@ import { useLocale, useT } from "~/i18n/useT";
 import { DEFAULT_COUNTRY } from "~/shared/countries";
 
 /**
- * Mobile bottom navigation (SPEC §5.1). Phase 1 so far: Map and the account
- * link only; Saved, Add and Profile join when they exist (milestones 6, 8).
+ * Mobile bottom navigation (SPEC §5.1). Phase 1 so far: Map, Add (milestone 6)
+ * and the account link; Saved and Profile join with milestone 8.
  */
 export function MobileNav() {
   const t = useT();
@@ -25,6 +25,13 @@ export function MobileNav() {
           <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" />
         </svg>
         {t("nav.map")}
+      </Link>
+      <Link to={`/${locale}/listings/new`} className={item(false)}>
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v8M8 12h8" />
+        </svg>
+        {t("nav.add")}
       </Link>
       <Link to={accountHref} className={item(false)}>
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

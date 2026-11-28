@@ -49,15 +49,16 @@ describe("buildAddressSchema", () => {
 describe("publicAddress", () => {
   const address = { street: "شارع زهران", building_number: "12", apartment_number: "7" };
 
-  it("shows exact_only fields for exact listings, never admin_only", () => {
-    expect(publicAddress(jordan, address, "exact")).toEqual({ street: "شارع زهران", building_number: "12" });
+  it("never shows exact_only or admin_only fields (every listing is public as an approximate area)", () => {
+    expect(publicAddress(jordan, address)).toEqual({});
   });
 
-  it("hides exact_only fields for approximate listings", () => {
-    expect(publicAddress(jordan, address, "approximate")).toEqual({});
+  it("shows public fields", () => {
+    const withPublic = [...jordan, field({ field_key: "postal_code", kind: "text", visibility: "public" })];
+    expect(publicAddress(withPublic, { ...address, postal_code: "11183" })).toEqual({ postal_code: "11183" });
   });
 
   it("ignores keys that are not in the settings", () => {
-    expect(publicAddress(jordan, { ...address, secret: "x" }, "exact")).not.toHaveProperty("secret");
+    expect(publicAddress(jordan, { ...address, secret: "x" })).not.toHaveProperty("secret");
   });
 });

@@ -3,7 +3,6 @@ import "~/components/map/mapSetup";
 import { useEffect, useRef } from "react";
 import { ATTRIBUTION, controlPosition, transformStyle } from "~/components/map/mapStyle";
 import { themeColor } from "~/components/map/pins";
-import type { LocationPrecision } from "~/shared/constants";
 import { circleRing } from "~/shared/geo";
 import type { Locale } from "~/shared/locales";
 
@@ -13,7 +12,6 @@ export const APPROXIMATE_CIRCLE_M = 300;
 export interface DetailMapProps {
   lng: number;
   lat: number;
-  precision: LocationPrecision;
   styleUrl: string;
   locale: Locale;
   dir: "rtl" | "ltr";
@@ -21,11 +19,12 @@ export interface DetailMapProps {
 }
 
 /**
- * Listing location (SPEC §10): a pin for exact listings; for approximate ones
- * a ~300 m circle around the stored display point and no pin. Uses the public
- * display point only. Scroll-zoom is off so the page scrolls normally.
+ * Listing location (SPEC §10): every listing is public as an approximate area
+ * (milestone 6 decision), so this draws a ~300 m circle around the stored
+ * display point and no pin. Uses the public display point only. Scroll-zoom is
+ * off so the page scrolls normally.
  */
-export default function DetailMap({ lng, lat, precision, styleUrl, locale, dir, controlLabels }: DetailMapProps) {
+export default function DetailMap({ lng, lat, styleUrl, locale, dir, controlLabels }: DetailMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +34,7 @@ export default function DetailMap({ lng, lat, precision, styleUrl, locale, dir, 
       style: styleUrl,
       transformStyle: transformStyle(locale),
       center: [lng, lat],
-      zoom: precision === "exact" ? 15 : 14,
+      zoom: 14,
       attributionControl: false,
       locale: controlLabels,
       scrollZoom: false,
@@ -49,25 +48,15 @@ export default function DetailMap({ lng, lat, precision, styleUrl, locale, dir, 
     map.on("load", () => {
       // Brand colour that stays visible on both basemaps (lighter tint in dark mode).
       const primary = themeColor("--color-primary-text");
-      if (precision === "exact") {
-        map.addSource("aqar-pin", { type: "geojson", data: { type: "Point", coordinates: [lng, lat] } });
-        map.addLayer({
-          id: "aqar-pin",
-          type: "circle",
-          source: "aqar-pin",
-          paint: { "circle-radius": 9, "circle-color": themeColor("--color-sale"), "circle-stroke-width": 3, "circle-stroke-color": themeColor("--color-on-primary") },
-        });
-      } else {
-        map.addSource("aqar-area", {
-          type: "geojson",
-          data: { type: "Polygon", coordinates: [circleRing(lng, lat, APPROXIMATE_CIRCLE_M)] },
-        });
-        map.addLayer({ id: "aqar-area-fill", type: "fill", source: "aqar-area", paint: { "fill-color": primary, "fill-opacity": 0.18 } });
-        map.addLayer({ id: "aqar-area-line", type: "line", source: "aqar-area", paint: { "line-color": primary, "line-width": 2 } });
-      }
+      map.addSource("aqar-area", {
+        type: "geojson",
+        data: { type: "Polygon", coordinates: [circleRing(lng, lat, APPROXIMATE_CIRCLE_M)] },
+      });
+      map.addLayer({ id: "aqar-area-fill", type: "fill", source: "aqar-area", paint: { "fill-color": primary, "fill-opacity": 0.18 } });
+      map.addLayer({ id: "aqar-area-line", type: "line", source: "aqar-area", paint: { "line-color": primary, "line-width": 2 } });
     });
     return () => map.remove();
-  }, [lng, lat, precision, styleUrl, locale, dir, controlLabels]);
+  }, [lng, lat, styleUrl, locale, dir, controlLabels]);
 
   // MapLibre's CSS makes its container `position: relative`, so it needs a sized wrapper.
   return (

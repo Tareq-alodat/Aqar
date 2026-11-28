@@ -19,7 +19,7 @@ Map-based real estate website for Jordan and the Gulf, Arabic-first (RTL) with E
 | Markets | Multi-country. Phase 1 launches **Jordan**; Saudi Arabia, Kuwait, UAE exist in the schema with `is_active = false` |
 | Currency | One currency per country (JOD, SAR, KWD, AED). Not selectable per listing. All searches are scoped to one country. |
 | Offers visibility [P2] | Chosen **per listing by the owner**: `public` / `amounts_only` / `private`. Bidders may also choose to appear as "مجهول". |
-| Location privacy | Chosen **per listing by the owner**: `exact` pin or `approximate` (~300 m) |
+| Location privacy | **Every listing is shown publicly as an approximate area** (~300 m), for all property types (milestone 6 decision; no owner choice). The owner places the exact pin; the exact address is shared by a supervisor at viewing time (later milestone). |
 | Dev environment | VS Code + Claude Code, PostgreSQL/PostGIS via Docker, `.env` for secrets |
 | Software & services | **All software is free / open source; only hosting is paid.** No paid third-party services or APIs. |
 | Hosting | **One Linux VPS** (provider TBD, e.g. GoDaddy VPS) running **Node 24 LTS** (app), **PostgreSQL 16 + PostGIS** (database) and **Caddy** (reverse proxy, automatic HTTPS). Port read from `process.env.PORT`. `engines.node` is `>=24 <25` (Node 24 LTS). |
@@ -78,9 +78,9 @@ The admin decides which fields describe an exact address in each country, in wha
   - `admin_area` fields (governorate, city, district, area, block) are filled from the pin (§2.2), never typed.
   - `text` / `number` fields (street, avenue, building number, floor, unit number, postal code) are typed by the owner.
   - `identifier` fields are property/unit identifiers (§2.4).
-- `country_address_fields (country_code, field_key, position, is_required default false, visibility ENUM[public, exact_only, admin_only], map_min_zoom, is_active)`, PK `(country_code, field_key)`. `map_min_zoom` applies to `admin_area` levels (map drill-down, §5.2). `visibility` applies to `text`/`number` fields; identifiers are never public regardless.
+- `country_address_fields (country_code, field_key, position, is_required default false, visibility ENUM[public, exact_only, admin_only], map_min_zoom, is_active)`, PK `(country_code, field_key)`. `map_min_zoom` applies to `admin_area` levels (map drill-down, §5.2). `visibility` applies to `text`/`number` fields: `public` = shown on the listing page; `exact_only` = never public now that every listing is public as an approximate area (§4.3) — shared by the supervisor at viewing time (later milestone); `admin_only` = never public. Identifiers are never public regardless.
 - Typed (non-identifier) values are stored in `properties.address jsonb` (`{field_key: value}`), validated by a Zod schema built from the country's settings.
-- Jordan default: governorate, city, area (from pin) · street, building number (`exact_only`) · apartment number (`admin_only`) · land-registry identifier (§2.4). No floor field: the floor is the public feature `floor_number` (§4.1).
+- Jordan default: governorate, city, area (from pin) · street, building number (`exact_only`, so not public) · apartment number (`admin_only`) · land-registry identifier (§2.4). No floor field: the floor is the public feature `floor_number` (§4.1).
 
 ### 2.4 Property identifiers (GIS / unit IDs)
 `property_identifiers (id, property_id FK, country_code FK, scheme FK → address_fields.key, value, value_normalized, verified_by FK users nullable, verified_at nullable, created_at)`, unique `(property_id, scheme)`, index `(country_code, scheme, value_normalized)` for duplicate detection (admins see "other listings with the same identifier").
@@ -102,7 +102,7 @@ JWT auth (details in §13). Roles: `admin`, `agent`, `owner`. Anyone can registe
 |---|---|
 | **admin** | Approve/reject/edit any listing; see real owner phones (admin endpoint only); manage proxy contact numbers; manage users (suspend, change role); view analytics; delete any comment/offer [P2]; system notifications [P2] |
 | **agent** | Unlimited listings; manage own portfolio (edit, delete, mark sold/rented); request featured placement; belongs to a `company` (name, logo, license, verified badge); dashboard (§11); pays the commission on deals for listings they submitted (§19) |
-| **owner** | Up to **5 active listings** (pending + published + reserved), enforced server-side; favorites; offers [P2]; comments [P2]; listing statistics (§11); pays the commission on deals for listings they submitted directly (§19) |
+| **owner** | **No limit on active listings** (milestone 6 decision); like every lister, at most `SUBMISSIONS_PER_DAY` submissions per rolling 24 h (default 10, §7); at most 10 drafts; favorites; offers [P2]; comments [P2]; listing statistics (§11); pays the commission on deals for listings they submitted directly (§19) |
 
 Visitors (not logged in) can browse the map, view listings, and see the proxy contact number.
 
@@ -115,7 +115,7 @@ Visitors (not logged in) can browse the map, view listings, and see the proxy co
 
 **Features:** `area_sqm`, `bedrooms`, `bathrooms`, `floors`, `floor_number`, `age_years`, `parking`, `garden`, `pool`, `elevator`, `furnished ENUM[yes, no, partial]`, `amenities text[]` (from a fixed tag list in i18n). Land listings hide room/floor fields.
 
-**Location:** `point geography(Point,4326)` (true pin), `display_point geography(Point,4326)`, `location_precision ENUM[exact, approximate]`, `admin_area_id FK`, `address jsonb` (typed address fields per §2.3; replaces `street_ar/en`), `country_code FK`. Unit identifiers live in `property_identifiers` (§2.4).
+**Location:** `point geography(Point,4326)` (true pin), `display_point geography(Point,4326)`, `location_precision ENUM[exact, approximate]` (always `approximate`, enforced by a CHECK; the `exact` value remains only for compatibility), `admin_area_id FK`, `address jsonb` (typed address fields per §2.3; replaces `street_ar/en`), `country_code FK`. Unit identifiers live in `property_identifiers` (§2.4).
 
 **Contact:** `owner_phone_encrypted` (AES-256-GCM, pre-filled from the user's profile phone, editable per listing). A listing's own proxy number (property-level override) is a `contact_numbers` row with `scope = 'property'` (§8); `properties` has no contact-number column (`contact_number_id` was dropped in milestone 5).
 
@@ -142,13 +142,12 @@ Visitors (not logged in) can browse the map, view listings, and see the proxy co
 - Any owner edit to price, pin, or photos on a `published` listing → back to `pending`. Edits to text/features stay published.
 
 ### 4.3 Location privacy
-- `exact`: `display_point = point`.
-- `approximate`: `display_point` = `point` offset by a random bearing/distance of 150–300 m, **computed once on save and stored**. Never recompute per request (averaging repeated random offsets would reveal the true point). Public map shows a ~300 m circle instead of a pin on the detail page.
-- `point` is **never** returned by any public endpoint or loader. Public code reads only `display_point`.
-- **Address details can reveal the location as precisely as `point`.** Typed address fields follow their `visibility` (§2.3): `public` always shown; `exact_only` shown only when `location_precision = exact`; `admin_only` never public. Property identifiers (§2.4) are never public. Public serializers use the allow-list of fields this rule permits for the listing.
+- **Every listing is public as an approximate area, for all property types** (milestone 6 decision; there is no exact/approximate choice). `display_point` = `point` offset by a random bearing/distance of 150–300 m, **computed once when the pin is saved and stored**. Never recompute per request (averaging repeated random offsets would reveal the true point). The detail page shows a ~300 m circle, never a pin. Listings that were `exact` before milestone 6 were given an approximate point once by the milestone 6 migration.
+- `point` is **never** returned by any public endpoint or loader. Public code reads only `display_point`. **Editing flow exception:** the listing's owner (and admins) see and drag the true pin while editing that listing (submit wizard; later edit and moderation screens); those responses are `Cache-Control: private, no-store`.
+- **Address details can reveal the location as precisely as `point`.** Typed address fields follow their `visibility` (§2.3): only `public` fields are shown; `exact_only` and `admin_only` fields are never public (`exact_only` ones are shared by the supervisor at viewing time, a later milestone). Property identifiers (§2.4) are never public. Public serializers use the allow-list of fields this rule permits for the listing.
 
 ### 4.4 Images
-Up to 20 per listing; first = cover; drag-and-drop reorder; jpg/png/webp, max 10 MB each; client-side resize before upload; server converts to WebP + thumbnail.
+Up to 20 per listing; **at least 1 photo is required to submit, except for land** (optional, with a warning when there are none); first = cover; drag-and-drop reorder; jpg/png/webp, max 10 MB each; client-side resize before upload; server converts to WebP + thumbnail.
 `property_images (id, property_id FK, url, thumbnail_url, width, height, order_index, uploaded_at)` — cover = `order_index = 0`.
 
 ---
@@ -212,12 +211,12 @@ Google cannot read a map, so the site also generates server-rendered landing pag
 ## 7. Listing submission (multi-step form)
 
 1. **Type:** category, listing type (and rent period).
-2. **Location:** pick governorate/city to fly the map, then **drop/drag a pin**. Show the detected area path live (server lookup). Fill the country's typed address fields and property identifiers (§2.3–2.4; required ones as configured by the admin), with a note on which are never shown publicly. Choose location privacy (exact / approximate) with a preview of what the public will see.
+2. **Location:** pick governorate/city to fly the map, then **drop/drag a pin**. Show the detected area path live (server lookup). Fill the country's typed address fields and property identifiers (§2.3–2.4; required ones as configured by the admin), with a note on which are never shown publicly. The lister sees their exact pin and a preview of what the public will see: the approximate area (~300 m circle) around the stored public point. There is no exact/approximate choice (§4.3).
 3. **Details:** price, features (fields adapt to category), amenities, titles/descriptions (ar/en tabs).
 4. **Photos:** upload, reorder, choose cover.
 5. **Contact & review:** confirm phone (shown with note "لن يظهر رقمك للعامة"), offers visibility setting, summary, **accept the commission terms** (required checkbox, link to the terms page in Arabic and English; §19), submit → `pending`. The listing stores `commission_payer_type`, `commission_terms_version` and `commission_terms_accepted_at`.
 
-Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 and again on submit. From milestone 11, submitting requires a **verified email** (§20); until then, submission is allowed without it. Drafts can be saved either way.
+Drafts autosave (`status = draft`; at most 10 drafts per user). No limit on active listings; each user may submit at most `SUBMISSIONS_PER_DAY` listings per rolling 24 h (default 10; counted from the database at submit, 429 with `Retry-After`). The phone in step 5 is shown masked (e.g. `+962 •••••••67`) with "use a different number"; a new number goes only into the submit request and is never sent back to the page (§8). Commission terms: version `2026-11-draft` until the reviewed text is published. From milestone 11, submitting requires a **verified email** (§20); until then, submission is allowed without it. Drafts can be saved either way.
 
 ---
 
@@ -259,7 +258,7 @@ Drafts autosave (`status = draft`). Owner 5-listing limit checked before step 1 
 
 ## 10. Property detail page
 
-Gallery (swiper + thumbnail strip + lightbox), title, price (+ price per m²), type/category badges, breadcrumb from admin area hierarchy (country › governorate › city › area) plus the typed address fields allowed by §4.3, features grid, amenity chips, description, map (pin or approximate circle), proxy contact (call / WhatsApp), favorite toggle, share (copy link + WhatsApp share), view count, owner/agent card (name, avatar, member since, company + verified badge — **no phone**), similar listings (same category & type, nearest 4 within 5 km via `ST_DWithin`, else same city).
+Gallery (swiper + thumbnail strip + lightbox), title, price (+ price per m²), type/category badges, breadcrumb from admin area hierarchy (country › governorate › city › area) plus the typed address fields allowed by §4.3, features grid, amenity chips, description, map (approximate circle — never a pin, §4.3), proxy contact (call / WhatsApp), favorite toggle, share (copy link + WhatsApp share), view count, owner/agent card (name, avatar, member since, company + verified badge — **no phone**), similar listings (same category & type, nearest 4 within 5 km via `ST_DWithin`, else same city).
 
 View counting: increment at most once per visitor per listing per 24 h (cookie/IP hash).
 
@@ -295,7 +294,7 @@ Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-r
 - **Interest notifications** to listers, aggregated per day.
 - **Email notifications** (and push later) in addition to in-app ones.
 - **Ownership documents:** the lister uploads a title deed or contract (private, admin-only) to support identifier verification (§2.4).
-- **"Get directions"** button on exact-pin listings (opens the user's maps app).
+- **"Get directions"** button (opens the user's maps app; to the approximate area, since the exact address is shared at viewing time).
 - **Online commission payment** (§19).
 - **Installable web app (PWA)** with push notifications; native iOS/Android apps only after launch.
 - **SMS OTP** (verification/login codes) as a later option; SMS is always paid.
@@ -310,7 +309,7 @@ Tabs: **My Listings** (status badges, rejection reasons, edit/delete/mark sold-r
 - **CSRF:** SameSite=Lax cookies + origin check on every POST/PUT/PATCH/DELETE (API and page actions): `Origin`, else `Sec-Fetch-Site: same-origin`, else `Referer` must match `PUBLIC_BASE_URL` (plus `localhost`/`127.0.0.1` in development); requests with none of them are refused (403). Logout is POST only. `?next=` redirects accept only same-site paths.
 - Role middleware on every protected API route (`requireAuth`, `requireRole`); equivalent checks in loaders/actions (`requireUser`, `requireRole` in `app/utils/auth.server.ts`). Pages receive only `{ id, name, role }` of the signed-in user.
 - Zod validation on every endpoint, loader input, and action.
-- Rate limits (in memory, one process): 100 req/min general (`/api/v1`, including listings and area calls), 5 req/min auth (login + register, API and page forms combined), 60 req/min on `/api/v1/map/points` per IP (its own limit, not counted in the general one; milestone 4 decision); plus 10 failed logins per email per 15 min. 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
+- Rate limits (in memory, one process): 100 req/min general (`/api/v1`, including listings and area calls), 5 req/min auth (login + register, API and page forms combined), 60 req/min on `/api/v1/map/points` per IP (its own limit, not counted in the general one; milestone 4 decision); plus 10 failed logins per email per 15 min; photo uploads 30/min per user; listing submissions `SUBMISSIONS_PER_DAY` per user per rolling 24 h (default 10, counted in the database so restarts do not reset it). 429 with `Retry-After`. Behind Caddy, Express trusts the loopback proxy for the client IP.
 - Parameterized SQL only. Uploads: MIME sniffing (not extension), images only, 10 MB max, re-encoded by sharp (strips EXIF incl. GPS).
 - AES-256-GCM for phones (owner, user and enquiry-caller phones); key only from env; never logged.
 - Admin actions, real-phone views and failed logins go to the append-only `audit_log` (§9).
@@ -399,6 +398,7 @@ MAP_STYLE_URL_DARK=
 MAP_STYLE_URL_LIGHT=
 PUBLIC_BASE_URL=http://localhost:3000
 UPLOAD_DIR=./uploads
+SUBMISSIONS_PER_DAY=10   # listing submissions per user per rolling 24 h
 # Milestone 11 (§20): email provider to be chosen (free tier only); names may change with the provider.
 EMAIL_FROM=
 EMAIL_PROVIDER_API_KEY=
@@ -411,7 +411,7 @@ EMAIL_PROVIDER_API_KEY=
 - Users: 1 admin, 2 agents (1 company, verified), 3 owners — dev passwords only.
 - Boundaries: Jordan governorates; cities Amman, Irbid, Zarqa, Aqaba; all Amman neighbourhoods from OSM (§2.2), including Abdoun, Khalda, Sweifieh, Jubeiha, Dabouq, Tla' Al-Ali.
 - Address settings: the address field catalog and Jordan's country settings (§2.3); a few listings with land-registry identifiers: one verified, two with the same full key written with different digits (duplicate warning), and two apartments in the same parcel (same-building hint).
-- Listings: 40 published spread across those areas with realistic coordinates, mixed category/type/price (JOD); 3 pending (one with `needs_location_review`); 2 sold; mix of exact/approximate precision.
+- Listings: 40 published spread across those areas with realistic coordinates, mixed category/type/price (JOD); 3 pending (one with `needs_location_review`); 2 sold; all approximate (public point 150–300 m from the pin).
 - Contact numbers: 1 global, 1 country (JO), 1 for Amman city, 1 for Abdoun area, 1 property-specific.
 
 ---
@@ -431,7 +431,7 @@ EMAIL_PROVIDER_API_KEY=
 8. **Profile:** My Listings (final-price capture when marking sold/rented → commission record; archive reason for published/reserved listings, §4.2), Saved, Settings, **My commissions**; agent company page; **agent dashboard**; **owner statistics** (§11, §19).
 9. **SEO:** area pages, meta/JSON-LD, hreflang, sitemap, robots.
 10. **Hardening:** tests for contact privacy (assert real phone and true point never appear in public responses or rendered HTML), Playwright happy paths, performance check with 10k seeded listings.
-11. **Launch readiness:** email sending (free-tier provider), password reset, email verification (required before submitting listings), new-device login notice, personal-data export and account deletion (§20).
+11. **Launch readiness:** the server refuses to start in production while the active commission terms version is a draft (§20); email sending (free-tier provider), password reset, email verification (required before submitting listings), new-device login notice, personal-data export and account deletion (§20).
 12. **Deployment:** the VPS setup from §0 — Node 24 LTS app, PostgreSQL 16 + PostGIS on localhost, Caddy with automatic HTTPS (behind Cloudflare: Caddy trusts Cloudflare's IP ranges and forwards the real client IP, so rate limits see visitors, not Cloudflare), `/uploads` served by Caddy, nightly `pg_dump` + `UPLOAD_DIR` backups off the VPS.
 
 Each milestone ends with: typecheck clean, tests passing, short note in `docs/CHANGELOG.md`.
@@ -460,6 +460,7 @@ Each milestone ends with: typecheck clean, tests passing, short note in `docs/CH
 
 ## 20. Launch readiness (milestone 11)
 
+- **Commission terms:** the server **refuses to start in production while the active commission terms version is a draft** (milestone 6 ships `2026-11-draft`, pending legal review, §19).
 - **Email:** sent through a **free-tier** provider (to be chosen; free products only), behind an `emailService` interface so the provider can change. Bilingual templates (the user's language). A sending failure never blocks the user's action, and addresses and tokens are never logged.
 - **Email verification at registration:** a one-time code or link (to be chosen at the start of the milestone); tokens stored as HMAC hashes with an expiry, single use. **Unverified accounts cannot submit listings** (they can browse, save and keep drafts); the check applies from milestone 11, and until then submission is allowed without verification.
 - **Password reset** by email link: single-use, short-lived token (stored hashed); the same response whether or not the email exists; a reset revokes the user's sessions (refresh-token families, §13).

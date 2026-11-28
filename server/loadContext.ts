@@ -4,6 +4,7 @@ import type { AppLoadContext } from "react-router";
 import { requestMeta } from "./middleware/authenticate";
 import type { AuthCookies } from "./services/authCookies";
 import type { AuthService, RequestMeta, Session } from "./services/authService";
+import type { SubmissionDeps } from "./services/submissionService";
 import type { ViewConfig } from "./services/viewService";
 
 /** Server services that page loaders/actions use (created once in server/createServer.ts). */
@@ -14,6 +15,8 @@ export interface AppServices {
   db: Knex;
   /** View counting: visitor cookie settings (listing detail). */
   views: ViewConfig;
+  /** Submit wizard: database, photo storage and phone keys (masking the lister's phone). */
+  submission: SubmissionDeps;
   /** Origin of PUBLIC_BASE_URL (e.g. https://aqar.example), for absolute URLs such as canonical links. */
   publicOrigin: string;
 }

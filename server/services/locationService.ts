@@ -1,6 +1,5 @@
 import { randomInt } from "node:crypto";
 import type { Knex } from "knex";
-import type { LocationPrecision } from "../../app/shared/constants";
 
 /**
  * Location privacy and pin → area lookup (SPEC §2.2, §4.3, CLAUDE.md rule 2).
@@ -27,12 +26,12 @@ export function secureRandom(): number {
 }
 
 /**
- * The public point for a listing. `approximate` moves the pin 150–300 m in a
- * random direction. Call once when the pin is saved and store the result —
- * never per request (averaging repeated offsets would reveal the true point).
+ * The public point for a listing: the pin moved 150–300 m in a random
+ * direction. Every listing is public as an approximate area (milestone 6
+ * decision). Call once when the pin is saved and store the result — never
+ * per request (averaging repeated offsets would reveal the true point).
  */
-export function computeDisplayPoint(point: LngLat, precision: LocationPrecision, random: () => number = secureRandom): LngLat {
-  if (precision === "exact") return { ...point };
+export function computeDisplayPoint(point: LngLat, random: () => number = secureRandom): LngLat {
   const bearing = random() * 2 * Math.PI;
   const distance = APPROXIMATE_MIN_M + random() * (APPROXIMATE_MAX_M - APPROXIMATE_MIN_M);
   return destination(point, bearing, distance);

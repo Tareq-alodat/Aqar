@@ -20,6 +20,11 @@ export type RentPeriod = (typeof RENT_PERIODS)[number];
 export const FURNISHED_OPTIONS = ["yes", "no", "partial"] as const;
 export type Furnished = (typeof FURNISHED_OPTIONS)[number];
 
+/**
+ * The column keeps both values, but every listing is shown publicly as an
+ * approximate area (milestone 6 decision, SPEC §4.3): the database only
+ * accepts `approximate`, and the true pin is never public.
+ */
 export const LOCATION_PRECISIONS = ["exact", "approximate"] as const;
 export type LocationPrecision = (typeof LOCATION_PRECISIONS)[number];
 
@@ -47,9 +52,12 @@ export type BoundarySource = (typeof BOUNDARY_SOURCES)[number];
 export const CONTACT_SCOPES = ["global", "country", "admin_area", "property"] as const;
 export type ContactScope = (typeof CONTACT_SCOPES)[number];
 
-/** Owners may have at most this many active listings (pending + published + reserved), SPEC §3. */
-export const OWNER_ACTIVE_LISTING_LIMIT = 5;
-export const OWNER_ACTIVE_STATUSES = ["pending", "published", "reserved"] as const satisfies readonly ListingStatus[];
+/**
+ * Listers have no limit on active listings (milestone 6 decision); instead each
+ * user may submit at most this many listings per rolling 24 h (default of
+ * `SUBMISSIONS_PER_DAY`, SPEC §7, §13).
+ */
+export const DEFAULT_SUBMISSIONS_PER_DAY = 10;
 
 /** Fixed amenity tags for `properties.amenities` (SPEC §4.1); labels in i18n `listing.amenityTags.*`. */
 export const AMENITY_TAGS = [
@@ -68,3 +76,20 @@ export type AmenityTag = (typeof AMENITY_TAGS)[number];
 
 /** Statuses whose detail page is public (SPEC §10; milestone 5 decision). `published` and `reserved` show the contact box. */
 export const PUBLIC_DETAIL_STATUSES = ["published", "reserved", "sold", "rented"] as const satisfies readonly ListingStatus[];
+
+/** Who pays the commission on a concluded deal (SPEC §19): set from the submitter's role at submission. */
+export const COMMISSION_PAYER_TYPES = ["agent", "owner"] as const;
+export type CommissionPayerType = (typeof COMMISSION_PAYER_TYPES)[number];
+
+/** Roles that may create listings through the submit wizard (SPEC §3, §7). */
+export const LISTER_ROLES = ["owner", "agent"] as const satisfies readonly Role[];
+
+/** Submit wizard limits (SPEC §4.4, §7). */
+export const DRAFT_LIMIT = 10;
+export const MAX_PHOTOS = 20;
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+/** Accepted upload formats, detected from the file's content (not its name or declared type). */
+export const UPLOAD_FORMATS = ["jpeg", "png", "webp"] as const;
+/** Longest edge of the stored photo and of its thumbnail (px). */
+export const PHOTO_MAX_EDGE = 2000;
+export const THUMB_MAX_EDGE = 400;

@@ -13,7 +13,8 @@ import {
 } from "../../app/shared/constants";
 import type { BBox } from "../../app/shared/geo";
 import type { Locale } from "../../app/shared/locales";
-import { publicAddress, type CountryAddressField } from "../../app/shared/schemas/address";
+import { publicAddress } from "../../app/shared/schemas/address";
+import { getCountryAddressFields } from "./countryService";
 import { resolveContactNumber, type ContactNumber } from "./contactService";
 import { selectCards, toCard, type CardRow, type ListingCard } from "./searchService";
 
@@ -21,7 +22,7 @@ import { selectCards, toCard, type CardRow, type ListingCard } from "./searchSer
  * Listing detail (SPEC §10). One public serializer for the page loader and
  * GET /api/v1/listings/:id, with an explicit field list (CLAUDE.md rules 1–2):
  * never the owner's phone, the true `point`, property identifiers, the
- * owner's email, or address fields the listing's precision does not allow.
+ * owner's email, or address fields that are not `public` (§4.3).
  */
 
 export interface Viewer {
@@ -61,8 +62,8 @@ export interface ListingDetail {
   isFeatured: boolean;
   viewCount: number;
   publishedAt: string | null;
-  /** The public point only (display_point); `approximate` → shown as a circle. */
-  location: { lng: number; lat: number; precision: LocationPrecision } | null;
+  /** The public point only (display_point), always shown as an approximate area (circle). */
+  location: { lng: number; lat: number } | null;
   areaPath: AreaCrumb[];
   /** Typed address fields allowed for this listing (§4.3), labelled in `locale`. */
   address: Array<{ key: string; label: string; value: string }>;
@@ -140,14 +141,6 @@ interface DetailRow {
 const num = (v: string | number | null) => (v === null ? null : Number(v));
 export const isPublicStatus = (s: ListingStatus) => (PUBLIC_DETAIL_STATUSES as readonly string[]).includes(s);
 const hasContact = (s: ListingStatus) => s === "published" || s === "reserved";
-
-async function addressFields(db: Knex, countryCode: string): Promise<CountryAddressField[]> {
-  return db("country_address_fields as c")
-    .join("address_fields as f", "f.key", "c.field_key")
-    .where({ "c.country_code": countryCode, "c.is_active": true })
-    .orderBy("c.position")
-    .select("c.field_key", "f.kind", "f.label_ar", "f.label_en", "f.pattern", "c.position", "c.is_required", "c.visibility");
-}
 
 async function areaPath(db: Knex, areaId: number | null, locale: Locale): Promise<AreaCrumb[]> {
   if (areaId === null) return [];
@@ -242,14 +235,14 @@ export async function getListingDetail(
 
   const pick = (ar: string | null, en: string | null) => (locale === "ar" ? (ar ?? en) : (en ?? ar));
   const [fields, path, images, contact] = await Promise.all([
-    addressFields(db, row.country_code),
+    getCountryAddressFields(db, row.country_code),
     areaPath(db, row.admin_area_id, locale),
     db("property_images").where({ property_id: row.id }).orderBy("order_index").select("url", "thumbnail_url", "width", "height"),
     hasContact(row.status)
       ? resolveContactNumber(db, { id: row.id, adminAreaId: row.admin_area_id, countryCode: row.country_code })
       : Promise.resolve(null),
   ]);
-  const visible = publicAddress(fields, row.address ?? {}, row.location_precision);
+  const visible = publicAddress(fields, row.address ?? {});
   const price = num(row.price);
   const areaSqm = num(row.area_sqm);
 
@@ -282,7 +275,7 @@ export async function getListingDetail(
       publishedAt: row.published_at ? row.published_at.toISOString() : null,
       location:
         row.lng !== null && row.lat !== null
-          ? { lng: Number(Number(row.lng).toFixed(6)), lat: Number(Number(row.lat).toFixed(6)), precision: row.location_precision }
+          ? { lng: Number(Number(row.lng).toFixed(6)), lat: Number(Number(row.lat).toFixed(6)) }
           : null,
       areaPath: path,
       address: fields
