@@ -273,3 +273,21 @@ describe("submit wizard pages", () => {
     expect(en.text.indexOf('lang="en" dir="ltr" class="flex flex-col')).toBeLessThan(en.text.indexOf('lang="ar" dir="rtl" class="flex flex-col'));
   });
 });
+
+describe("map page with a selected area (area=, SPEC §5.2)", () => {
+  it("renders the removable area chip and only that area's listings, in both languages", async () => {
+    const zarqa = await db("admin_areas").where({ country_code: "JO", level: "governorate", name_ar: "الزرقاء" }).first("id", "name_en");
+    const ar = await request(server.app).get(`/ar/jo/map?area=${zarqa.id}`);
+    expect(ar.status).toBe(200);
+    expect(ar.text).toContain("إزالة فلتر المنطقة: الزرقاء");
+    expect(ar.text).toMatch(new RegExp(`<select aria-label="المحافظة"[^>]*>.*?<option value="${zarqa.id}" selected="">`));
+    const en = await request(server.app).get(`/en/jo/map?area=${zarqa.id}`);
+    expect(en.text).toContain(`Remove the area filter: ${zarqa.name_en}`);
+    // No Amman listing in the server-rendered results.
+    expect(ar.text).not.toMatch(/في (عبدون|خلدا|الصويفية|الجبيهة|دابوق|تلاع العلي)/);
+    // An unknown area renders without a chip.
+    const unknown = await request(server.app).get("/ar/jo/map?area=999999");
+    expect(unknown.status).toBe(200);
+    expect(unknown.text).not.toContain("إزالة فلتر المنطقة");
+  });
+});

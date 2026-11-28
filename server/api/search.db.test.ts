@@ -230,6 +230,79 @@ describe("/api/v1/areas", () => {
   });
 });
 
+describe("selected-area filter (area=, SPEC §5.2)", () => {
+  it("excludes a listing inside the area's bounding box but outside the area (the Zarqa/east Amman bug)", async () => {
+    const zarqa = await area("governorate", "الزرقاء");
+    const ammanGov = (await db("admin_areas").where({ id: (await area("city", "عمان")).id }).first("parent_id")).parent_id as number;
+    const box = (await db.raw("SELECT ST_XMin(g) AS a, ST_YMin(g) AS b, ST_XMax(g) AS c, ST_YMax(g) AS d FROM (SELECT boundary::geometry AS g FROM admin_areas WHERE id = ?) s", [zarqa.id]))
+      .rows[0] as { a: number; b: number; c: number; d: number };
+    const bbox = [box.a, box.b, box.c, box.d].map((n) => n.toFixed(5)).join(",");
+    // A point in Amman governorate inside Zarqa's bounding box.
+    const outside = (
+      await db.raw(
+        `SELECT ST_X(p) AS lng, ST_Y(p) AS lat, ST_Covers(z.boundary, p::geography) AS in_zarqa
+           FROM admin_areas z, admin_areas a,
+                LATERAL (SELECT ST_PointOnSurface(ST_Intersection(a.boundary::geometry, ST_Envelope(z.boundary::geometry))) AS p) s
+          WHERE z.id = ? AND a.id = ?`,
+        [zarqa.id, ammanGov],
+      )
+    ).rows[0] as { lng: number; lat: number; in_zarqa: boolean };
+    expect(outside.in_zarqa).toBe(false);
+
+    const listing = await db("properties").where({ status: "published" }).orderBy("id").first("id", "admin_area_id", "point", "display_point");
+    const pt = db.raw("ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography", [outside.lng, outside.lat]);
+    await db("properties").where({ id: listing.id }).update({ admin_area_id: ammanGov, point: pt, display_point: pt });
+    try {
+      const ids = async (extra: string) =>
+        ((await request(app).get(`/api/v1/map/points?country=JO&bbox=${bbox}${extra}`)).body.features as Array<{ id: number }>).map((f) => f.id);
+      expect(await ids("")).toContain(listing.id);
+      const inArea = await ids(`&area=${zarqa.id}`);
+      expect(inArea).not.toContain(listing.id);
+      expect(inArea.length).toBeGreaterThan(0);
+      // Every result is in Zarqa or below it.
+      const under = await db.raw(
+        `WITH RECURSIVE d AS (SELECT id FROM admin_areas WHERE id = ? UNION ALL SELECT a.id FROM admin_areas a JOIN d ON a.parent_id = d.id)
+         SELECT p.id FROM properties p WHERE p.id = ANY(?) AND p.admin_area_id NOT IN (SELECT id FROM d)`,
+        [zarqa.id, inArea],
+      );
+      expect(under.rows).toEqual([]);
+      // The list and its count agree with the pins.
+      const list = await request(app).get(`/api/v1/listings?country=JO&bbox=${bbox}&area=${zarqa.id}`);
+      expect(list.body.total).toBe(inArea.length);
+      expect(list.body.items.map((i: { id: number }) => i.id)).not.toContain(listing.id);
+    } finally {
+      await db("properties").where({ id: listing.id }).update({ admin_area_id: listing.admin_area_id, point: listing.point, display_point: listing.display_point });
+    }
+  });
+
+  it("the jump tree lists the top level (governorates) first, so the dropdowns show governorates", async () => {
+    const res = await request(app).get("/api/v1/areas/tree?country=JO");
+    const levels = (res.body.areas as Array<{ level: string }>).map((a) => a.level);
+    const firstCity = levels.indexOf("city");
+    expect(levels[0]).toBe("governorate");
+    expect(levels.slice(firstCity).every((l) => l === "city")).toBe(true);
+    expect(levels.filter((l) => l === "governorate")).toHaveLength(12);
+  });
+
+  it("GET /areas/:id gives the area with its ancestors, root first", async () => {
+    const zarqa = await area("governorate", "الزرقاء");
+    const amman = await area("city", "عمان");
+    const abdoun = await area("area", "عبدون");
+    const gov = await request(app).get(`/api/v1/areas/${zarqa.id}?country=JO`);
+    expect(gov.status).toBe(200);
+    expect(gov.body.path.map((a: { id: number }) => a.id)).toEqual([zarqa.id]);
+    const deep = await request(app).get(`/api/v1/areas/${abdoun.id}?country=JO`);
+    expect(deep.body.path.map((a: { level: string }) => a.level)).toEqual(["governorate", "city", "area"]);
+    expect(deep.body.path[1].id).toBe(amman.id);
+    expect(Object.keys(deep.body.path[2]).sort()).toEqual(["bbox", "id", "level", "nameAr", "nameEn", "parentId"]);
+    expect((await request(app).get("/api/v1/areas/999999?country=JO")).status).toBe(404);
+    expect((await request(app).get(`/api/v1/areas/${zarqa.id}?country=KW`)).status).toBe(400);
+    expect((await request(app).get("/api/v1/areas/abc?country=JO")).status).toBe(400);
+    // Routes registered before it still win.
+    expect((await request(app).get("/api/v1/areas/suggest?country=JO&q=عبدون")).body.items.length).toBeGreaterThan(0);
+  });
+});
+
 describe("rate limits", () => {
   it("gives /map/points its own 60/min, not counted in the general 100/min", async () => {
     const fresh = buildApp();

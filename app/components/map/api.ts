@@ -83,3 +83,13 @@ export function fetchPathAt(country: string, lng: number, lat: number, zoom: num
   const p = new URLSearchParams({ country, lng: lng.toFixed(5), lat: lat.toFixed(5), z: zoom.toFixed(2) });
   return getJson<{ path: AreaSummary[] }>(`/api/v1/areas/at?${p}`, { signal });
 }
+
+/** One area with its ancestors, root first (selected-area filter). Null when the area does not exist in the country. */
+export async function fetchAreaPath(country: string, id: number, signal: AbortSignal): Promise<AreaSummary[] | null> {
+  try {
+    return (await getJson<{ path: AreaSummary[] }>(`/api/v1/areas/${id}?${new URLSearchParams({ country })}`, { signal })).path;
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) return null;
+    throw error;
+  }
+}

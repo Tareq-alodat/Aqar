@@ -57,7 +57,9 @@
       "other": "{count} properties found"
     },
     "geoDenied": "Location access is turned off. Allow it in your browser to search near you.",
-    "geoUnavailable": "Could not find your location. Please try again."
+    "geoUnavailable": "Could not find your location. Please try again.",
+    "areaChip": "Showing results only in {area}",
+    "removeArea": "Remove the area filter: {area}"
   },
   "list": {
     "empty": "No properties match here. Try zooming out or removing filters.",

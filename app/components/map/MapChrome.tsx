@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect } from "react";
 import { useLocale, useT } from "~/i18n/useT";
 import type { ActiveCountry } from "~/shared/countries";
@@ -48,28 +49,35 @@ export function AreaPath({ country, countryBBox, path }: { country: ActiveCountr
   );
 }
 
-/** Governorate/city dropdowns that fly the map there (no external geocoding, SPEC §5.2). */
-export function JumpTo({ areas, path }: { areas: AreaSummary[]; path: AreaSummary[] }) {
+/**
+ * Governorate/city dropdowns (SPEC §5.2): choosing one filters results to that
+ * area (`area=`) and fits the map to it. They show the selected area's
+ * governorate and city (one source of truth with the chip and the filters);
+ * "All governorates" clears the filter, "All cities" keeps only the governorate.
+ */
+export function JumpTo({ areas, selectedPath, onArea }: { areas: AreaSummary[]; selectedPath: AreaSummary[] | null; onArea(path: AreaSummary[] | null): void }) {
   const t = useT();
   const locale = useLocale();
-  const fitTo = useMapUi((s) => s.fitTo);
   const top = areas[0]?.level;
   const governorates = areas.filter((a) => a.level === top);
-  const current = path.find((p) => p.level === top)?.id;
-  const cities = areas.filter((a) => a.level !== top && (current === undefined || a.parentId === current));
+  const governorate = selectedPath?.find((p) => p.level === top);
+  const cities = governorate ? areas.filter((a) => a.level !== top && a.parentId === governorate.id) : [];
+  const city = selectedPath?.find((p) => p.level !== top && cities.some((c) => c.id === p.id));
   const name = (a: AreaSummary) => (locale === "ar" ? a.nameAr : a.nameEn);
   const byName = (a: AreaSummary, b: AreaSummary) => name(a).localeCompare(name(b), locale);
-  const go = (id: string) => {
-    const area = areas.find((a) => String(a.id) === id);
-    if (area) fitTo(area.bbox);
+  const chooseGovernorate = (id: string) => {
+    const g = governorates.find((a) => String(a.id) === id);
+    onArea(g ? [g] : null);
+  };
+  const chooseCity = (id: string) => {
+    const c = cities.find((a) => String(a.id) === id);
+    if (governorate) onArea(c ? [governorate, c] : [governorate]);
   };
   const select = "max-w-40 rounded-lg border border-muted bg-background px-2 py-1.5 text-sm";
   return (
     <div className={`${panel} flex items-center gap-2 px-2 py-1.5`} role="group" aria-label={t("map.jumpTo")}>
-      <select aria-label={t("map.governorate")} value={current ?? ""} onChange={(e) => go(e.target.value)} className={select}>
-        <option value="" disabled>
-          {t("map.allGovernorates")}
-        </option>
+      <select aria-label={t("map.governorate")} value={governorate?.id ?? ""} onChange={(e) => chooseGovernorate(e.target.value)} className={select}>
+        <option value="">{t("map.allGovernorates")}</option>
         {[...governorates].sort(byName).map((a) => (
           <option key={a.id} value={a.id}>
             {name(a)}
@@ -77,15 +85,8 @@ export function JumpTo({ areas, path }: { areas: AreaSummary[]; path: AreaSummar
         ))}
       </select>
       {cities.length > 0 && (
-        <select
-          aria-label={t("map.city")}
-          value={path.find((p) => p.level !== top && cities.some((c) => c.id === p.id))?.id ?? ""}
-          onChange={(e) => go(e.target.value)}
-          className={select}
-        >
-          <option value="" disabled>
-            {t("map.allCities")}
-          </option>
+        <select aria-label={t("map.city")} value={city?.id ?? ""} onChange={(e) => chooseCity(e.target.value)} className={select}>
+          <option value="">{t("map.allCities")}</option>
           {[...cities].sort(byName).map((a) => (
             <option key={a.id} value={a.id}>
               {name(a)}
@@ -94,6 +95,28 @@ export function JumpTo({ areas, path }: { areas: AreaSummary[]; path: AreaSummar
         </select>
       )}
     </div>
+  );
+}
+
+/** The selected-area filter as a removable chip ("الزرقاء ×"). */
+export function AreaChip({ area, onRemove }: { area: AreaSummary; onRemove(): void }) {
+  const t = useT();
+  const locale = useLocale();
+  const label = locale === "ar" ? area.nameAr : area.nameEn;
+  return (
+    <span className="inline-flex max-w-56 shrink-0 items-center gap-1 rounded-full border border-primary bg-primary/10 py-1 ps-3 pe-1 text-sm font-medium text-primary-text">
+      <span className="truncate" title={t("map.areaChip", { area: label })}>
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={t("map.removeArea", { area: label })}
+        className="flex size-6 shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:bg-primary/15"
+      >
+        <X aria-hidden="true" className="size-4" />
+      </button>
+    </span>
   );
 }
 

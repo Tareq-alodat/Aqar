@@ -29,6 +29,20 @@ export function bboxAround(lng: number, lat: number, zoom: number, width: number
   return [Math.max(-180, minLng), clampLat(minLat), Math.min(180, maxLng), clampLat(maxLat)];
 }
 
+/**
+ * The centre and zoom that fit `bbox` in a `width`×`height` px viewport with
+ * `padding` px on each side (like MapLibre's fitBounds), capped at `maxZoom`.
+ */
+export function viewForBBox(bbox: BBox, width: number, height: number, padding = 48, maxZoom = 15): { lng: number; lat: number; z: number } {
+  const [x0, y1] = project(bbox[0], bbox[1], 0);
+  const [x1, y0] = project(bbox[2], bbox[3], 0);
+  const dx = Math.max(x1 - x0, 1e-9);
+  const dy = Math.max(y1 - y0, 1e-9);
+  const z = Math.min(maxZoom, Math.log2(Math.min((width - 2 * padding) / dx, (height - 2 * padding) / dy)));
+  const [lng, lat] = unproject((x0 + x1) / 2, (y0 + y1) / 2, 0);
+  return { lng, lat, z: Math.max(0, Number(z.toFixed(2))) };
+}
+
 export function bboxContains(outer: BBox, inner: BBox): boolean {
   return inner[0] >= outer[0] && inner[1] >= outer[1] && inner[2] <= outer[2] && inner[3] <= outer[3];
 }
