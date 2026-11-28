@@ -140,7 +140,7 @@ Visitors (not logged in) can browse the map, view listings, call the listing's s
 
 **Offers:** the owner-chosen `offers_visibility` setting is **removed** (offer visibility is fixed, §21; the column is dropped when offers are built).
 
-**Commission (§19):** `commission_payer_type ENUM[agent, owner]` (set at submission from the submitter's role), `commission_terms_version`, `commission_terms_accepted_at` (the lister accepts the listing terms at submission — commission, and from the next terms version also consent to share property data with licensed financiers when a buyer applies for financing, §25).
+**Commission (§19):** `commission_payer_type ENUM[agent, owner]` (set at submission from the submitter's role), `commission_terms_version`, `commission_terms_accepted_at` (the lister accepts the listing terms at submission — commission, and consent to share property data with licensed financiers when a buyer applies for financing, §25), and `commission_rate numeric(6,4)` — the agreed rate shown to the lister before submission and stored with the accepted terms version (set exactly when the terms are; it changes only through a new recorded agreement, §19).
 
 **Prices:** the asking price is `price`; the accepted offer amount and the final price live on the deal (§23) and are never written back over the asking price.
 
@@ -247,7 +247,7 @@ Google cannot read a map, so the site also generates server-rendered landing pag
 4. **Photos:** upload, reorder, choose cover.
 5. **Contact & review:** confirm phone (shown with note "لن يظهر رقمك للعامة"), summary, **accept the listing terms** (required checkbox, link to the terms page in Arabic and English: commission §19, and data sharing with financiers §25), submit → `pending` and assigned to the area's supervisor (§4.2). (The offers-visibility setting is removed, §21.) The listing stores `commission_payer_type`, `commission_terms_version` and `commission_terms_accepted_at`.
 
-Drafts autosave (`status = draft`; at most 10 drafts per user). No limit on active listings; each user may submit at most `SUBMISSIONS_PER_DAY` listings per rolling 24 h (default 10; counted from the database at submit, 429 with `Retry-After`). The phone in step 5 is shown masked (e.g. `+962 •••••••67`) with "use a different number"; a new number goes only into the submit request and is never sent back to the page (§8). Commission terms: version `2026-11-draft` until the reviewed text is published. From milestone 15, submitting requires a **verified email** (§20); until then, submission is allowed without it. Agents can submit only once their registration is approved (§3). Drafts can be saved either way.
+Drafts autosave (`status = draft`; at most 10 drafts per user). No limit on active listings; each user may submit at most `SUBMISSIONS_PER_DAY` listings per rolling 24 h (default 10; counted from the database at submit, 429 with `Retry-After`). The phone in step 5 is shown masked (e.g. `+962 •••••••67`) with "use a different number"; a new number goes only into the submit request and is never sent back to the page (§8). Commission terms: version `2026-12-v1` (the reviewed text in `docs/legal/commission-terms.md`; it replaced the placeholder `2026-11-draft`). The review step shows the commission rate the listing will be submitted with. From milestone 15, submitting requires a **verified email** (§20); until then, submission is allowed without it. Agents can submit only once their registration is approved (§3). Drafts can be saved either way.
 
 ---
 
@@ -469,6 +469,13 @@ EXCHANGE_RATES_URL=
 # Milestone 15 (§20): email provider to be chosen (free tier only); names may change with the provider.
 EMAIL_FROM=
 EMAIL_PROVIDER_API_KEY=
+# Company legal details (required in production, §20).
+COMPANY_LEGAL_NAME_AR=
+COMPANY_LEGAL_NAME_EN=
+COMPANY_CR_NUMBER=
+COMPANY_TAX_NUMBER=
+COMPANY_SALES_TAX_REGISTERED=   # true / false
+COMPANY_DLS_LICENSE_NUMBER=
 ```
 
 ---
@@ -516,17 +523,33 @@ Each milestone ends with: typecheck clean, tests passing, short note in `docs/CH
 
 ## 19. Revenue model: commission, supervisor share and collections
 
-**Decision:** AQAR earns a commission on deals completed for listings on the site. **Legal:** brokerage licensing must be confirmed per country with a lawyer before charging any commission, and the terms text needs legal review (Arabic and English).
+**Decision:** AQAR earns a commission on deals completed for listings on the site. **Legal:** brokerage licensing must be confirmed per country with a lawyer before charging any commission. The listing & commission terms are **`docs/legal/commission-terms.md`, version `2026-12-v1`** (Arabic authoritative, English translation), rendered on `/:lang/terms/commission`; listings submitted earlier keep the version they accepted.
+
+**Terms content (2026-12-v1)** — the system follows these rules:
+- **Protection period:** commission is due on any deal with a client the platform **introduced** to the property (enquiry, viewing, offer or contact through the supervisor), **even if concluded outside the platform**, when concluded within **12 months** of that introduction — including deals with the client's **relatives up to the second degree** or representatives. Concealed deals: commission in full on the documented final price, or on the listed price if it cannot be established.
+- **Notification:** the lister reports any such deal and its final price **within 7 days** of concluding it, with evidence.
+- **Payment:** **within 14 days** of the deal being recorded (`countries.commission_due_days = 14` for Jordan), by bank transfer or CliQ.
+- **Late payment:** **no late-payment interest**; after a reminder the company may **suspend the lister's listings and account** until paid, and pursue collection.
+- **Cancellation:** refund = collected commission minus a 10 % administrative fee, with a credit note (below); no refund for sham cancellations.
+- **No contact details** in listing text or photos (§8.1); all client contact goes through the supervisor.
 
 **Commission**
-- **Rate:** per country (`countries.commission_rate numeric(6,4)`, default `0.0100`), **overridable per agreement**: `commission_agreements (id, country_code FK, user_id FK nullable, company_id FK nullable, rate numeric(6,4), valid_from, valid_to nullable, notes, created_by FK, created_at)` — set by the super_admin for an agent, a company or an owner. The applicable rate (agreement on the deal date, else the country's) is **copied into each commission record**, so later changes never affect existing deals.
+- **Rate — agreed per lister/listing:** the rate is agreed between the company and the lister through **commission agreements** `commission_agreements (id, country_code FK, user_id FK nullable, company_id FK nullable, property_id FK nullable, rate numeric(6,4), valid_from, valid_to nullable, notes, created_by FK, created_at)` — for an agent, a company, an owner or a single listing. Validated **server-side: > 0 and ≤ the country's cap** (`countries.commission_rate_max`, Jordan **5 %**); when no agreement applies, the country's default `countries.commission_rate` (**1 %**). The agreed rate is **shown to the lister before submission** and **stored on the listing** (`properties.commission_rate`) with the accepted terms version; it **changes only through a new recorded agreement** — created by the super_admin and audited (`commission_agreement_created`, before/after rate), never by editing the listing. The listing's rate is **copied into each commission record**, so later changes never affect existing deals. *Implemented so far (legal & tax update):* the cap, the default, and showing/storing the rate at submission; agreements arrive with milestone 11.
 - **Basis:** sale → the **final** sale price; rent → the **annual** rent (monthly rent × 12 for `monthly`, the yearly rent for `yearly`). Exchange deals: no commission at launch (revisit later).
 - **Payer — the lister:** the agent if an agent submitted the listing, otherwise the owner (`commission_payer_type`, §4.1).
 - **Terms:** accepted at submission (§7), stored per listing (`commission_terms_version`, `commission_terms_accepted_at`). A new terms version applies to listings submitted after it.
 - **When it is due:** a commission record is created with status `due` when the **deal completes** (§23); the due date is the completion date plus the country's payment period (`countries.commission_due_days`).
-- `commissions (id, deal_id FK, property_id FK, payer_user_id FK, payer_type ENUM[agent, owner], deal_type ENUM[sale, rent], basis_amount numeric(14,3), currency char(3), rate numeric(6,4), agreement_id FK nullable, commission_amount numeric(14,3), collected_amount numeric(14,3) default 0, status ENUM[due, partially_paid, paid, waived, refunded, partially_refunded], due_date, notes, created_at, updated_at)`. "Overdue" is derived (`due_date` passed and not paid/waived), not stored. Amounts use the country's decimal count; currency from the listing's country.
+- `commissions (id, deal_id FK, property_id FK, payer_user_id FK, payer_type ENUM[agent, owner], deal_type ENUM[sale, rent], basis_amount numeric(14,3), currency char(3), rate numeric(6,4), agreement_id FK nullable, commission_amount numeric(14,3) (net), tax_rate numeric(6,4), tax_amount numeric(14,3), total_amount numeric(14,3) (net + tax), collected_amount numeric(14,3) default 0, status ENUM[due, partially_paid, paid, waived, refunded, partially_refunded], due_date, jofotara_invoice_number nullable, jofotara_qr nullable, invoice_recorded_by FK nullable, invoice_recorded_at nullable, notes, created_at, updated_at)`. "Overdue" is derived (`due_date` passed and not paid/waived), not stored. Amounts use the country's decimal count; currency from the listing's country.
+
+**Tax and invoicing (Jordan)**
+- **General sales tax:** the commission is **net**; general sales tax is added at the country's rate (`countries.sales_tax_rate`, **Jordan 16 %**) **when the company is registered for sales tax** (company legal setting, §20). Each commission stores the **base (net), tax rate, tax amount and total**; the rate is copied at creation, so later changes never affect it. Not registered → tax rate 0, and the statement says so.
+- **Invoices through Jordan's National Invoicing System (JoFotara):** phase 1 — the invoice is **issued manually on the JoFotara portal**, and the supervisor in scope or the super_admin **records the JoFotara invoice number and QR code on the commission** (audited). Phase 2 [P2] — API integration (UBL 2.1). AQAR's printable page (Screens below) is a statement that references the JoFotara invoice and shows the company's legal details (§20).
+- **Refunds:** a **credit note** issued through JoFotara **referencing the original invoice**; its number and QR are recorded on the refund.
+- **Retention:** invoice records (commissions, payments, refunds, JoFotara references) are kept **at least 4 years**; account deletion (§20) keeps them with personal data minimised as far as the law allows.
+- **Payer identification:** JoFotara invoices may need the payer's **national ID number or tax number** (an invoicing requirement — still never used to identify properties, §2.4). Stored **AES-256-GCM encrypted**, visible **only to the super_admin** (every view audited), never in listings, public responses, or loader data outside that view.
 
 **Supervisor share**
+- **A payroll bonus:** the supervisor share is paid as a bonus through payroll; income tax and social security are handled outside the system (the system only computes and reports the accrued amounts).
 - The deal's supervisor earns a share of AQAR's commission: `countries.supervisor_share_rate numeric(6,4)` (percentage of the commission, per country). It is **calculated only from collected commission confirmed by the super_admin**: each confirmed payment accrues `payment.amount × share rate` (rate copied at confirmation); refunds reverse it proportionally.
 - `supervisor_earnings (id, supervisor_id FK, commission_id FK, payment_id FK nullable, refund_id FK nullable, amount numeric(14,3) (negative for reversals), currency, rate numeric(6,4), status ENUM[accrued, paid_out], paid_out_at, created_at)`.
 
@@ -546,13 +569,13 @@ Each milestone ends with: typecheck clean, tests passing, short note in `docs/CH
 
 **Placement:** listing terms checkbox — milestone 6; everything else — milestone 11 (follow-up list included).
 
-**Open question (decide before milestone 11):** sales tax on the commission and invoice numbering requirements in Jordan (accounting/legal review).
+**Decided (legal & tax update):** sales tax and invoicing as above (general sales tax when registered; invoices through JoFotara, which also provides the invoice numbering).
 
 ---
 
 ## 20. Launch readiness (milestone 15)
 
-- **Commission terms:** the server **refuses to start in production while the active commission terms version is a draft** (milestone 6 ships `2026-11-draft`, pending legal review, §19).
+- **Production launch guard (implemented in the legal & tax update, `server/launchChecks.ts`):** the server **refuses to start in production** while the active commission terms version is a draft (the active version is `2026-12-v1`, §19) **or any company legal setting is missing**. Company legal settings (env, see `.env.example`): company name in Arabic and English (`COMPANY_LEGAL_NAME_AR` / `_EN`), commercial registration number (`COMPANY_CR_NUMBER`), tax number (`COMPANY_TAX_NUMBER`), general sales-tax registration status (`COMPANY_SALES_TAX_REGISTERED`, `true`/`false`; drives the tax on commissions, §19) and the Department of Lands and Survey real-estate office licence number (`COMPANY_DLS_LICENSE_NUMBER`). They are shown in the **footer** and on **invoices/statements** (milestone 11: same component, copied onto each invoice record so a later change does not alter issued invoices).
 - **Email:** sent through a **free-tier** provider (to be chosen; free products only), behind an `emailService` interface so the provider can change. Bilingual templates (the user's language). A sending failure never blocks the user's action, and addresses and tokens are never logged.
 - **Email verification at registration:** a one-time code or link (to be chosen at the start of the milestone); tokens stored as HMAC hashes with an expiry, single use. **Unverified accounts cannot submit listings** (they can browse, save and keep drafts); the check applies from milestone 15, and until then submission is allowed without verification.
 - **Password reset** by email link: single-use, short-lived token (stored hashed); the same response whether or not the email exists; a reset revokes the user's sessions (refresh-token families, §13).

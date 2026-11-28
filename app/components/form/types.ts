@@ -38,7 +38,8 @@ export interface WizardData {
   /** The lister's profile phone, masked; never the number itself. */
   maskedPhone: string | null;
   limits: ListerLimits;
-  terms: { version: string; draft: boolean };
+  /** `rate`: the commission rate the listing is submitted with (fraction, e.g. 0.01). */
+  terms: { version: string; draft: boolean; rate: number };
   styles: { dark: string; light: string };
 }
 

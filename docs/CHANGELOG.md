@@ -262,3 +262,33 @@ First part of milestone 7 (split agreed: 7a supervisor model, 7b moderation, 7c 
 - Reassign button, moderation queue, "show phone", audit-log browser: 7b. Agent registrations: 7c. Users screen (suspend/reactivate), settings, overdue reminders: 7d. Boundary viewer and counts: 7e.
 - No accessibility (axe) run this time; the browser check was visual only.
 - The work-mobile country is not stored; editing a profile assumes Jordan unless another country is chosen (international `+` input works for any country).
+
+## Legal & tax update (2026-11-28)
+
+- **Terms 2026-12-v1:**
+  - The final preliminary listing & commission terms are committed at `docs/legal/commission-terms.md` (moved from `docs/Legal/`).
+  - `/:lang/terms/commission` renders that file itself: a small tested Markdown-subset reader (`app/shared/legal/markdown.ts`) produces React elements only, with no HTML pass-through.
+  - Arabic is authoritative and the English is a translation; each page shows its own language first and the other below, with an "Arabic prevails" note. Latin tokens such as the version are isolated in the Arabic text.
+  - `COMMISSION_TERMS_VERSION = "2026-12-v1"` (no longer a draft). A test checks that the file carries that version.
+  - The placeholder `2026-11-draft` paragraphs are removed. Earlier listings keep the version they accepted.
+- **Production launch guard** (`server/launchChecks.ts`, called in `server/index.ts`): the server refuses to start in production while the terms are a draft or any company legal setting is missing. Problems name the env variable, never a value.
+- **Company legal settings** (env, `.env.example`):
+  - **Variables:** `COMPANY_LEGAL_NAME_AR/EN`, `COMPANY_CR_NUMBER`, `COMPANY_TAX_NUMBER`, `COMPANY_SALES_TAX_REGISTERED` (true/false) and `COMPANY_DLS_LICENSE_NUMBER`.
+  - **Display:** shown in the footer through `CompanyLegalDetails`, the component invoices/statements will use (milestone 11). Missing values are left out in development.
+- **Commission rate:**
+  - `countries.commission_rate_max` (Jordan 5 %); the country rate must be > 0 and ≤ the cap (CHECK).
+  - `properties.commission_rate` is stored at submission with the accepted terms version (CHECK: set exactly when the terms are). Earlier submitted listings were backfilled with the country default they were shown.
+  - The rate is validated server-side (`commissionService`) and shown in the review step before submitting. Agreements (super_admin, audited) come with milestone 11.
+- **SPEC:**
+  - **§19:** the terms content (12-month protection incl. relatives to the second degree, 7-day notification, 14-day payment, no late-payment interest, suspension for non-payment) and rate agreements (> 0, ≤ country cap, default 1 %, stored on the listing, changed only by a recorded agreement).
+  - **§19 tax and invoicing:** net commission + general sales tax (Jordan 16 %, when registered), with base/tax rate/tax amount/total stored per commission. Invoices go through JoFotara: phase 1 issued manually on the portal, with the invoice number and QR recorded on the commission; phase 2 API (UBL 2.1). Credit notes for refunds; 4-year retention.
+  - **§19, payer and supervisor:** the payer's national ID / tax number is stored encrypted and visible to the super_admin only; the supervisor share is a payroll bonus.
+  - **§20:** the launch guard. **§4.1, §7:** the stored rate. **§16:** env.
+- **Tests:**
+  - 495 unit: Markdown subset, terms file ↔ version, ten sections/clauses and key terms, launch guard, env parsing, rate rules.
+  - 207 database/HTTP: rate CHECKs, rate stored on submit, the rendered terms page in `/ar` and `/en` (no `**`, indexed, no draft banner).
+- **Browser check** (headless Edge, throwaway database): terms page in `/ar` and `/en`, light and dark, desktop and mobile; footer with sample company settings; review step showing the rate. No overflow, no app console errors.
+
+### Known gaps
+- Sales tax, JoFotara references, credit notes, payer tax IDs and agreements are specified, not built: they need the commission records of milestone 11.
+- Company legal settings are env values (a restart to change them); they can move to the back-office settings (7d) if they should be editable there.

@@ -358,6 +358,8 @@ describe("submit", () => {
     expect(decrypt(row.owner_phone_encrypted, requireSecrets().encryptionKey)).toBe("+962795551234");
     expect(row.commission_payer_type).toBe("agent");
     expect(row.commission_terms_version).toBe(COMMISSION_TERMS_VERSION);
+    // The rate shown before submission (Jordan's default, no agreement) is stored with the terms.
+    expect(Number(row.commission_rate)).toBe(0.01);
     expect(row.commission_terms_accepted_at).toBeInstanceOf(Date);
     expect(row.slug).toBe("apartment-sale-abdoun");
     expect(row.location_precision).toBe("approximate");

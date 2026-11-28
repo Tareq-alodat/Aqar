@@ -462,22 +462,20 @@
         "submission_rate_limited": "You've reached today's limit of {max} submissions. Try again within 24 hours.",
         "terms_outdated": "The commission terms have changed. Reload the page to accept the current version.",
         "generic": "Couldn't submit. Try again."
-      }
+      },
+      "commissionRate": "Commission if the property is sold or rented through AQAR: {rate} of the final price (of the annual rent for rentals), plus general sales tax where applicable. This rate is stored with your listing."
     }
   },
   "terms": {
     "commission": {
-      "title": "Commission terms",
+      "title": "Listing & commission terms",
       "draftBanner": "Draft — pending legal review. This text will be replaced by the reviewed terms before launch.",
       "version": "Version {version}",
-      "p1": "AQAR (operated by {company}) charges a commission when a deal is concluded for a property listed on AQAR.",
-      "p2": "The commission is {rate} of the final sale price, or of the annual rent for rentals (monthly rent × 12).",
-      "p3": "The lister pays: the agent if an agent submitted the listing, otherwise the owner who listed it.",
-      "p4": "When the property is sold or rented through AQAR, the lister records the final price; AQAR then issues an invoice. Payment is by bank transfer or CliQ.",
-      "p5": "Exchange deals carry no commission at launch.",
-      "p6": "You accept these terms when you submit a listing. The version you accepted is stored with the listing.",
-      "back": "Back",
-      "operator": "Operator: {company}"
+      "operator": "Operator: {company}",
+      "arabicPrevails": "The Arabic text is authoritative; the English text is a translation. In case of any difference, the Arabic text prevails.",
+      "englishTranslation": "English translation",
+      "arabicOriginal": "Arabic text (authoritative)",
+      "back": "Back"
     }
   },
   "headerAdd": {
@@ -647,5 +645,12 @@
       "already_in_state": "Nothing to change.",
       "password_change_required": "Change your one-time password first."
     }
+  },
+  "legal": {
+    "cr": "Commercial registration no. {number}",
+    "taxNumber": "Tax no. {number}",
+    "salesTaxRegistered": "Registered for general sales tax",
+    "salesTaxNotRegistered": "Not registered for general sales tax",
+    "dlsLicense": "Real-estate office licence (Department of Lands and Survey) no. {number}"
   }
 }

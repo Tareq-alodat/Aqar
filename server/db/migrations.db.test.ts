@@ -45,9 +45,10 @@ describe("migrations", () => {
 
   it("refuse to roll back the supervisor model while supervisor accounts exist", async () => {
     await db("users").insert({ email: "rollback-sup@aqar.test", name: "S", password_hash: "x", role: "supervisor" });
-    await expect(db.migrate.down()).rejects.toThrow(/supervisor or financier/);
-    const [, pending] = (await db.migrate.list()) as [unknown[], unknown[]];
-    expect(pending).toHaveLength(0);
+    // Called directly: later migrations may sit on top of it. It refuses before changing anything.
+    const supervisorModel = await import("./migrations/20261129000100_supervisor_model");
+    await expect(supervisorModel.down(db)).rejects.toThrow(/supervisor or financier/);
+    expect(await db.schema.hasTable("audit_log")).toBe(true);
     await truncateForDev(db, ["users"]);
   });
 
@@ -170,5 +171,33 @@ describe("properties constraints", () => {
 
   afterAll(async () => {
     await truncateForDev(db, ["contact_numbers", "property_identifiers", "properties", "users"]);
+  });
+});
+
+describe("commission rate (SPEC §19, terms 2026-12-v1)", () => {
+  it("countries: default 1 % under a 5 % cap; a rate must be > 0 and ≤ the cap", async () => {
+    expect(await db("countries").where({ code: "JO" }).first("commission_rate", "commission_rate_max")).toEqual({ commission_rate: "0.0100", commission_rate_max: "0.0500" });
+    await expect(db("countries").where({ code: "JO" }).update({ commission_rate: 0.06 })).rejects.toThrow(/countries_commission_rate/);
+    await expect(db("countries").where({ code: "JO" }).update({ commission_rate: 0 })).rejects.toThrow(/countries_commission_rate/);
+    await expect(db("countries").where({ code: "JO" }).update({ commission_rate_max: 1 })).rejects.toThrow(/countries_commission_rate/);
+  });
+
+  it("properties: the rate is stored exactly when terms were accepted", async () => {
+    const [u] = await db("users").insert({ email: "rate-check@aqar.test", name: "R", password_hash: "x" }).returning("id");
+    const base = { owner_id: u.id, country_code: "JO", category: "land", listing_type: "exchange", status: "draft" };
+    try {
+      await expect(db("properties").insert({ ...base, commission_rate: 0.01 })).rejects.toThrow(/properties_commission_rate/);
+      await expect(
+        db("properties").insert({ ...base, commission_terms_version: "2026-12-v1", commission_terms_accepted_at: db.fn.now() }),
+      ).rejects.toThrow(/properties_commission_rate/);
+      await expect(
+        db("properties").insert({ ...base, commission_terms_version: "2026-12-v1", commission_terms_accepted_at: db.fn.now(), commission_rate: 0 }),
+      ).rejects.toThrow(/properties_commission_rate/);
+      await expect(
+        db("properties").insert({ ...base, commission_terms_version: "2026-12-v1", commission_terms_accepted_at: db.fn.now(), commission_rate: 0.01 }),
+      ).resolves.toBeDefined();
+    } finally {
+      await truncateForDev(db, ["properties", "users"]);
+    }
   });
 });

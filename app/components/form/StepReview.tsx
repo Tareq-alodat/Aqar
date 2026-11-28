@@ -156,6 +156,7 @@ export function StepReview({
       </section>
 
       <section className={card}>
+        <p className="mb-3 text-sm">{t("wizard.review.commissionRate", { rate: formatRate(data.terms.rate, locale) })}</p>
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1 accent-primary" />
           <span>
@@ -189,4 +190,9 @@ function Row({ k, v, ltr }: { k: string; v: string; ltr?: boolean }) {
       <dd className="font-medium">{ltr ? <bdi>{v}</bdi> : v}</dd>
     </div>
   );
+}
+
+/** The rate as a percentage with Western digits in both languages (SPEC §14). */
+function formatRate(rate: number, locale: string): string {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-u-nu-latn" : "en", { style: "percent", maximumFractionDigits: 2 }).format(rate);
 }
