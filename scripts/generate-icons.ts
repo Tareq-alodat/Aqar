@@ -52,7 +52,7 @@ async function main() {
   const icoSizes = [16, 32, 48];
   const ico = buildIco(await Promise.all(icoSizes.map(async (size) => ({ size, data: await png(svg, size) }))));
   await writeFile(path.join(PUBLIC, "favicon.ico"), ico);
-  await writeFile(path.join(PUBLIC, "apple-touch-icon.png"), await png(svg, 180, BRAND.themeColor.light));
+  await writeFile(path.join(PUBLIC, "apple-touch-icon.png"), await png(svg, 180, BRAND.background));
   await writeFile(path.join(PUBLIC, "icon-192.png"), await png(svg, 192));
   await writeFile(path.join(PUBLIC, "icon-512.png"), await png(svg, 512));
 
@@ -64,8 +64,8 @@ async function main() {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    background_color: BRAND.themeColor.light,
-    theme_color: BRAND.primary,
+    background_color: BRAND.background,
+    theme_color: BRAND.themeColor.light,
     icons: [
       { src: BRAND_ICONS.svg, sizes: "any", type: "image/svg+xml" },
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

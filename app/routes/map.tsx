@@ -3,7 +3,9 @@ import { data, useLoaderData } from "react-router";
 import { MobileNav } from "~/components/layout/MobileNav";
 import { ListingCard } from "~/components/listing/ListingCard";
 import { BottomSheet } from "~/components/map/BottomSheet";
-import { FilterPanel } from "~/components/map/FilterPanel";
+import { SlidersHorizontal } from "lucide-react";
+import { chip, FilterPanel } from "~/components/map/FilterPanel";
+import { LISTING_TYPES } from "~/shared/constants";
 import { AreaPath, JumpTo, MapToolbar, Notice } from "~/components/map/MapChrome";
 import { ResultsList } from "~/components/map/ResultsList";
 import type { ListingCard as Card, ViewChange } from "~/components/map/types";
@@ -153,10 +155,44 @@ export default function MapPage() {
   const activeFilters = countFilters(state.filters);
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col">
       {/* Filter bar above both panes (desktop). */}
-      <div className="hidden border-b border-border bg-surface px-4 py-3 lg:block">
+      <div className="hidden border-b border-border bg-card px-4 py-3 lg:block">
         <FilterPanel filters={state.filters} areas={data.jumpAreas} onChange={onFilters} layout="bar" />
+      </div>
+
+      {/* Mobile: listing-type chips (scroll sideways) and the filters button, on the same white bar (design v2). */}
+      <div className="flex items-center gap-2 border-b border-border bg-card py-2 ps-3 lg:hidden">
+        <div role="group" aria-label={t("filters.type")} className="flex min-w-0 flex-1 gap-2 overflow-x-auto pe-1 [scrollbar-width:none]">
+          <button type="button" className={`${chip(!state.filters.type)} shrink-0`} aria-pressed={!state.filters.type} onClick={() => onFilters({ ...state.filters, type: undefined })}>
+            {t("filters.allTypes")}
+          </button>
+          {LISTING_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={`${chip(state.filters.type === type)} shrink-0`}
+              aria-pressed={state.filters.type === type}
+              onClick={() => onFilters({ ...state.filters, type })}
+            >
+              {t(`listing.types.${type}`)}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          aria-label={t("filters.button", { count: activeFilters })}
+          title={t("filters.button", { count: activeFilters })}
+          className="relative me-3 flex size-10 shrink-0 items-center justify-center rounded-full border border-muted/60 bg-background transition-colors duration-150 hover:border-foreground"
+        >
+          <SlidersHorizontal aria-hidden="true" className="size-5" />
+          {activeFilters > 0 && (
+            <span aria-hidden="true" className="absolute -top-1 -end-1 flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-on-primary">
+              {activeFilters}
+            </span>
+          )}
+        </button>
       </div>
 
       <div className="relative grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[2fr_3fr]">
@@ -196,13 +232,6 @@ export default function MapPage() {
             </div>
             <div className="pointer-events-auto flex flex-wrap items-start gap-2">
               <JumpTo areas={data.jumpAreas} path={search.path} />
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(true)}
-                className="rounded-xl border border-border bg-surface/95 px-3 py-2 text-sm font-medium shadow-lg lg:hidden"
-              >
-                {t("filters.button", { count: activeFilters })}
-              </button>
             </div>
             <div className="pointer-events-auto">
               <MapToolbar

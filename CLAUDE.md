@@ -51,4 +51,5 @@ Node 24 LTS (`>=24 <25`, see `.nvmrc`). Copy `.env.example` to `.env` first.
 ## Conventions
 - Components: PascalCase files; hooks `useX`; services in `server/services` hold business logic, and routes/loaders stay thin.
 - Map state and filters live in URL search params (`useMapUrlState`), not only in component state.
-- Light theme is the default; colours come from the Tailwind theme tokens defined from SPEC §14 (`app/app.css`), not ad-hoc hex values. Text in the brand or error colour uses `text-primary-text` / `text-error-text` (AA in dark mode); form-control borders use `border-muted`, not `border-border`. Fonts: IBM Plex Sans Arabic / IBM Plex Sans.
+- Light theme is the default; colours come from the Tailwind theme tokens defined from SPEC §14 (`app/app.css`, design v2), not ad-hoc hex values. Text in the brand or error colour uses `text-primary-text` / `text-error-text` (AA in dark mode); form-control borders use `border-muted`, not `border-border`; the header uses `bg-header` / `text-on-header`; amber (`accent`, exchange) takes `text-on-accent`. Icons: `lucide-react`. Fonts: IBM Plex Sans Arabic / IBM Plex Sans.
+- Brand: the platform is "AQAR" / "عقار" (page titles, manifest); the operating company "شركة الذكاء العقاري – Aqar Intelligence" (i18n `brand.company`) is named in the footer and on legal/terms pages.

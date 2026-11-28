@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="AQAR">
   <title>AQAR – عقار</title>
-  <polygon points="58,12 8,60 14,63.5 58,21.5" fill="#A04A5A"/>
-  <polygon points="58,21.5 14,63.5 20,67 58,31" fill="#6E2D39"/>
-  <polygon points="62,12 112,60 106,63.5 62,21.5" fill="#5F80A0"/>
-  <polygon points="62,21.5 106,63.5 100,67 62,31" fill="#3E586E"/>
+  <polygon points="58,12 8,60 14,63.5 58,21.5" fill="#C2415A"/>
+  <polygon points="58,21.5 14,63.5 20,67 58,31" fill="#A32A44"/>
+  <polygon points="62,12 112,60 106,63.5 62,21.5" fill="#4F94C6"/>
+  <polygon points="62,21.5 106,63.5 100,67 62,31" fill="#1D6A9E"/>
   <mask id="pinhole"><rect x="0" y="0" width="120" height="120" fill="#fff"/><circle cx="60" cy="61" r="7.5" fill="#000"/></mask>
-  <g mask="url(#pinhole)"><path d="M60,108 L42,70.7 A20,20 0 0 1 60,42 Z" fill="#C4B396"/><path d="M60,108 L60,42 A20,20 0 0 1 78,70.7 Z" fill="#8D7E69"/></g>
+  <g mask="url(#pinhole)"><path d="M60,108 L42,70.7 A20,20 0 0 1 60,42 Z" fill="#F5BC5C"/><path d="M60,108 L60,42 A20,20 0 0 1 78,70.7 Z" fill="#D9962B"/></g>
 </svg>

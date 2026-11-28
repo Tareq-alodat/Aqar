@@ -31,13 +31,14 @@ export default function CommissionTermsPage() {
     <article className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-8">
       <h1 className="text-2xl font-bold">{t("terms.commission.title")}</h1>
       <p className="text-sm text-muted">{t("terms.commission.version", { version: ltrIsolate(version) })}</p>
+      <p className="text-sm text-muted">{t("terms.commission.operator", { company: t("brand.company") })}</p>
       {draft && (
         <p role="note" className="rounded-xl border border-warning bg-warning px-4 py-3 text-sm font-medium text-on-accent">
           {t("terms.commission.draftBanner")}
         </p>
       )}
       <div className={`${card} flex flex-col gap-3 leading-relaxed`}>
-        <p>{t("terms.commission.p1")}</p>
+        <p>{t("terms.commission.p1", { company: t("brand.company") })}</p>
         <p>{t("terms.commission.p2", { rate: percent })}</p>
         <p>{t("terms.commission.p3")}</p>
         <p>{t("terms.commission.p4")}</p>

@@ -5,6 +5,7 @@ import { AMENITY_TAGS, type Category, type ListingStatus, type ListingType } fro
 import { COMMISSION_TERMS_VERSION } from "../../../app/shared/terms";
 import { env, requireSecrets } from "../../env";
 import { protectPhone } from "../../services/cryptoService";
+import { placeholderSvg } from "../seedPlaceholders";
 import { getIdentifierScheme, normalizeIdentifier, type IdentifierInput } from "../../services/identifierService";
 import { computeDisplayPoint, findAdminAreaForPoint, type LngLat } from "../../services/locationService";
 import { hashPassword } from "../../services/passwordService";
@@ -31,28 +32,16 @@ function rng(seed: number) {
   };
 }
 
-/** Hue per category for the generated placeholder photos. */
-const PLACEHOLDER_HUE: Record<Category, number> = { apartment: 210, villa: 150, house: 30, land: 90, commercial: 280 };
-
 /**
  * Writes a placeholder "photo" (SVG, generated here — nothing is downloaded)
  * to UPLOAD_DIR/seed and returns its public URL (/uploads/seed/…).
+ * Colourful per category (design v2, ./placeholders.ts).
  */
 async function writePlaceholder(propertyId: number, n: number, category: Category): Promise<string> {
   const dir = path.resolve(env.UPLOAD_DIR, "seed");
   await mkdir(dir, { recursive: true });
-  const hue = (PLACEHOLDER_HUE[category] + n * 23) % 360;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0" stop-color="hsl(${hue},45%,38%)"/><stop offset="1" stop-color="hsl(${(hue + 40) % 360},40%,18%)"/>
-</linearGradient></defs>
-<rect width="1200" height="800" fill="url(#g)"/>
-<path d="M420 520V360l180-130 180 130v160z" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="14" stroke-linejoin="round"/>
-<rect x="560" y="420" width="80" height="100" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="14"/>
-<text x="600" y="640" font-family="sans-serif" font-size="44" fill="rgba(255,255,255,.75)" text-anchor="middle">${category} · ${propertyId} · ${n + 1}</text>
-</svg>`;
   const file = `${propertyId}-${n + 1}.svg`;
-  await writeFile(path.join(dir, file), svg, "utf8");
+  await writeFile(path.join(dir, file), placeholderSvg(category, propertyId + n, `${category} · ${propertyId} · ${n + 1}`), "utf8");
   return `/uploads/seed/${file}`;
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { bboxAround, bboxContains, pointInRing, type BBox } from "~/shared/geo";
 import { formatPrice, shortNumber, shortPrice } from "~/utils/format";
 import { controlPosition, nameExpression, transformStyle } from "./mapStyle";
+import { PIN_STRETCH_X, PIN_TIP_OFFSET_PX } from "./pins";
 import { canReuse, countInView, padBBox, type PointsCacheEntry } from "./pointsCache";
 import type { PointFeature } from "./types";
 
@@ -122,6 +123,36 @@ describe("basemap style", () => {
     const next = transformStyle("en")(previous, style);
     expect(Object.keys(next.sources)).toContain("aqar-points");
     expect(next.layers.at(-1)?.id).toBe("aqar-pins");
+  });
+
+  it("tints water and green areas when a tint is given (design v2), and only then", () => {
+    const basemap = {
+      version: 8,
+      sources: {},
+      layers: [
+        { id: "water", type: "fill", source: "openmaptiles", "source-layer": "water", paint: { "fill-color": "rgb(194, 200, 202)", "fill-opacity": 1 } },
+        { id: "waterway", type: "line", source: "openmaptiles", "source-layer": "waterway", paint: { "line-color": "hsl(195,17%,78%)" } },
+        { id: "park", type: "fill", source: "openmaptiles", "source-layer": "park", paint: { "fill-color": "rgb(230, 233, 229)" } },
+        { id: "landuse_park", type: "fill", source: "openmaptiles", "source-layer": "landuse", paint: { "fill-color": "rgb(32,32,32)" } },
+        { id: "landuse_residential", type: "fill", source: "openmaptiles", "source-layer": "landuse", paint: { "fill-color": "rgb(234, 234, 230)" } },
+      ],
+    } as unknown as StyleSpecification;
+    const paint = (st: StyleSpecification, id: string) => (st.layers.find((l) => l.id === id) as { paint: Record<string, unknown> }).paint;
+    const tinted = transformStyle("en", { water: "#cfe3f0", green: "#dcebd6" })(undefined, basemap);
+    expect(paint(tinted, "water")).toEqual({ "fill-color": "#cfe3f0", "fill-opacity": 1 });
+    expect(paint(tinted, "waterway")["line-color"]).toBe("#cfe3f0");
+    expect(paint(tinted, "park")["fill-color"]).toBe("#dcebd6");
+    expect(paint(tinted, "landuse_park")["fill-color"]).toBe("#dcebd6");
+    expect(paint(tinted, "landuse_residential")["fill-color"]).toBe("rgb(234, 234, 230)");
+    expect(paint(transformStyle("en")(undefined, basemap), "water")["fill-color"]).toBe("rgb(194, 200, 202)");
+  });
+
+  it("pin stretch zones are valid and equal, so MapLibre keeps the image and the tail stays centred", () => {
+    expect(PIN_STRETCH_X).toHaveLength(2);
+    for (const [from, to] of PIN_STRETCH_X) expect(to - from).toBeGreaterThan(0);
+    const [[a0, a1], [b0, b1]] = PIN_STRETCH_X as [[number, number], [number, number]];
+    expect(a1 - a0).toBe(b1 - b0);
+    expect(PIN_TIP_OFFSET_PX).toBeGreaterThan(0);
   });
 
   it("mirrors control corners in RTL", () => {

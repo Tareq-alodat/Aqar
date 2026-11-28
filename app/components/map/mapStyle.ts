@@ -33,13 +33,28 @@ const usesName = (v: unknown) => JSON.stringify(v ?? null).includes('"name');
 /** Prefix of our own sources/layers, carried over when the basemap style is swapped (theme change). */
 export const OWN = "aqar-";
 
+/** Basemap tint (design v2): water and parks/green areas, from the theme tokens. */
+export interface BasemapTint {
+  water: string;
+  green: string;
+}
+
+/** OpenFreeMap layer ids (positron and dark) that draw water and green areas. */
+const WATER_FILL = new Set(["water"]);
+const WATER_LINE = new Set(["waterway"]);
+const GREEN_FILL = new Set(["park", "landcover_wood", "landuse_park"]);
+
 /**
  * Basemap labels in one language (OpenFreeMap shows Latin + local names
- * together), and our own sources/layers kept across style swaps.
+ * together), water and green areas tinted (design v2), and our own
+ * sources/layers kept across style swaps.
  */
-export function transformStyle(locale: Locale) {
+export function transformStyle(locale: Locale, tint?: BasemapTint) {
   return (previous: StyleSpecification | undefined, next: StyleSpecification): StyleSpecification => {
     const layers = next.layers.map((layer) => {
+      if (tint && layer.type === "fill" && WATER_FILL.has(layer.id)) return { ...layer, paint: { ...layer.paint, "fill-color": tint.water } };
+      if (tint && layer.type === "line" && WATER_LINE.has(layer.id)) return { ...layer, paint: { ...layer.paint, "line-color": tint.water } };
+      if (tint && layer.type === "fill" && GREEN_FILL.has(layer.id)) return { ...layer, paint: { ...layer.paint, "fill-color": tint.green } };
       if (layer.type !== "symbol" || !usesName(layer.layout?.["text-field"])) return layer;
       return { ...layer, layout: { ...layer.layout, "text-field": nameExpression(locale) } };
     });

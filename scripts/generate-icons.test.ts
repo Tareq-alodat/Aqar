@@ -38,7 +38,8 @@ describe("committed icons", () => {
 
   it("the web manifest lists the icons with brand colours", () => {
     const m = JSON.parse(readFileSync(path.join(pub, "site.webmanifest"), "utf8"));
-    expect(m.theme_color).toBe("#7a3542");
+    expect(m.name).toBe("AQAR");
+    expect(m.theme_color).toBe("#154e75");
     expect(m.background_color).toBe("#f7f4ef");
     expect(m.icons.map((i: { sizes: string }) => i.sizes)).toEqual(["any", "192x192", "512x512"]);
   });

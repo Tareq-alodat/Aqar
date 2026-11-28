@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Aqar",
+    "name": "AQAR",
     "tagline": "Find your property on the map"
   },
   "countries": {
@@ -13,7 +13,7 @@
     "switchLanguageLabel": "التبديل إلى العربية",
     "switchToLight": "Switch to light theme",
     "switchToDark": "Switch to dark theme",
-    "logoAlt": "عقار – AQAR"
+    "logoAlt": "AQAR – شركة الذكاء العقاري"
   },
   "map": {
     "title": "Map search",
@@ -102,7 +102,8 @@
       "one": "Up to 1 year",
       "other": "Up to {count} years"
     },
-    "onlyIn": "Only in"
+    "onlyIn": "Only in",
+    "allTypes": "All"
   },
   "listing": {
     "types": {
@@ -458,17 +459,28 @@
       "title": "Commission terms",
       "draftBanner": "Draft — pending legal review. This text will be replaced by the reviewed terms before launch.",
       "version": "Version {version}",
-      "p1": "AQAR charges a commission when a deal is concluded for a property listed on AQAR.",
+      "p1": "AQAR (operated by {company}) charges a commission when a deal is concluded for a property listed on AQAR.",
       "p2": "The commission is {rate} of the final sale price, or of the annual rent for rentals (monthly rent × 12).",
       "p3": "The lister pays: the agent if an agent submitted the listing, otherwise the owner who listed it.",
       "p4": "When the property is sold or rented through AQAR, the lister records the final price; AQAR then issues an invoice. Payment is by bank transfer or CliQ.",
       "p5": "Exchange deals carry no commission at launch.",
       "p6": "You accept these terms when you submit a listing. The version you accepted is stored with the listing.",
-      "back": "Back"
+      "back": "Back",
+      "operator": "Operator: {company}"
     }
   },
   "headerAdd": {
     "add": "Add listing",
     "addShort": "Add"
+  },
+  "brand": {
+    "company": "شركة الذكاء العقاري – Aqar Intelligence"
+  },
+  "footer": {
+    "label": "Site information",
+    "rights": "© {year} {company}. All rights reserved.",
+    "operatedBy": "AQAR is operated by {company}.",
+    "map": "Map search",
+    "terms": "Commission terms"
   }
 }

@@ -46,7 +46,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value as Sort)}
-            className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm"
+            className="rounded-lg border border-muted bg-card px-2 py-1.5 text-sm"
           >
             {SORTS.map((s) => (
               <option key={s} value={s}>
@@ -64,7 +64,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
         {listings.items.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted">{t("list.empty")}</p>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="grid grid-cols-2 gap-3">
             {listings.items.map((item) => (
               <li key={item.id}>
                 <ListingCard

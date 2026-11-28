@@ -93,7 +93,7 @@ export default function ListingPage() {
                 {t(`listing.types.${listing.listingType}`)}
               </span>
               <span className="rounded-full bg-card px-2.5 py-0.5 text-xs">{t(`listing.categories.${listing.category}`)}</span>
-              {listing.isFeatured && <span className="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-semibold text-background">{t("listing.featured")}</span>}
+              {listing.isFeatured && <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-on-accent">{t("listing.featured")}</span>}
             </div>
             <h1 className="text-2xl font-bold">{listing.title}</h1>
             <PriceText
@@ -173,7 +173,7 @@ export default function ListingPage() {
           <h2 id="similar-title" className="mb-3 text-lg font-semibold">
             {t("detail.similar")}
           </h2>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {similar.map((item) => (
               <li key={item.id}>
                 <ListingCard item={item} currencyDecimals={listing.currencyDecimals} />
