@@ -46,13 +46,16 @@ export interface CountrySubmissionInfo {
   phonePrefix: string;
   currency: string;
   currencyDecimals: number;
+  /** Default commission rate (no agreement). */
   commissionRate: number;
+  /** Highest rate an agreement may set (SPEC §19; Jordan 5 %). */
+  commissionRateMax: number;
 }
 
 export async function getCountrySubmissionInfo(db: Knex, code: string): Promise<CountrySubmissionInfo | null> {
   const row = await db("countries")
     .where({ code, is_active: true })
-    .first("code", "phone_prefix", "currency", "currency_decimals", "commission_rate");
+    .first("code", "phone_prefix", "currency", "currency_decimals", "commission_rate", "commission_rate_max");
   if (!row) return null;
   return {
     code: row.code.trim(),
@@ -60,5 +63,6 @@ export async function getCountrySubmissionInfo(db: Knex, code: string): Promise<
     currency: row.currency.trim(),
     currencyDecimals: row.currency_decimals,
     commissionRate: Number(row.commission_rate),
+    commissionRateMax: Number(row.commission_rate_max),
   };
 }

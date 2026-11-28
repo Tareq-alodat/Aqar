@@ -282,6 +282,8 @@ export async function seed(knex: Knex): Promise<void> {
         // seed does not use up today's submission limit.
         commission_payer_type: agents.includes(p.owner) ? "agent" : "owner",
         commission_terms_version: COMMISSION_TERMS_VERSION,
+        // Jordan's default rate (no agreement), as shown before submission (SPEC §19).
+        commission_rate: 0.01,
         commission_terms_accepted_at: publishedAt ?? knex.raw("now() - interval '2 days'"),
       })
       .returning("id");

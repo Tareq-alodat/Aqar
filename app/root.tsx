@@ -17,6 +17,7 @@ import { DEFAULT_LOCALE, dirFor, localeFromPathname } from "./shared/locales";
 import type { ClientUser } from "./shared/schemas/auth";
 import { DEFAULT_THEME, themeSchema } from "./shared/schemas/theme";
 import { skipSearchOnlyRevalidation } from "./utils/revalidate";
+import { loadCompanyLegal } from "./utils/company.server";
 import { getTheme } from "./utils/theme.server";
 import "./app.css";
 
@@ -38,7 +39,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const user: ClientUser | null = session
     ? { id: session.user.id, name: session.user.name, role: session.user.role }
     : null;
-  return { locale, theme, user };
+  // Public by nature (shown in the footer and on invoices).
+  return { locale, theme, user, company: loadCompanyLegal() };
 }
 
 /** Theme being submitted by the toggle, so the page switches before the round-trip ends. */

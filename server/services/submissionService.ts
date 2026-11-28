@@ -34,6 +34,7 @@ import { COMMISSION_TERMS_VERSION } from "../../app/shared/terms";
 import type { Secrets } from "../env";
 import { getCountryAddressFields, getCountrySubmissionInfo, type CountrySubmissionInfo } from "./countryService";
 import { assignOnSubmit } from "./assignmentService";
+import { listingCommissionRate } from "./commissionService";
 import { recordStatusChange } from "./auditService";
 import { decrypt, protectPhone } from "./cryptoService";
 import { getIdentifierScheme, IdentifierError, normalizeIdentifier, type IdentifierInput, type IdentifierScheme } from "./identifierService";
@@ -687,6 +688,10 @@ export async function submitDraft(deps: SubmissionDeps, user: Lister, id: number
       throw new SubmissionError("phone_required");
     }
 
+    // The rate shown before submission is stored with the accepted terms (SPEC §19).
+    const info = await getCountrySubmissionInfo(trx, row.country_code);
+    if (!info) throw new SubmissionError("forbidden");
+    const commissionRate = listingCommissionRate(info);
     const areaSlug = row.admin_area_id ? (await trx("admin_areas").where({ id: row.admin_area_id }).first("slug"))?.slug : undefined;
     const payer: CommissionPayerType = user.role === "agent" ? "agent" : "owner";
     await trx("properties")
@@ -698,6 +703,7 @@ export async function submitDraft(deps: SubmissionDeps, user: Lister, id: number
         commission_payer_type: payer,
         commission_terms_version: input.termsVersion,
         commission_terms_accepted_at: now,
+        commission_rate: commissionRate,
         slug: slugFor(row.category, row.listing_type, areaSlug),
       });
     // Every status change is recorded (SPEC §26), and the listing goes to its area's supervisor (§4.2).

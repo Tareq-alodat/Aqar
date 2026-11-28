@@ -249,15 +249,28 @@ describe("submit wizard pages", () => {
     expect((await request(server.app).get(`/en/property/${id}`)).status).toBe(404);
   });
 
-  it("the commission terms page shows the country's rate and the draft notice", async () => {
-    const en = await request(server.app).get("/en/terms/commission");
-    expect(en.status).toBe(200);
-    expect(en.text).toContain("Draft — pending legal review.");
-    expect(en.text).toContain("1%");
-    expect(en.text).toContain('<meta name="robots" content="noindex"/>');
+  it("the terms page renders the reviewed text: Arabic authoritative, English translation, indexed", async () => {
     const ar = await request(server.app).get("/ar/terms/commission");
+    expect(ar.status).toBe(200);
     expect(ar.text).toContain('dir="rtl"');
-    expect(ar.text).toContain("شروط العمولة");
+    expect(ar.text).toContain("شروط الإدراج والعمولة");
+    expect(ar.text).toContain("2026-12-v1");
+    expect(ar.text).toContain("النص العربي هو المعتمد");
+    // Arabic text first, then the English translation, each in its own language.
+    const arStart = ar.text.indexOf('lang="ar" dir="rtl" class="flex flex-col');
+    const enStart = ar.text.indexOf('lang="en" dir="ltr" class="flex flex-col');
+    expect(arStart).toBeGreaterThan(0);
+    expect(enStart).toBeGreaterThan(arStart);
+    expect(ar.text).toContain("لا تُفرض أي فوائد على التأخير.");
+    expect(ar.text).toContain("<strong");
+    expect(ar.text).not.toContain("**");
+    expect(ar.text).not.toContain("Draft — pending legal review.");
+    expect(ar.text).not.toContain('content="noindex"');
+
+    const en = await request(server.app).get("/en/terms/commission");
+    expect(en.text).toContain("Listing &amp; commission terms");
+    expect(en.text).toContain("no late-payment interest is charged");
+    expect(en.text.indexOf('lang="en" dir="ltr" class="flex flex-col')).toBeLessThan(en.text.indexOf('lang="ar" dir="rtl" class="flex flex-col'));
   });
 });
 

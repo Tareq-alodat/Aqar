@@ -7,6 +7,7 @@ import { COMMISSION_TERMS_VERSION, isDraftTermsVersion } from "~/shared/terms";
 import { env } from "../../server/env";
 import { getAreaTree } from "../../server/services/areaService";
 import { getCountry, getCountryAddressFields, getCountrySubmissionInfo } from "../../server/services/countryService";
+import { listingCommissionRate } from "../../server/services/commissionService";
 import { getIdentifierScheme } from "../../server/services/identifierService";
 import {
   createDraft,
@@ -124,19 +125,15 @@ export async function loadEditListing(context: AppLoadContext, request: Request,
       // Masked only: the number itself never reaches the page (CLAUDE.md rule 1).
       maskedPhone: await maskedProfilePhone(submission, lister, info),
       limits,
-      terms: { version: COMMISSION_TERMS_VERSION, draft: isDraftTermsVersion(COMMISSION_TERMS_VERSION) },
+      // The rate the listing will be submitted with (no agreements yet: the country default), shown before submitting (SPEC §19).
+      terms: { version: COMMISSION_TERMS_VERSION, draft: isDraftTermsVersion(COMMISSION_TERMS_VERSION), rate: listingCommissionRate(info) },
       styles: { dark: env.MAP_STYLE_URL_DARK, light: env.MAP_STYLE_URL_LIGHT },
     },
     { headers: PRIVATE_HEADERS },
   );
 }
 
-/** /:lang/terms/commission — the rate comes from the country settings. */
-export async function loadCommissionTerms(context: AppLoadContext) {
-  const info = await getCountrySubmissionInfo(context.services.db, toCountryCode(DEFAULT_COUNTRY));
-  return {
-    rate: info?.commissionRate ?? 0.01,
-    version: COMMISSION_TERMS_VERSION,
-    draft: isDraftTermsVersion(COMMISSION_TERMS_VERSION),
-  };
+/** /:lang/terms/commission — the text comes from `docs/legal/commission-terms.md` (rendered by the page). */
+export function loadCommissionTerms() {
+  return { version: COMMISSION_TERMS_VERSION, draft: isDraftTermsVersion(COMMISSION_TERMS_VERSION) };
 }

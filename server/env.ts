@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
+import type { PartialCompanyLegal } from "../app/shared/companyLegal";
 
 /** A base64 string that decodes to exactly 32 bytes (AES-256 key / HMAC key). */
 const key32 = z
@@ -28,6 +29,13 @@ const envSchema = z.object({
   REFRESH_TOKEN_SECRET: optional(key32),
   // Public origin of the site: CSRF origin check and Secure cookies (https).
   PUBLIC_BASE_URL: z.url().default("http://localhost:3000"),
+  // Operating company's legal details (footer, invoices). Required in production (server/launchChecks.ts).
+  COMPANY_LEGAL_NAME_AR: optional(z.string().trim().min(2).max(200)),
+  COMPANY_LEGAL_NAME_EN: optional(z.string().trim().min(2).max(200)),
+  COMPANY_CR_NUMBER: optional(z.string().trim().regex(/^[0-9A-Za-z/-]{1,40}$/, "letters, digits, / or - only")),
+  COMPANY_TAX_NUMBER: optional(z.string().trim().regex(/^[0-9]{5,20}$/, "digits only")),
+  COMPANY_SALES_TAX_REGISTERED: optional(z.enum(["true", "false"])),
+  COMPANY_DLS_LICENSE_NUMBER: optional(z.string().trim().regex(/^[0-9A-Za-z/-]{1,40}$/, "letters, digits, / or - only")),
   // Basemap styles (SPEC §1): OpenFreeMap, no API key. Empty means the default below.
   MAP_STYLE_URL_DARK: optional(z.url()).transform((v) => v ?? "https://tiles.openfreemap.org/styles/dark"),
   MAP_STYLE_URL_LIGHT: optional(z.url()).transform((v) => v ?? "https://tiles.openfreemap.org/styles/positron"),
@@ -73,4 +81,16 @@ export function requireAuthSecrets(): AuthSecrets {
     jwtSecret: Buffer.from(env.JWT_SECRET, "base64"),
     refreshTokenSecret: Buffer.from(env.REFRESH_TOKEN_SECRET, "base64"),
   };
+}
+
+/** The company's legal details that are set (any may be missing outside production). */
+export function companyLegalFromEnv(e: Env = env): PartialCompanyLegal {
+  const out: PartialCompanyLegal = {};
+  if (e.COMPANY_LEGAL_NAME_AR) out.nameAr = e.COMPANY_LEGAL_NAME_AR;
+  if (e.COMPANY_LEGAL_NAME_EN) out.nameEn = e.COMPANY_LEGAL_NAME_EN;
+  if (e.COMPANY_CR_NUMBER) out.commercialRegistrationNumber = e.COMPANY_CR_NUMBER;
+  if (e.COMPANY_TAX_NUMBER) out.taxNumber = e.COMPANY_TAX_NUMBER;
+  if (e.COMPANY_SALES_TAX_REGISTERED) out.salesTaxRegistered = e.COMPANY_SALES_TAX_REGISTERED === "true";
+  if (e.COMPANY_DLS_LICENSE_NUMBER) out.dlsLicenseNumber = e.COMPANY_DLS_LICENSE_NUMBER;
+  return out;
 }

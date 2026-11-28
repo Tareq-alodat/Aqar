@@ -1,16 +1,17 @@
 import { data, useLoaderData } from "react-router";
-import { card } from "~/components/form/types";
+import { LegalDocument } from "~/components/legal/LegalDocument";
 import { getT } from "~/i18n";
 import { useLocale, useT } from "~/i18n/useT";
 import { ltrIsolate } from "~/shared/digits";
+import { commissionTermsDocument } from "~/shared/legal/commissionTerms";
 import { langParamsSchema } from "~/shared/schemas/routeParams";
 import { loadCommissionTerms } from "~/utils/submission.server";
 import type { Route } from "./+types/terms-commission";
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params }: Route.LoaderArgs) {
   const lang = langParamsSchema.safeParse(params);
   if (!lang.success) throw data(null, { status: 404 });
-  return loadCommissionTerms(context);
+  return loadCommissionTerms();
 }
 
 export function meta({ params, data: d }: Route.MetaArgs) {
@@ -21,30 +22,45 @@ export function meta({ params, data: d }: Route.MetaArgs) {
   return [{ title: `${t("terms.commission.title")} | ${t("app.name")}` }, ...(d?.draft ? [{ name: "robots", content: "noindex" }] : [])];
 }
 
-/** /:lang/terms/commission (SPEC §19). Placeholder text, marked as a draft pending legal review. */
+/**
+ * /:lang/terms/commission (SPEC §19): the reviewed text from
+ * `docs/legal/commission-terms.md`. The Arabic text prevails; the English is a
+ * translation. Each page shows its own language first and the other below.
+ */
 export default function CommissionTermsPage() {
-  const { rate, version, draft } = useLoaderData<typeof loader>();
+  const { version, draft } = useLoaderData<typeof loader>();
   const t = useT();
   const locale = useLocale();
-  const percent = new Intl.NumberFormat(locale === "ar" ? "ar-u-nu-latn" : "en", { style: "percent", maximumFractionDigits: 2 }).format(rate);
+  const sections =
+    locale === "ar"
+      ? [
+          { lang: "ar" as const, blocks: commissionTermsDocument.ar, label: null },
+          { lang: "en" as const, blocks: commissionTermsDocument.en, label: t("terms.commission.englishTranslation") },
+        ]
+      : [
+          { lang: "en" as const, blocks: commissionTermsDocument.en, label: null },
+          { lang: "ar" as const, blocks: commissionTermsDocument.ar, label: t("terms.commission.arabicOriginal") },
+        ];
   return (
-    <article className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-8">
+    <article className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-8">
       <h1 className="text-2xl font-bold">{t("terms.commission.title")}</h1>
-      <p className="text-sm text-muted">{t("terms.commission.version", { version: ltrIsolate(version) })}</p>
-      <p className="text-sm text-muted">{t("terms.commission.operator", { company: t("brand.company") })}</p>
+      <p className="text-sm text-muted">
+        {t("terms.commission.version", { version: ltrIsolate(version) })} · {t("terms.commission.operator", { company: t("brand.company") })}
+      </p>
+      <p role="note" className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium">
+        {t("terms.commission.arabicPrevails")}
+      </p>
       {draft && (
         <p role="note" className="rounded-xl border border-warning bg-warning px-4 py-3 text-sm font-medium text-on-accent">
           {t("terms.commission.draftBanner")}
         </p>
       )}
-      <div className={`${card} flex flex-col gap-3 leading-relaxed`}>
-        <p>{t("terms.commission.p1", { company: t("brand.company") })}</p>
-        <p>{t("terms.commission.p2", { rate: percent })}</p>
-        <p>{t("terms.commission.p3")}</p>
-        <p>{t("terms.commission.p4")}</p>
-        <p>{t("terms.commission.p5")}</p>
-        <p>{t("terms.commission.p6")}</p>
-      </div>
+      {sections.map((s) => (
+        <section key={s.lang} aria-label={s.label ?? undefined} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+          {s.label && <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">{s.label}</p>}
+          <LegalDocument blocks={s.blocks} lang={s.lang} />
+        </section>
+      ))}
     </article>
   );
 }
