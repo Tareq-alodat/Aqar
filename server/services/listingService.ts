@@ -1,3 +1,4 @@
+import { maskContacts } from "../../app/shared/contactDetails";
 import type { Knex } from "knex";
 import {
   AMENITY_TAGS,
@@ -252,8 +253,9 @@ export async function getListingDetail(
       id: row.id,
       slug: row.slug,
       status: row.status,
-      title: pick(row.title_ar, row.title_en) ?? "",
-      description: pick(row.description_ar, row.description_en),
+      // Contact details written into listing text are masked in public output, previews included (§8.1).
+      title: maskContacts(pick(row.title_ar, row.title_en) ?? ""),
+      description: maskContacts(pick(row.description_ar, row.description_en)),
       category: row.category,
       listingType: row.listing_type,
       rentPeriod: row.rent_period,

@@ -209,7 +209,8 @@ export async function seed(knex: Knex): Promise<void> {
         title_ar: `${catAr} ${typeAr} في ${placeAr}`,
         // A few listings are Arabic-only, to exercise the display fallback.
         title_en: i % 7 === 6 ? null : `${catEn} ${typeEn} in ${placeEn}`,
-        description_ar: `${catAr} ${typeAr} في ${placeAr}. بيانات تجريبية للتطوير.`,
+        // Listing 1 has contact details written into its description, to show public masking (SPEC §8.1).
+        description_ar: `${catAr} ${typeAr} في ${placeAr}. بيانات تجريبية للتطوير.${i === 1 ? " للتواصل ٠٧٩١٢٣٤٥٦٧ أو واتساب" : ""}`,
         description_en: i % 7 === 6 ? null : `${catEn} ${typeEn} in ${placeEn}. Development sample data.`,
         category: p.category,
         listing_type: p.type,

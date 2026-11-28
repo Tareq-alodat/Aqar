@@ -11,13 +11,17 @@ interface ResultsListProps {
   loading: boolean;
   truncated: boolean;
   sort: Sort;
+  /** A text query is set: "Best match" is offered. */
+  hasQuery: boolean;
+  /** Text search over the country or "near me": the count and empty state do not speak of "this area". */
+  searching: boolean;
   currencyDecimals: number;
   onSort(sort: Sort): void;
   onPage(page: number): void;
 }
 
 /** Result list (desktop side panel and mobile bottom sheet). */
-export function ResultsList({ listings, total, loading, truncated, sort, currencyDecimals, onSort, onPage }: ResultsListProps) {
+export function ResultsList({ listings, total, loading, truncated, sort, hasQuery, searching, currencyDecimals, onSort, onPage }: ResultsListProps) {
   const t = useT();
   const hoveredId = useMapUi((s) => s.hoveredId);
   const selectedId = useMapUi((s) => s.selectedId);
@@ -38,7 +42,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
             {t("map.listHeading")}
           </h1>
           <p className="text-sm text-muted" aria-live="polite">
-            {t("map.resultsCount", { count: total })}
+            {t(searching ? "map.resultsCountSearch" : "map.resultsCount", { count: total })}
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -48,7 +52,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
             onChange={(e) => onSort(e.target.value as Sort)}
             className="rounded-lg border border-muted bg-card px-2 py-1.5 text-sm"
           >
-            {SORTS.map((s) => (
+            {SORTS.filter((s) => hasQuery || s !== "relevance").map((s) => (
               <option key={s} value={s}>
                 {t(`list.sorts.${s}`)}
               </option>
@@ -62,7 +66,7 @@ export function ResultsList({ listings, total, loading, truncated, sort, currenc
       <div className={`flex-1 overflow-y-auto px-4 py-3 transition-opacity ${loading ? "opacity-60" : ""}`} aria-busy={loading || undefined}>
         {loading && <p className="sr-only">{t("list.loading")}</p>}
         {listings.items.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">{t("list.empty")}</p>
+          <p className="py-10 text-center text-sm text-muted">{t(hasQuery ? "list.emptySearch" : "list.empty")}</p>
         ) : (
           <ul className="grid grid-cols-2 gap-3">
             {listings.items.map((item) => (

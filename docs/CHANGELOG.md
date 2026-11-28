@@ -222,3 +222,21 @@ One short entry per milestone (see `docs/SPEC.md` §18).
 
 ### Known gaps
 - Pins are drawn without a visible size animation (the hovered pin is redrawn larger).
+
+## Milestone 4b — Text search (2026-11-28)
+
+- **Search bar** on the map page (desktop filter bar; mobile row above the type chips): one bilingual free-text box (`q`, ≤ 100 characters), an ARIA combobox with **location autocomplete** (`GET /api/v1/areas/suggest`, up to 8 areas of every level with their path, e.g. "عبدون، عمان"; choosing one flies the map there instead of filtering by text), and **"near me"** (browser location only when pressed, rounded to 3 decimals; radius 1/2/5/10 km, default 2; the radius circle is drawn on the map).
+- **Scope** (decision): `q` searches the whole country and the map fits to the results (`bbox` of all matches on the points response); "Search this area" limits it to the view (`in=view`), "Search all of Jordan" goes back; a drawn polygon or near me limits `q`; near me and a polygon are mutually exclusive. New sort "Best match" (`relevance`, the default with `q`). Result counts read "N properties found" for country-wide and near-me searches.
+- **PostgreSQL only:** `pg_trgm`; `aqar_normalize_ar()` (diacritics, tatweel, alef forms, ة/ى, Arabic-Indic/Persian digits, lower case; TS twin `app/shared/normalizeText.ts`); trigger-kept `properties.search_tsv` (`arabic`/`english`/`simple`, titles A, area path B, descriptions C/D; GIN) and `search_norm` (normalized titles + area path; GIN trigram), refreshed when an area on the path is renamed or moved; `admin_areas.search_norm` (generated; GIN trigram). Every query word must match by full-text or by trigram word similarity (0.6, the pg_trgm default — tuned in tests: typos like "عبدوم"/"abdon" match, "عمان" matches exactly the Amman listings); stop words are skipped; only published listings.
+- **Rate limits:** `/areas/suggest` has its own 120/min per IP (not counted in the general 100/min).
+- **Privacy:** request logs redact `near`, `lat` and `lng` (`server/middleware/requestLog.ts`); the location is never stored.
+- **Contact details in listing text** (new business rule, SPEC §8.1, CLAUDE.md rule 1): shared detector `app/shared/contactDetails.ts` (phones in any digit form and separator, +962/00962/07, emails, links incl. bare domains and `wa.me`/`t.me`, `@handles`, WhatsApp/Telegram/Instagram/Facebook mentions in Arabic and Latin). This milestone: **masked as `•••` in all public output** (result cards, listing title/description incl. meta tags) and **never indexed** (`aqar_strip_contacts()`, built from a snapshot of the detector's patterns; a database test checks SQL and TS agree). The moderation-queue flag and its audit entry come with milestone 7; OCR of photos is [P2].
+- Test configs exclude `.claude/**` (Claude Code worktrees with their own `node_modules` were being collected and failing).
+- Seed: one listing has a phone number and "واتساب" in its description, to show the masking.
+- Docs: SPEC §0 (production needs `postgresql-contrib`), §5.6 (decisions), new §8.1, §9, §12, §13, §18 (milestones 7 and 16); CLAUDE.md.
+- Tests: 477 unit (detector fixtures and clean texts, normalization, search state, log redaction) and 175 database/HTTP (SQL normalization/stripping parity, index triggers, text search variants/typos/area path/stop words, masking, near-me radius, suggest ranking and rate limit). Server-rendered check on a throwaway database: country-wide, in-view and near-me pages in `/ar` and `/en`, masking on the listing page, redacted log lines.
+
+### Known gaps
+- No interactive browser check of the search box, suggestions and near me this time (the browser extension was not connected); typecheck, lint and server-rendered pages are clean.
+- Detection is pattern-based: numbers spelled out in words and deliberately obfuscated addresses ("name at gmail dot com") are not caught; very long digit runs (e.g. a written price range "150000-200000") are masked as phones.
+- Renaming an area bumps `updated_at` on the listings under it (their search columns are refreshed).

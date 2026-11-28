@@ -2,16 +2,24 @@ import type { Knex } from "knex";
 import type { Category, ListingType, RentPeriod } from "../../app/shared/constants";
 import type { BBox } from "../../app/shared/geo";
 import type { Locale } from "../../app/shared/locales";
+import { maskContacts } from "../../app/shared/contactDetails";
 import type { LngLatPair } from "../../app/shared/polyline";
-import { BEDS_OR_MORE, PAGE_SIZE, POINTS_CAP, type SearchFilters, type Sort } from "../../app/shared/schemas/mapSearch";
+import { BEDS_OR_MORE, PAGE_SIZE, POINTS_CAP, type LngLat, type SearchFilters, type Sort } from "../../app/shared/schemas/mapSearch";
 
 /**
- * Map search (SPEC §5.4). Public: published listings only, `display_point`
- * only (never `point`), explicit output fields (no phone, address or
- * identifiers — CLAUDE.md rules 1–2).
+ * Map search (SPEC §5.4) and text search (§5.6). Public: published listings
+ * only, `display_point` only (never `point`), explicit output fields (no
+ * phone, address or identifiers — CLAUDE.md rules 1–2); contact details in
+ * titles are masked (§8.1).
  */
 
-export type SearchArea = { kind: "bbox"; bbox: BBox } | { kind: "polygon"; ring: LngLatPair[] };
+export type SearchArea =
+  | { kind: "bbox"; bbox: BBox }
+  | { kind: "polygon"; ring: LngLatPair[] }
+  /** "Near me": within `radiusM` metres of a point (§5.6). */
+  | { kind: "near"; center: LngLat; radiusM: number }
+  /** The whole country (text search without an area). */
+  | { kind: "country" };
 
 export interface PointProperties {
   id: number;
@@ -32,6 +40,8 @@ export interface PointsResult {
     properties: PointProperties;
   }>;
   truncated: boolean;
+  /** Bounds of all matches (not only the first POINTS_CAP) for text searches; null when nothing matches. */
+  bbox?: BBox | null;
 }
 
 export interface ListingCard {
@@ -76,15 +86,64 @@ export async function assertValidPolygon(db: Knex, ring: LngLatPair[]): Promise<
   if (!r.rows[0]?.ok) throw new InvalidPolygonError();
 }
 
-function applySearch(q: Knex.QueryBuilder, countryCode: string, area: SearchArea, f: SearchFilters) {
+/** Splits normalized query text into words (same word characters as the contact detector). */
+const WORD_SPLIT = "[^a-z0-9_ء-يٱ-ۓ]+";
+
+/** Full-text query of one word or text in the three configs the index uses (§5.6). */
+const tsq = (expr: string) =>
+  `(plainto_tsquery('arabic', ${expr}) || plainto_tsquery('english', ${expr}) || plainto_tsquery('simple', ${expr}))`;
+
+/**
+ * Text match (§5.6): the query is normalized like the index; every word must
+ * match the listing by full-text search (stemmed Arabic/English or exact) or
+ * by trigram word similarity (≥ pg_trgm.word_similarity_threshold, 0.6) for
+ * typos. Stop words ("في", "in") are skipped. Adds `sq` with the normalized
+ * query (`nq`) and an OR query of its words (`rank_q`) for ranking.
+ */
+function applyText(q: Knex.QueryBuilder, text: string) {
+  q.joinRaw(
+    `CROSS JOIN (
+       SELECT n.nq, w.words,
+              websearch_to_tsquery('arabic', w.any_word) || websearch_to_tsquery('english', w.any_word)
+                || websearch_to_tsquery('simple', w.any_word) AS rank_q
+         FROM (SELECT aqar_normalize_ar(?) AS nq) n
+        CROSS JOIN LATERAL (
+          -- any_word: "w1 or w2 …" (websearch syntax), so ranking counts every matching word.
+          SELECT coalesce(array_agg(x), '{}') AS words, coalesce(string_agg(x, ' or '), '') AS any_word
+            FROM regexp_split_to_table(n.nq, ?) AS x
+           WHERE x <> '' AND numnode(plainto_tsquery('arabic', x)) > 0 AND numnode(plainto_tsquery('english', x)) > 0
+        ) w
+     ) AS sq`,
+    [text, WORD_SPLIT],
+  );
+  q.whereRaw(
+    `CASE WHEN cardinality(sq.words) = 0
+       THEN p.search_tsv @@ ${tsq("sq.nq")} OR sq.nq <% p.search_norm
+       ELSE NOT EXISTS (
+         SELECT 1 FROM unnest(sq.words) AS w
+          WHERE NOT (p.search_tsv @@ ${tsq("w")} OR w <% p.search_norm))
+     END`,
+  );
+}
+
+const RANK_SQL = "(ts_rank(p.search_tsv, sq.rank_q) + word_similarity(sq.nq, p.search_norm))";
+
+function applySearch(q: Knex.QueryBuilder, countryCode: string, area: SearchArea, f: SearchFilters, text?: string) {
   q.where("p.country_code", countryCode).where("p.status", "published");
 
   if (area.kind === "bbox") {
     const [minLng, minLat, maxLng, maxLat] = area.bbox;
     q.whereRaw("ST_Intersects(p.display_point, ST_MakeEnvelope(?, ?, ?, ?, 4326)::geography)", [minLng, minLat, maxLng, maxLat]);
-  } else {
+  } else if (area.kind === "polygon") {
     q.whereRaw("ST_Covers(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326)::geography, p.display_point)", [polygonJson(area.ring)]);
+  } else if (area.kind === "near") {
+    q.whereRaw("ST_DWithin(p.display_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)", [
+      area.center.lng,
+      area.center.lat,
+      area.radiusM,
+    ]);
   }
+  if (text) applyText(q, text);
 
   if (f.type) q.where("p.listing_type", f.type);
   if (f.cat) q.where("p.category", f.cat);
@@ -153,9 +212,25 @@ export interface CardRow {
   thumbnail_url: string | null;
 }
 
-/** Pins for the map: GeoJSON of display points, at most POINTS_CAP (`truncated` when there are more). */
-export async function searchPoints(db: Knex, countryCode: string, area: SearchArea, filters: SearchFilters): Promise<PointsResult> {
-  const rows: PointRow[] = await applySearch(db("properties as p"), countryCode, area, filters)
+/**
+ * Pins for the map: GeoJSON of display points, at most POINTS_CAP (`truncated` when there are more).
+ * A text search also returns the bounds of all its matches, so the map can fit to them (§5.6).
+ */
+export async function searchPoints(
+  db: Knex,
+  countryCode: string,
+  area: SearchArea,
+  filters: SearchFilters,
+  text?: string,
+): Promise<PointsResult> {
+  const bboxQuery = text
+    ? applySearch(db("properties as p"), countryCode, area, filters, text).first(
+        db.raw(
+          "min(ST_X(p.display_point::geometry)) AS min_lng, min(ST_Y(p.display_point::geometry)) AS min_lat, max(ST_X(p.display_point::geometry)) AS max_lng, max(ST_Y(p.display_point::geometry)) AS max_lat",
+        ),
+      )
+    : null;
+  const pointsQuery = applySearch(db("properties as p"), countryCode, area, filters, text)
     .select(
       "p.id",
       "p.price",
@@ -173,11 +248,19 @@ export async function searchPoints(db: Knex, countryCode: string, area: SearchAr
       { column: "p.id", order: "desc" },
     ])
     .limit(POINTS_CAP + 1);
+  const [rows, ext] = (await Promise.all([pointsQuery, bboxQuery])) as [
+    PointRow[],
+    { min_lng: number | null; min_lat: number | null; max_lng: number | null; max_lat: number | null } | null | undefined,
+  ];
 
   const truncated = rows.length > POINTS_CAP;
+  const round5 = (v: number | null) => Number(Number(v).toFixed(5));
   return {
     type: "FeatureCollection",
     truncated,
+    ...(text
+      ? { bbox: ext && ext.min_lng !== null ? ([round5(ext.min_lng), round5(ext.min_lat), round5(ext.max_lng), round5(ext.max_lat)] as BBox) : null }
+      : {}),
     features: rows.slice(0, POINTS_CAP).map((r) => ({
       type: "Feature" as const,
       id: r.id as number,
@@ -201,6 +284,8 @@ const ORDER: Record<Sort, Array<{ column: string; order: "asc" | "desc"; nulls?:
   price_desc: [{ column: "p.price", order: "desc", nulls: "last" }],
   views: [{ column: "p.view_count", order: "desc" }],
   ppsqm_asc: [{ column: "price_per_sqm", order: "asc", nulls: "last" }],
+  // Text searches: see RANK_SQL (best match first, then newest); without a query, newest.
+  relevance: [{ column: "p.published_at", order: "desc" }],
 };
 
 /** Result cards for the list (title and area name in `locale`, falling back to the other language). */
@@ -212,12 +297,15 @@ export async function searchListings(
   sort: Sort,
   page: number,
   locale: Locale,
+  text?: string,
 ): Promise<ListingsResult> {
-  const base = applySearch(db("properties as p"), countryCode, area, filters);
+  const base = applySearch(db("properties as p"), countryCode, area, filters, text);
   const countRow = await base.clone().count({ n: "*" }).first();
   const total = Number(countRow?.n ?? 0);
 
-  const rows: CardRow[] = await selectCards(db, base)
+  const cards = selectCards(db, base);
+  if (text && sort === "relevance") cards.orderByRaw(`${RANK_SQL} DESC`);
+  const rows: CardRow[] = await cards
     .orderBy([...ORDER[sort], { column: "p.id", order: "desc" }])
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE);
@@ -261,7 +349,8 @@ export function toCard(r: CardRow, locale: Locale): ListingCard {
   return {
     id: r.id,
     slug: r.slug ?? null,
-    title: pick(r.title_ar, r.title_en) ?? "",
+    // Contact details written into the title are masked in public output (§8.1).
+    title: maskContacts(pick(r.title_ar, r.title_en) ?? ""),
     price: num(r.price),
     currency: r.currency.trim(),
     listingType: r.listing_type,

@@ -155,12 +155,19 @@ export function Notice() {
   const notice = useMapUi((s) => s.notice);
   const setNotice = useMapUi((s) => s.setNotice);
   useEffect(() => {
-    if (notice === "draw_invalid" || notice === "load_error") {
+    if (notice !== null && notice !== "rate_limited") {
       const id = window.setTimeout(() => setNotice(null), 6000);
       return () => window.clearTimeout(id);
     }
   }, [notice, setNotice]);
-  const text = notice === "rate_limited" ? t("map.rateLimited") : notice === "load_error" ? t("map.loadError") : notice === "draw_invalid" ? t("map.drawInvalid") : "";
+  const messages: Record<NonNullable<typeof notice>, string> = {
+    rate_limited: t("map.rateLimited"),
+    load_error: t("map.loadError"),
+    draw_invalid: t("map.drawInvalid"),
+    geo_denied: t("map.geoDenied"),
+    geo_unavailable: t("map.geoUnavailable"),
+  };
+  const text = notice ? messages[notice] : "";
   return (
     <div role="status" aria-live="polite" className="pointer-events-none flex justify-center">
       {text && <p className={`${panel} pointer-events-auto max-w-sm px-4 py-2 text-center text-sm`}>{text}</p>}

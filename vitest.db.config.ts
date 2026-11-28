@@ -6,7 +6,7 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     include: ["**/*.db.test.ts"],
-    exclude: ["node_modules", "build"],
+    exclude: ["node_modules", "build", ".claude/**"],
     environment: "node",
     globalSetup: ["./server/db/test/globalSetup.ts"],
     // One database, so files run one at a time.

@@ -7,7 +7,7 @@ import type { BBox } from "~/shared/geo";
  */
 
 export type SheetSnap = "peek" | "half" | "full";
-export type NoticeKind = "rate_limited" | "load_error" | "draw_invalid";
+export type NoticeKind = "rate_limited" | "load_error" | "draw_invalid" | "geo_denied" | "geo_unavailable";
 
 interface MapUiState {
   hoveredId: number | null;

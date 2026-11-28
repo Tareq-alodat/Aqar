@@ -166,3 +166,64 @@ export async function getPathAt(
     bbox: toBBox(r),
   }));
 }
+
+export interface AreaSuggestion extends AreaSummary {
+  /** Ancestors, nearest first (e.g. Abdoun → Amman city → Amman governorate), for "عبدون، عمان". */
+  parents: Array<{ nameAr: string; nameEn: string }>;
+}
+
+export const SUGGEST_LIMIT = 8;
+
+/**
+ * Location autocomplete (SPEC §5.6): areas of every level whose normalized
+ * Arabic or English name contains the query or is similar to it (pg_trgm),
+ * best first: the name starting with the query, then a word of it, then
+ * similarity, then higher levels and shorter names.
+ */
+export async function suggestAreas(db: Knex, countryCode: string, query: string): Promise<AreaSuggestion[]> {
+  const hits = await db.raw<{ rows: Array<BBoxRow & { id: number; parent_id: number | null; level: string; name_ar: string; name_en: string }> }>(
+    `SELECT a.id, a.parent_id, a.level, a.name_ar, a.name_en, ${BBOX_SQL("a.boundary")}
+       FROM admin_areas a
+       JOIN country_address_fields f ON f.country_code = a.country_code AND f.field_key = a.level
+      CROSS JOIN (SELECT aqar_normalize_ar(?) AS nq) s
+      WHERE a.country_code = ? AND a.is_active AND f.is_active
+        AND (strpos(a.search_norm, s.nq) > 0 OR s.nq <% a.search_norm)
+      ORDER BY strpos(a.search_norm, s.nq) = 1 DESC,
+               strpos(' ' || a.search_norm, ' ' || s.nq) > 0 DESC,
+               word_similarity(s.nq, a.search_norm) DESC,
+               f.position, length(a.name_ar), a.name_ar, a.id
+      LIMIT ?`,
+    [query, countryCode, SUGGEST_LIMIT],
+  );
+  if (hits.rows.length === 0) return [];
+
+  const ancestors = await db.raw<{ rows: Array<{ hit_id: number; name_ar: string; name_en: string; depth: number }> }>(
+    `WITH RECURSIVE up AS (
+       SELECT h.id AS hit_id, a.id, a.parent_id, a.name_ar, a.name_en, 1 AS depth
+         FROM admin_areas h JOIN admin_areas a ON a.id = h.parent_id
+        WHERE h.id = ANY(?)
+       UNION ALL
+       SELECT up.hit_id, a.id, a.parent_id, a.name_ar, a.name_en, up.depth + 1
+         FROM up JOIN admin_areas a ON a.id = up.parent_id
+        WHERE up.depth < 10
+     )
+     SELECT hit_id, name_ar, name_en, depth FROM up ORDER BY hit_id, depth`,
+    [hits.rows.map((r) => r.id)],
+  );
+  const parentsOf = new Map<number, AreaSuggestion["parents"]>();
+  for (const a of ancestors.rows) {
+    const list = parentsOf.get(a.hit_id) ?? [];
+    list.push({ nameAr: a.name_ar, nameEn: a.name_en });
+    parentsOf.set(a.hit_id, list);
+  }
+
+  return hits.rows.map((r) => ({
+    id: r.id,
+    parentId: r.parent_id,
+    level: r.level,
+    nameAr: r.name_ar,
+    nameEn: r.name_en,
+    bbox: toBBox(r),
+    parents: parentsOf.get(r.id) ?? [],
+  }));
+}

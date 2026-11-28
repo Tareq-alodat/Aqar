@@ -48,7 +48,13 @@
       "attribution": "Map credits"
     },
     "sheetHandle": "Drag to show more or fewer results",
-    "closeCard": "Close"
+    "closeCard": "Close",
+    "resultsCountSearch": {
+      "one": "1 property found",
+      "other": "{count} properties found"
+    },
+    "geoDenied": "Location access is turned off. Allow it in your browser to search near you.",
+    "geoUnavailable": "Could not find your location. Please try again."
   },
   "list": {
     "empty": "No properties match here. Try zooming out or removing filters.",
@@ -58,12 +64,14 @@
       "price_asc": "Price: low to high",
       "price_desc": "Price: high to low",
       "views": "Most viewed",
-      "ppsqm_asc": "Price per m²: low to high"
+      "ppsqm_asc": "Price per m²: low to high",
+      "relevance": "Best match"
     },
     "previous": "Previous",
     "next": "Next",
     "pageOf": "Page {page} of {pages}",
-    "loading": "Updating results…"
+    "loading": "Updating results…",
+    "emptySearch": "No properties match your search. Try other words or remove some filters."
   },
   "filters": {
     "title": "Filters",
@@ -482,5 +490,22 @@
     "operatedBy": "AQAR is operated by {company}.",
     "map": "Map search",
     "terms": "Commission terms"
+  },
+  "search": {
+    "label": "Search properties",
+    "placeholder": "Search by area or keyword",
+    "submit": "Search",
+    "clear": "Clear search",
+    "forText": "Search properties for “{q}”",
+    "areas": "Areas",
+    "pathSeparator": ", ",
+    "everywhere": "Search all of {country}",
+    "inView": "Results in the map area",
+    "nearMe": "Near me",
+    "locating": "Finding your location…",
+    "radius": "Distance",
+    "radiusKm": "{km} km",
+    "nearActive": "Within {km} km of you",
+    "clearNear": "Stop searching near me"
   }
 }

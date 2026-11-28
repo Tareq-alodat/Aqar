@@ -8,16 +8,17 @@ import { chip, FilterPanel } from "~/components/map/FilterPanel";
 import { LISTING_TYPES } from "~/shared/constants";
 import { AreaPath, JumpTo, MapToolbar, Notice } from "~/components/map/MapChrome";
 import { ResultsList } from "~/components/map/ResultsList";
-import type { ListingCard as Card, ViewChange } from "~/components/map/types";
+import { NearMe, SearchBox } from "~/components/map/SearchBar";
+import type { AreaSuggestion, ListingCard as Card, ViewChange } from "~/components/map/types";
 import { useMapSearch } from "~/components/map/useMapSearch";
 import { useMapUrlState } from "~/hooks/useMapUrlState";
 import { useTheme } from "~/hooks/useTheme";
 import { getT } from "~/i18n";
 import { useLocale, useT } from "~/i18n/useT";
-import type { BBox } from "~/shared/geo";
+import { circleRing, type BBox } from "~/shared/geo";
 import { dirFor } from "~/shared/locales";
 import type { LngLatPair } from "~/shared/polyline";
-import { countFilters, type SearchFilters, type Sort } from "~/shared/schemas/mapSearch";
+import { countFilters, DEFAULT_SORT, type LngLat, type RadiusKm, type SearchFilters, type Sort } from "~/shared/schemas/mapSearch";
 import { mapParamsSchema } from "~/shared/schemas/routeParams";
 import { useMapUi } from "~/store/mapUiStore";
 import { loadMapPage } from "~/utils/mapSearch.server";
@@ -66,7 +67,7 @@ export default function MapPage() {
   const drawing = useMapUi((s) => s.drawing);
   const fit = useMapUi((s) => s.fit);
   const filtersOpen = useMapUi((s) => s.filtersOpen);
-  const { setHovered, select, setDrawing, setFiltersOpen } = useMapUi.getState();
+  const { setHovered, select, setDrawing, setFiltersOpen, fitTo } = useMapUi.getState();
 
   const clearPolygon = useCallback(() => update({ poly: undefined, page: 1 }, { push: true }), [update]);
   const search = useMapSearch({
@@ -98,8 +99,36 @@ export default function MapPage() {
   const onPage = (page: number) => update({ page }, { push: true });
   const onDrawFinish = (ring: LngLatPair[]) => {
     setDrawing(false);
-    update({ poly: ring, page: 1 }, { push: true });
+    // A drawn area replaces "near me" (they are mutually exclusive, SPEC §5.6).
+    update({ poly: ring, near: undefined, page: 1 }, { push: true });
   };
+
+  // Text search (§5.6): a query searches the whole country until "Search this area".
+  const onSearch = (q: string | undefined) => {
+    const sort = q ? (state.sort === DEFAULT_SORT ? "relevance" : state.sort) : state.sort === "relevance" ? DEFAULT_SORT : state.sort;
+    update({ q, inView: false, sort, page: 1 }, { push: true });
+  };
+  // Choosing a place flies there; a text search then follows the map.
+  const onLocation = (area: AreaSuggestion) => {
+    fitTo(area.bbox);
+    if (search.scope === "country") update({ inView: true, page: 1 }, { push: true });
+  };
+  const onNear = (near: LngLat | undefined) => {
+    setDrawing(false);
+    update({ near, poly: undefined, inView: false, page: 1 }, { push: true });
+  };
+  const onRadius = (radius: RadiusKm) => update({ radius, page: 1 }, { push: true });
+  const searchThisArea = () => {
+    if (search.scope === "country") update({ inView: true, page: 1 }, { push: true });
+    search.searchThisArea();
+  };
+  const searchEverywhere = () => update({ inView: false, page: 1 }, { push: true });
+
+  // The "near me" circle is drawn like a drawn area.
+  const nearRing = useMemo(
+    () => (state.near ? circleRing(state.near.lng, state.near.lat, state.radius * 1000) : undefined),
+    [state.near, state.radius],
+  );
 
   const countryBBox = useMemo(
     () => unionBBox(data.jumpAreas.filter((a) => a.level === data.levels[0]?.level).map((a) => a.bbox)),
@@ -147,19 +176,32 @@ export default function MapPage() {
       loading={search.listingsLoading}
       truncated={search.truncated}
       sort={state.sort}
+      hasQuery={Boolean(state.q)}
+      searching={search.scope === "country" || search.scope === "near"}
       currencyDecimals={data.currencyDecimals}
       onSort={onSort}
       onPage={onPage}
     />
   );
   const activeFilters = countFilters(state.filters);
+  const countKey = search.scope === "country" || search.scope === "near" ? "map.resultsCountSearch" : "map.resultsCount";
+  const searchRow = (
+    <>
+      <SearchBox country={data.countryCode} q={state.q} onSearch={onSearch} onLocation={onLocation} />
+      <NearMe near={state.near} radius={state.radius} onNear={onNear} onRadius={onRadius} />
+    </>
+  );
 
   return (
     <div className="flex h-[calc(100dvh-4rem)] flex-col">
       {/* Filter bar above both panes (desktop). */}
       <div className="hidden border-b border-border bg-card px-4 py-3 lg:block">
+        <div className="mb-3 flex max-w-2xl items-center gap-2">{searchRow}</div>
         <FilterPanel filters={state.filters} areas={data.jumpAreas} onChange={onFilters} layout="bar" />
       </div>
+
+      {/* Mobile: search box and "near me" above the type chips. */}
+      <div className="flex items-center gap-2 bg-card px-3 pt-2 lg:hidden">{searchRow}</div>
 
       {/* Mobile: listing-type chips (scroll sideways) and the filters button, on the same white bar (design v2). */}
       <div className="flex items-center gap-2 border-b border-border bg-card py-2 ps-3 lg:hidden">
@@ -210,7 +252,7 @@ export default function MapPage() {
                 initialView={{ lng: data.view.lng, lat: data.view.lat, zoom: data.view.z }}
                 levels={data.levels}
                 points={search.points}
-                polygon={state.poly}
+                polygon={state.poly ?? nearRing}
                 activeId={hoveredId ?? selectedId}
                 drawing={drawing}
                 fit={fit}
@@ -238,9 +280,20 @@ export default function MapPage() {
                 hasPolygon={Boolean(state.poly)}
                 pendingMove={search.pendingMove}
                 onClearPolygon={clearPolygon}
-                onSearchThisArea={search.searchThisArea}
+                onSearchThisArea={searchThisArea}
               />
             </div>
+            {/* Text search: over the whole country ↔ in the map area. */}
+            {search.scope === "country" && (
+              <button type="button" onClick={searchThisArea} className="pointer-events-auto rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-on-primary shadow-lg transition-colors duration-150 hover:bg-primary-hover">
+                {t("map.searchThisArea")}
+              </button>
+            )}
+            {state.q && state.inView && search.scope === "view" && (
+              <button type="button" onClick={searchEverywhere} className="pointer-events-auto rounded-lg border border-border bg-surface/95 px-3 py-1.5 text-sm font-medium shadow-lg transition-colors duration-150 hover:bg-card">
+                {t("search.everywhere", { country: t(`countries.${data.country}`) })}
+              </button>
+            )}
           </div>
 
           <div className="pointer-events-none absolute inset-x-3 bottom-24 z-10 lg:bottom-10">
@@ -265,7 +318,7 @@ export default function MapPage() {
           )}
 
           <div className="lg:hidden">
-            <BottomSheet summary={<span className="text-sm font-semibold">{t("map.resultsCount", { count: search.total })}</span>}>
+            <BottomSheet summary={<span className="text-sm font-semibold">{t(countKey, { count: search.total })}</span>}>
               {list}
             </BottomSheet>
           </div>

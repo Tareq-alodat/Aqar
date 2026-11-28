@@ -3,7 +3,7 @@ import type { ActiveCountry } from "~/shared/countries";
 import { toCountryCode } from "~/shared/countries";
 import { bboxAround } from "~/shared/geo";
 import type { Locale } from "~/shared/locales";
-import { parseMapSearch } from "~/shared/schemas/mapSearch";
+import { parseMapSearch, searchScope } from "~/shared/schemas/mapSearch";
 import { env } from "../../server/env";
 import { getAreaTree, getPathAt } from "../../server/services/areaService";
 import { getCountry } from "../../server/services/countryService";
@@ -37,13 +37,20 @@ export async function loadMapPage(context: AppLoadContext, request: Request, cou
       poly = undefined;
     }
   }
-  const area: SearchArea = poly
-    ? { kind: "polygon", ring: poly }
-    : { kind: "bbox", bbox: bboxAround(view.lng, view.lat, view.z, SSR_MAP_WIDTH, SSR_MAP_HEIGHT) };
+  // Same scope as the browser and the API (SPEC §5.6): polygon, near me, whole country (text) or the view.
+  const scope = searchScope({ ...state, poly });
+  const area: SearchArea =
+    scope === "polygon"
+      ? { kind: "polygon", ring: poly! }
+      : scope === "near"
+        ? { kind: "near", center: state.near!, radiusM: state.radius * 1000 }
+        : scope === "country"
+          ? { kind: "country" }
+          : { kind: "bbox", bbox: bboxAround(view.lng, view.lat, view.z, SSR_MAP_WIDTH, SSR_MAP_HEIGHT) };
 
   const [tree, listings, path] = await Promise.all([
     getAreaTree(db, code),
-    searchListings(db, code, area, state.filters, state.sort, state.page, locale),
+    searchListings(db, code, area, state.filters, state.sort, state.page, locale, state.q),
     getPathAt(db, code, view, view.z),
   ]);
 
